@@ -1,6 +1,6 @@
 "use client"; // Required for client-side interactivity in App Router
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // Add Suspense
 import { useSearchParams } from "next/navigation"; // For App Router query params
 import axios from "axios";
 import { Button } from "@/components/ui/button"; // shadcn/ui Button
@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // shadcn/ui Alert
 import { Loader2 } from "lucide-react"; // Icon from shadcn/ui
 
-export default function ActivatePage() {
+// Inner component that uses useSearchParams
+function ActivateForm() {
   const searchParams = useSearchParams(); // Get query params in App Router
   const [token, setToken] = useState("");
   const [otp, setOtp] = useState("");
@@ -107,5 +108,14 @@ export default function ActivatePage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Default export with Suspense boundary
+export default function ActivatePage() {
+  return (
+    <Suspense fallback={<div>Loading activation form...</div>}>
+      <ActivateForm />
+    </Suspense>
   );
 }

@@ -1,8 +1,7 @@
-// components/MapComponent.jsx
 "use client";
 
 import React, { useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
+import dynamic from "next/dynamic"; // Use dynamic import for Leaflet components
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -13,20 +12,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { 
-  ArrowUDownLeft, 
-  Package, 
-  Target, 
-  TrendDown, 
-  TrendUp, 
-  MapPin, 
-  CheckCircle, 
+import {
+  MapPin,
+  CheckCircle,
   XCircle,
-  Lightning,
-  MagnifyingGlass,
-  PushPin
 } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
+
+// Dynamically import react-leaflet components with SSR disabled
+const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import("react-leaflet").then((mod) => mod.Marker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
+const Tooltip = dynamic(() => import("react-leaflet").then((mod) => mod.Tooltip), { ssr: false });
 
 // Enhanced Pune locations with status
 const locations = [
@@ -48,20 +46,12 @@ const createCustomMarker = (status) => {
     <div className="relative">
       {status === "active" ? (
         <div className="relative">
-          <MapPin
-            size={36}
-            className="text-primary drop-shadow-md"
-            weight="fill"
-          />
+          <MapPin size={36} className="text-primary drop-shadow-md" weight="fill" />
           <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
         </div>
       ) : (
         <div className="relative">
-          <MapPin
-            size={36}
-            className="text-gray-400 drop-shadow-md"
-            weight="fill"
-          />
+          <MapPin size={36} className="text-gray-400 drop-shadow-md" weight="fill" />
           <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></div>
         </div>
       )}
@@ -82,23 +72,21 @@ const DeviceLocationMap = () => {
   const [selectedFilter, setSelectedFilter] = useState("all");
 
   // Filter locations based on selected filter
-  const filteredLocations = selectedFilter === "all" 
-    ? locations 
-    : locations.filter(location => location.status === selectedFilter);
+  const filteredLocations = selectedFilter === "all"
+    ? locations
+    : locations.filter((location) => location.status === selectedFilter);
 
   // Calculate statistics
   const totalLocations = locations.length;
-  const activeLocations = locations.filter(loc => loc.status === "active").length;
-  const inactiveLocations = locations.filter(loc => loc.status === "inactive").length;
+  const activeLocations = locations.filter((loc) => loc.status === "active").length;
+  const inactiveLocations = locations.filter((loc) => loc.status === "inactive").length;
   const activePercentage = Math.round((activeLocations / totalLocations) * 100);
 
   return (
-    <div className="w-full h-full flex-1 ">
-
-
+    <div className="w-full h-full flex-1">
       {/* Map Card */}
       <Card className="w-full rounded-lg h-full">
-        <CardHeader className="px-6 py-4 flex flex-row items-center justify-between ">
+        <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-xl font-bold flex items-center gap-2">
               <MapPin weight="duotone" className="text-primary" size={20} />
@@ -108,21 +96,21 @@ const DeviceLocationMap = () => {
               {filteredLocations.length} devices shown on map
             </CardDescription>
           </div>
-          
+
           <div className="flex gap-2">
-            <Badge 
+            <Badge
               onClick={() => setSelectedFilter("all")}
               className={`cursor-pointer hover:bg-primary/90 ${selectedFilter === "all" ? "bg-primary" : "bg-muted"}`}
             >
               All ({totalLocations})
             </Badge>
-            <Badge 
+            <Badge
               onClick={() => setSelectedFilter("active")}
               className={`cursor-pointer hover:bg-green-500/90 ${selectedFilter === "active" ? "bg-green-500" : "bg-muted text-foreground"}`}
             >
               Active ({activeLocations})
             </Badge>
-            <Badge 
+            <Badge
               onClick={() => setSelectedFilter("inactive")}
               className={`cursor-pointer hover:bg-red-500/90 ${selectedFilter === "inactive" ? "bg-red-500" : "bg-muted text-foreground"}`}
             >
@@ -130,21 +118,18 @@ const DeviceLocationMap = () => {
             </Badge>
           </div>
         </CardHeader>
-        
+
         <CardContent className="p-2 overflow-hidden rounded-b-lg">
           <div className="h-[30.75rem] w-full relative">
-          
-            
             <MapContainer
               center={center}
               zoom={12}
               style={{ height: "100%", width: "100%" }}
               className="rounded-lg z-10"
             >
-              {/* Using Stadia Maps Alidade Smooth - a modern, clean tile set */}
               <TileLayer
                 url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
+                attribution='© <a href="https://stadiamaps.com/">Stadia Maps</a>'
               />
               {filteredLocations.map((location, index) => (
                 <Marker
@@ -165,7 +150,11 @@ const DeviceLocationMap = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Status:</span>
-                          <span className={`font-medium ${location.status === "active" ? "text-green-500" : "text-red-500"}`}>
+                          <span
+                            className={`font-medium ${
+                              location.status === "active" ? "text-green-500" : "text-red-500"
+                            }`}
+                          >
                             {location.status.charAt(0).toUpperCase() + location.status.slice(1)}
                           </span>
                         </div>
@@ -175,7 +164,9 @@ const DeviceLocationMap = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Coordinates:</span>
-                          <span className="font-medium">{location.lat.toFixed(4)}, {location.lng.toFixed(4)}</span>
+                          <span className="font-medium">
+                            {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+                          </span>
                         </div>
                       </div>
                     </div>

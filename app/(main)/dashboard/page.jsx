@@ -1,10 +1,14 @@
-// pages/index.js (or wherever your Page component is)
 "use client";
 
 import { useState, useEffect } from "react";
 import BarChart1 from "./bar-chart";
-import MapComponent from "./map";
+import dynamic from "next/dynamic"; // Import dynamic for client-side-only loading
 import DeviceAlerts from "./alerts";
+
+// Dynamically import DeviceLocationMap with SSR disabled
+const DeviceLocationMap = dynamic(() => import("./map"), {
+  ssr: false, // Disable server-side rendering for this component
+});
 
 export default function Page() {
   const [greeting, setGreeting] = useState("");
@@ -45,20 +49,16 @@ export default function Page() {
       <div className="flex justify-between items-end mb-6">
         <div>
           <p className="text-2xl font-bold text-secondary">Hi Ankur,</p>
-          <h1 className="text-4xl font-semibold">
-            {greeting}
-            
-          </h1>
+          <h1 className="text-4xl font-semibold">{greeting}</h1>
         </div>
-
         <h2 className="text-2xl font-normal ml-2 text-muted-foreground">
-              {formatTime(currentTime)}
-            </h2>
+          {formatTime(currentTime)}
+        </h2>
       </div>
 
       <div className="flex lg:flex-row flex-col gap-4 h-full">
         <BarChart1 />
-        <MapComponent />
+        <DeviceLocationMap />
       </div>
       <DeviceAlerts />
     </div>
