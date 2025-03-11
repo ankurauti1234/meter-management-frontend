@@ -1,7 +1,6 @@
 "use client"
 import Sidebar from "@/components/navigation/sidebar";
 import Topbar from "@/components/navigation/topbar";
-import { Toaster } from "@/components/ui/toaster";
 
 export default function MainLayout({ children }) {
   return (
@@ -13,8 +12,6 @@ export default function MainLayout({ children }) {
          {children}
          </div>
         </main>
-    
-      <Toaster />
     </div>
   );
 }
