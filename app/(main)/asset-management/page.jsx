@@ -1,9 +1,7 @@
-import React from 'react'
+// app/asset-management/page.jsx
+import { redirect } from 'next/navigation';
 
-const Page = () => {
-  return (
-    <div>Page</div>
-  )
+export default function AssetManagement() {
+  // Redirect to default tab
+  redirect('/asset-management/inventory');
 }
-
-export default Page

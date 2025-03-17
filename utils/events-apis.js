@@ -1,16 +1,6 @@
 // @/utils/events-apis.js
 import api from "./api";
 
-export const fetchEventTypes = async () => {
-  try {
-    const response = await api.get("/event-types");
-    return response.data.data;
-  } catch (error) {
-    console.error("Failed to fetch event types:", error);
-    throw error;
-  }
-};
-
 export const fetchEvents = async (filters) => {
   try {
     const deviceParams = parseDeviceSearch(filters.deviceSearch);
@@ -36,7 +26,9 @@ export const getRealtimeEventsUrl = (filters) => {
   const queryParams = new URLSearchParams({
     page: filters.page || 1,
     limit: filters.limit || 10,
-    ...deviceParams,
+    ...(filters.deviceId && { deviceId: filters.deviceId }), // Ensure deviceId is included
+    ...(filters.deviceIdMin && { deviceIdMin: filters.deviceIdMin }),
+    ...(filters.deviceIdMax && { deviceIdMax: filters.deviceIdMax }),
     ...(filters.type && filters.type !== "all" && { type: filters.type }),
   }).toString();
 
@@ -91,7 +83,7 @@ export const fetchAssociatedDevicesWithLatestEvents = async (filters) => {
       ...(filters.toDate && { toDate: filters.toDate }),
     };
 
-    const response = await api.get("/events/associated", { params });
+    const response = await api.get("/events/meters/associated", { params });
     return response.data.data;
   } catch (error) {
     console.error("Failed to fetch associated devices with latest events:", error);
@@ -99,7 +91,56 @@ export const fetchAssociatedDevicesWithLatestEvents = async (filters) => {
   }
 };
 
-// New Alert APIs
+export const fetchAllMeters = async (filters) => {
+  try {
+    const deviceParams = parseDeviceSearch(filters.deviceSearch);
+    const params = {
+      page: filters.page || 1,
+      limit: filters.limit || 10,
+      ...deviceParams,
+      ...(filters.hhid && { hhid: filters.hhid }),
+      ...(filters.associated && { associated: filters.associated }),
+      ...(filters.isAssigned && { isAssigned: filters.isAssigned }),
+      ...(filters.sim2Imsi && { sim2Imsi: filters.sim2Imsi }),
+      ...(filters.sim1Pass && { sim1Pass: filters.sim1Pass }),
+      ...(filters.sim2Pass && { sim2Pass: filters.sim2Pass }),
+      ...(filters.fromDate && { fromDate: filters.fromDate }),
+      ...(filters.toDate && { toDate: filters.toDate }),
+    };
+
+    const response = await api.get("/events/meters", { params });
+    return response.data.data;
+  } catch (error) {
+    console.error("Failed to fetch all meters:", error);
+    throw error;
+  }
+};
+
+export const fetchAllSubmeters = async (filters) => {
+  try {
+    const deviceParams = parseDeviceSearch(filters.deviceSearch);
+    const params = {
+      page: filters.page || 1,
+      limit: filters.limit || 10,
+      ...(deviceParams.deviceId && { submeterId: deviceParams.deviceId }), // Map deviceId to submeterId
+      ...(deviceParams.deviceIdMin && { submeterIdMin: deviceParams.deviceIdMin }),
+      ...(deviceParams.deviceIdMax && { submeterIdMax: deviceParams.deviceIdMax }),
+      ...(filters.hhid && { hhid: filters.hhid }),
+      ...(filters.isAssigned && { isAssigned: filters.isAssigned }),
+      ...(filters.submeterMac && { submeterMac: filters.submeterMac }),
+      ...(filters.boundedSerialNumber && { boundedSerialNumber: filters.boundedSerialNumber }),
+      ...(filters.fromDate && { fromDate: filters.fromDate }),
+      ...(filters.toDate && { toDate: filters.toDate }),
+    };
+
+    const response = await api.get("/events/submeters", { params });
+    return response.data.data;
+  } catch (error) {
+    console.error("Failed to fetch all submeters:", error);
+    throw error;
+  }
+};
+
 export const fetchAlerts = async (filters) => {
   try {
     const deviceParams = parseDeviceSearch(filters.deviceSearch);
@@ -107,6 +148,7 @@ export const fetchAlerts = async (filters) => {
       page: filters.page || 1,
       limit: filters.limit || 10,
       ...deviceParams,
+      ...(filters.type && filters.type !== "all" && { type: filters.type }),
       ...(filters.priority && filters.priority !== "all" && { priority: filters.priority }),
       ...(filters.status && filters.status !== "all" && { status: filters.status }),
       ...(filters.fromDate && { fromDate: filters.fromDate }),
@@ -142,12 +184,13 @@ const parseDeviceSearch = (deviceSearch) => {
 };
 
 export default {
-  fetchEventTypes,
   fetchEvents,
   getRealtimeEventsUrl,
   fetchLatestEvents,
   fetchLatestEventByDeviceAndType,
   fetchAssociatedDevicesWithLatestEvents,
+  fetchAllMeters,
+  fetchAllSubmeters,
   fetchAlerts,
   updateAlertStatus
 };

@@ -50,9 +50,12 @@ import {
 } from "@/components/ui/popover";
 import {
   fetchAlerts,
-  updateAlertStatus,
-  fetchEventTypes,
+  updateAlertStatus
 } from "@/utils/events-apis";
+
+import {
+  fetchEventTypes
+} from "@/utils/event-types-apis";
 
 const formatTimestamp = (ts) => {
   const timestamp = ts.toString().length === 10 ? ts * 1000 : ts;
@@ -68,7 +71,7 @@ export default function AlertsPage() {
     status: "all",
     priority: "all",
     page: 1,
-    limit: "10",
+    limit: "20",
     fromDate: "",
     toDate: "",
   });
@@ -377,7 +380,7 @@ export default function AlertsPage() {
                   <TableHead>Event Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {/* <TableHead className="text-right">Actions</TableHead> */}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -423,7 +426,7 @@ export default function AlertsPage() {
                             (eventTypes.find(t => t.typeId === alert.Type)?.priority || "unknown").slice(1)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      {/* <TableCell className="text-right">
                         <Button
                           variant="outline"
                           size="sm"
@@ -432,7 +435,7 @@ export default function AlertsPage() {
                         >
                           Change Status
                         </Button>
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   ))
                 )}

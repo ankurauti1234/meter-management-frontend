@@ -1,4 +1,4 @@
-// app/assets-management/layout.jsx
+// app/asset-management/layout.jsx
 'use client';
 
 import React from 'react';
@@ -16,15 +16,16 @@ export default function MeterManagementLayout({ children }) {
 
   // Define tab routes
   const tabs = [
-      { value: "event-stream", label: "Event Stream", path: "/assets-management/event-stream" },
-      { value: "alerts", label: "Alerts", path: "/assets-management/alerts" },
-    { value: "config", label: "Configuration", path: "/assets-management/config" },
-    { value: "ota", label: "OTA", path: "/assets-management/ota" },
-    { value: "decommission", label: "Decommission", path: "/assets-management/decommission" },
+    { value: "inventory", label: "Inventory", path: "/asset-management/inventory" },
+    { value: "master-data", label: "Master Data", path: "/asset-management/master-data" },
+    { value: "file-upload", label: "File Upload", path: "/asset-management/file-upload" },
+    { value: "hh-info", label: "HH Info", path: "/asset-management/hh-info" },
+    { value: "install-asset", label: "Install Assets", path: "/asset-management/install-assets" },
   ];
+  
 
   // Determine active tab based on current pathname
-  const activeTab = tabs.find(tab => pathname === tab.path)?.value || "config";
+  const activeTab = tabs.find(tab => pathname === tab.path)?.value || "inventory";
 
   // Handle tab change
   const handleTabChange = (value) => {

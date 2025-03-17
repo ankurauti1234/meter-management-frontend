@@ -5,7 +5,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -28,13 +27,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  WifiHigh,
-  WifiSlash,
-  ArrowCounterClockwise,
   Info,
   Funnel,
   Queue,
-  ArrowClockwise,
+  ArrowCounterClockwise,
 } from "@phosphor-icons/react";
 import {
   Tooltip,
@@ -47,37 +43,32 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import { fetchEvents } from "@/utils/events-apis";
-import { fetchEventTypes } from "@/utils/event-types-apis";
+import { fetchAllMeters } from "@/utils/events-apis";
 
 const formatTimestamp = (ts) => {
-  const timestamp = ts.toString().length === 10 ? ts * 1000 : ts;
-  return new Date(timestamp).toLocaleString();
+  return new Date(ts).toLocaleString();
 };
 
-export default function EventStream() {
-  const [events, setEvents] = useState([]);
-  const [eventTypes, setEventTypes] = useState([]);
+export default function MeterStream() {
+  const [meters, setMeters] = useState([]);
   const [filters, setFilters] = useState({
     deviceSearch: "",
-    type: "all",
     page: 1,
     limit: "10",
+    hhid: "",
+    associated: "all", // Changed from "" to "all"
+    isAssigned: "all", // Changed from "" to "all"
     fromDate: "",
     toDate: "",
   });
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalEvents, setTotalEvents] = useState(0);
+  const [totalMeters, setTotalMeters] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState("30"); // Default 30 seconds
 
   useEffect(() => {
     setIsMounted(true);
-    fetchEventTypes()
-      .then((types) => setEventTypes(types))
-      .catch((error) => console.error(error));
   }, []);
 
   const handleFilterChange = (name, value) => {
@@ -90,21 +81,25 @@ export default function EventStream() {
 
   const applyFilters = () => setAppliedFilters({ ...filters });
   const resetFilters = () => {
-    const resetState = { 
-      deviceSearch: "", 
-      type: "all", 
-      page: 1, 
+    const resetState = {
+      deviceSearch: "",
+      page: 1,
       limit: "10",
+      hhid: "",
+      associated: "all", // Changed from "" to "all"
+      isAssigned: "all", // Changed from "" to "all"
       fromDate: "",
-      toDate: ""
+      toDate: "",
     };
     setFilters(resetState);
     setAppliedFilters(null);
   };
 
   const isFilterSelected = () =>
-    filters.deviceSearch !== "" || 
-    filters.type !== "all" || 
+    filters.deviceSearch !== "" ||
+    filters.hhid !== "" ||
+    filters.associated !== "all" || // Changed from "" to "all"
+    filters.isAssigned !== "all" || // Changed from "" to "all"
     filters.limit !== "10" ||
     filters.fromDate !== "" ||
     filters.toDate !== "";
@@ -115,33 +110,36 @@ export default function EventStream() {
     if (appliedFilters) setAppliedFilters((prev) => ({ ...prev, page }));
   };
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const activeFilters = appliedFilters || filters;
-      const response = await fetchEvents(activeFilters);
-      
-      setEvents(response.events || []);
-      setTotalEvents(response.totalEvents || 0);
-      setTotalPages(response.totalPages || 1);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      setEvents([]);
-      setTotalEvents(0);
-      setTotalPages(1);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (!isMounted) return;
 
-    fetchData();
-    const interval = setInterval(fetchData, parseInt(refreshInterval) * 1000);
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const activeFilters = appliedFilters || filters;
+        // Remove "all" values from the filters sent to the API
+        const apiFilters = {
+          ...activeFilters,
+          associated: activeFilters.associated === "all" ? undefined : activeFilters.associated,
+          isAssigned: activeFilters.isAssigned === "all" ? undefined : activeFilters.isAssigned,
+        };
+        const response = await fetchAllMeters(apiFilters);
 
-    return () => clearInterval(interval);
-  }, [isMounted, appliedFilters, filters.page, refreshInterval]);
+        setMeters(response.meters || []);
+        setTotalMeters(response.totalMeters || 0);
+        setTotalPages(response.totalPages || 1);
+      } catch (error) {
+        console.error("Error fetching meters:", error);
+        setMeters([]);
+        setTotalMeters(0);
+        setTotalPages(1);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isMounted, appliedFilters, filters.page]);
 
   const isNextDisabled = () => filters.page >= totalPages;
 
@@ -152,7 +150,7 @@ export default function EventStream() {
           <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-xl font-bold">
               <Queue className="text-primary" size={20} weight="duotone" />
-              Event Stream
+              Meters
             </CardTitle>
           </CardHeader>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -170,33 +168,19 @@ export default function EventStream() {
           <div>
             <CardTitle className="flex items-center gap-2 text-xl font-bold">
               <Queue className="text-primary" size={20} weight="duotone" />
-              Event Stream
+              Meters
             </CardTitle>
             <CardDescription className="text-sm mt-1">
-              {events.length} events shown of {totalEvents} total
+              {meters.length} meters shown of {totalMeters} total
             </CardDescription>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <ArrowClockwise size={16} className="text-muted-foreground" />
-              <Select
-                value={refreshInterval}
-                onValueChange={setRefreshInterval}
-              >
-                <SelectTrigger className="h-9 w-24 bg-background/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5 sec</SelectItem>
-                  <SelectItem value="10">10 sec</SelectItem>
-                  <SelectItem value="30">30 sec</SelectItem>
-                  <SelectItem value="60">60 sec</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-9 flex items-center gap-2 border-muted hover:bg-muted/10">
+                <Button
+                  variant="outline"
+                  className="h-9 flex items-center gap-2 border-muted hover:bg-muted/10"
+                >
                   <Funnel size={16} weight="duotone" className="text-primary" />
                   Filters
                   {areFiltersApplied() && (
@@ -231,21 +215,44 @@ export default function EventStream() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Event Type</label>
+                    <label className="text-sm font-medium text-muted-foreground">HHID</label>
+                    <Input
+                      name="hhid"
+                      value={filters.hhid}
+                      onChange={(e) => handleFilterChange("hhid", e.target.value)}
+                      placeholder="Household ID"
+                      className="h-10 bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Associated</label>
                     <Select
-                      value={filters.type}
-                      onValueChange={(value) => handleFilterChange("type", value)}
+                      value={filters.associated}
+                      onValueChange={(value) => handleFilterChange("associated", value)}
                     >
                       <SelectTrigger className="h-10 bg-background/50">
-                        <SelectValue placeholder="Select Event Type" />
+                        <SelectValue placeholder="Select" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        {eventTypes.map((eventType) => (
-                          <SelectItem key={eventType._id} value={eventType.typeId.toString()}>
-                            {eventType.name} (ID: {eventType.typeId})
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="all">All</SelectItem> {/* Changed from "" to "all" */}
+                        <SelectItem value="true">True</SelectItem>
+                        <SelectItem value="false">False</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Assigned</label>
+                    <Select
+                      value={filters.isAssigned}
+                      onValueChange={(value) => handleFilterChange("isAssigned", value)}
+                    >
+                      <SelectTrigger className="h-10 bg-background/50">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem> {/* Changed from "" to "all" */}
+                        <SelectItem value="true">True</SelectItem>
+                        <SelectItem value="false">False</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -315,35 +322,35 @@ export default function EventStream() {
               <TableHeader className="bg-background/90 sticky top-0 z-10 backdrop-blur-xs">
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Device ID</TableHead>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Event Name</TableHead>
-                  <TableHead className="text-right">Details</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>HHID</TableHead>
+                  <TableHead>Associated</TableHead>
+                  <TableHead>Assigned</TableHead>
+                  {/* <TableHead className="text-right">SIM2 IMSI</TableHead> */}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                      <div className="animate-pulse">Loading events...</div>
+                    <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                      <div className="animate-pulse">Loading meters...</div>
                     </TableCell>
                   </TableRow>
-                ) : events.length === 0 ? (
+                ) : meters.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                      No events available
+                    <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                      No meters available
                     </TableCell>
                   </TableRow>
                 ) : (
-                  events.map((event) => (
-                    <TableRow key={event._id}>
-                      <TableCell className="font-medium">{event.DEVICE_ID}</TableCell>
-                      <TableCell>{formatTimestamp(event.TS)}</TableCell>
-                      <TableCell>{event.Type}</TableCell>
-                      <TableCell>{event.Event_Name || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        {event.Details ? JSON.stringify(event.Details) : "-"}
-                      </TableCell>
+                  meters.map((meter) => (
+                    <TableRow key={meter.deviceId}>
+                      <TableCell className="font-medium">{meter.deviceId}</TableCell>
+                      <TableCell>{formatTimestamp(meter.createdAt)}</TableCell>
+                      <TableCell>{meter.hhid || "-"}</TableCell>
+                      <TableCell>{meter.isAssociated ? "Yes" : "No"}</TableCell>
+                      <TableCell>{meter.isAssigned ? "Yes" : "No"}</TableCell>
+                      {/* <TableCell className="text-right">{meter.sim2Imsi || "-"}</TableCell> */}
                     </TableRow>
                   ))
                 )}
@@ -352,7 +359,7 @@ export default function EventStream() {
           </div>
           <div className="flex items-center justify-between border-t bg-muted/10 p-4">
             <div className="text-sm text-muted-foreground">
-              Showing {events.length} of {totalEvents} events
+              Showing {meters.length} of {totalMeters} meters
             </div>
             <div className="flex items-center gap-4">
               <Button

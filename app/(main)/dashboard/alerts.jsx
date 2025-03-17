@@ -1,257 +1,175 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Warning,
-  BellSimple,
   ShieldWarning,
-  Clock,
-  ArrowRight,
   Bell,
-  Pulse,
-  Plus,
-  Eye,
+  BatteryWarning,
+  SimCard,
+  Gear,
+  Siren,
+  ArrowRight,
   DotsThreeOutline,
 } from "@phosphor-icons/react";
+import { fetchAlerts } from "@/utils/events-apis";
 
-// Mock data for 5 alerts
-const mockAlerts = [
-  {
-    id: 1,
-    device: "Meter-001",
-    message: "Power Surge Detected",
-    priority: "critical",
-    status: "generated",
-    timestamp: "2025-02-26 08:15:00",
-  },
-  {
-    id: 2,
-    device: "Meter-002",
-    message: "Low Voltage Warning",
-    priority: "warn",
-    status: "pending",
-    timestamp: "2025-02-26 09:30:00",
-  },
-  {
-    id: 3,
-    device: "Meter-003",
-    message: "Routine Check Passed",
-    priority: "notify",
-    status: "resolved",
-    timestamp: "2025-02-26 10:00:00",
-  },
-  {
-    id: 4,
-    device: "Meter-004",
-    message: "Overheating Risk",
-    priority: "critical",
-    status: "pending",
-    timestamp: "2025-02-26 11:45:00",
-  },
-  {
-    id: 5,
-    device: "Meter-005",
-    message: "Signal Weak",
-    priority: "warn",
-    status: "generated",
-    timestamp: "2025-02-26 12:10:00",
-  },
-];
-
-// Priority-based styling with Phosphor Icons
-const getPriorityStyles = (priority) => {
-  switch (priority) {
-    case "critical":
-      return {
-        bg: "bg-red-100 dark:bg-red-900/20",
-        icon: <ShieldWarning size={16} />,
-        iconColor: "text-red-600 dark:text-red-400",
-        iconBg: "bg-red-200 dark:bg-red-800/50",
-        text: "text-red-800 dark:text-red-200",
-        border: "border-red-200 dark:border-red-800",
-        timeline: "bg-red-500",
-      };
-    case "warn":
-      return {
-        bg: "bg-yellow-100 dark:bg-yellow-900/20",
-        icon: <Warning size={16} />,
-        iconColor: "text-yellow-600 dark:text-yellow-400",
-        iconBg: "bg-yellow-200 dark:bg-yellow-800/50",
-        text: "text-yellow-800 dark:text-yellow-200",
-        border: "border-yellow-200 dark:border-yellow-800",
-        timeline: "bg-yellow-500",
-      };
-    case "notify":
-      return {
-        bg: "bg-blue-100 dark:bg-blue-900/20",
-        icon: <BellSimple size={16} />,
-        iconColor: "text-blue-600 dark:text-blue-400",
-        iconBg: "bg-blue-200 dark:bg-blue-800/50",
-        text: "text-blue-800 dark:text-blue-200",
-        border: "border-blue-200 dark:border-blue-800",
-        timeline: "bg-blue-500",
-      };
-    default:
-      return {
-        bg: "bg-gray-100 dark:bg-gray-800/50",
-        icon: <BellSimple size={16} />,
-        iconColor: "text-gray-600 dark:text-gray-400",
-        iconBg: "bg-gray-200 dark:bg-gray-700",
-        text: "text-gray-800 dark:text-gray-200",
-        border: "border-gray-200 dark:border-gray-700",
-        timeline: "bg-gray-500",
-      };
-  }
+// Alert type mappings using ShadCN colors
+const alertTypeStyles = {
+  5: { icon: <ShieldWarning size={16} />, name: "Tamper", color: "text-red-500", bg: "bg-red-50 dark:bg-red-600/25" },
+  6: { icon: <Siren size={16} />, name: "SoS", color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-600/25" },
+  7: { icon: <BatteryWarning size={16} />, name: "Battery", color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-600/25" },
+  16: { icon: <SimCard size={16} />, name: "Sim Alert", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-600/25" },
+  17: { icon: <Gear size={16} />, name: "System", color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-600/25" },
 };
 
-// Status-based styling
+// Status-based styling using ShadCN colors
 const getStatusStyles = (status) => {
   switch (status) {
     case "generated":
-      return {
-        bg: "bg-purple-500",
-        text: "text-white",
-        icon: <Pulse size={12} />,
-      };
+      return { text: "text-purple-600", border: "border-purple-200", bgHover: "hover:bg-purple-100" };
     case "pending":
-      return {
-        bg: "bg-orange-500",
-        text: "text-white",
-        icon: <Clock size={12} />,
-      };
+      return { text: "text-orange-600", border: "border-orange-200", bgHover: "hover:bg-orange-100" };
     case "resolved":
-      return {
-        bg: "bg-green-500",
-        text: "text-white",
-        icon: <Eye size={12} />,
-      };
+      return { text: "text-green-600", border: "border-green-200", bgHover: "hover:bg-green-100" };
     default:
-      return {
-        bg: "bg-gray-500",
-        text: "text-white",
-        icon: null,
-      };
+      return { text: "text-gray-600", border: "border-gray-200", bgHover: "hover:bg-gray-100" };
   }
 };
 
-export default function TimelineDeviceAlerts({ className, ...props }) {
+export default function TickerDeviceAlerts({ className, ...props }) {
   const router = useRouter();
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadAlerts = async () => {
+      try {
+        const filters = { page: 1, limit: 5 };
+        const data = await fetchAlerts(filters);
+        setAlerts(data.alerts || []);
+      } catch (err) {
+        setError("Failed to load alerts");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAlerts();
+  }, []);
 
   const handleViewAll = () => {
     router.push("/meter-management/alerts");
   };
 
-  // Get just the time from timestamp
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTimestamp = (ts) => {
+    const date = new Date(ts * 1000); // Assuming TS is in seconds
+    return date.toLocaleString([], { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" });
   };
 
   return (
-    <Card className={cn("w-full overflow-hidden", className)} {...props}>
+    <Card className={cn("w-full  shadow-sm rounded-lg overflow-hidden", className)} {...props}>
       <CardHeader className="px-4 py-3 flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-lg font-bold flex items-center gap-1">
-            <Bell weight="duotone" className="text-primary" size={20} />
-            Device Alerts
-          </CardTitle>
-          <CardDescription className="text-sm mt-1">
-            Latest alerts from all active meters
-          </CardDescription>
-        </div>
+   <div>
+   <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <Bell weight="duotone" className="text-primary" size={20} />
+                Device Alerts
+              </CardTitle>
+              <CardDescription className="text-sm mt-1">
+                Latest alerts from meters
+              </CardDescription>
+   </div>
         <Button
           onClick={handleViewAll}
           variant="outline"
           size="sm"
-          className="flex items-center gap-1 h-8 px-3 text-xs"
+          className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
-          View All
-          <ArrowRight size={12} />
+          View All <ArrowRight size={14} className="ml-1" />
         </Button>
       </CardHeader>
 
-      <CardContent className="px-4 py-2">
-        <div className="relative">
-          
-          {/* Alerts */}
-          <div className=" space-y-3">
-            {mockAlerts.map((alert) => {
-              const priorityStyles = getPriorityStyles(alert.priority);
-              const statusStyles = getStatusStyles(alert.status);
-              
-              return (
-                <div key={alert.id} className="relative">
-                  {/* Timeline dot */}
-                 
-                  
-                
-                  
-                  {/* Alert content */}
-                  <div className={cn(
-                    "pl-2 pr-3 py-2 rounded-md border",
-                    priorityStyles.bg,
-                    priorityStyles.border
-                  )}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <div className={cn(
-                          "p-1 rounded-full",
-                          priorityStyles.iconBg
-                        )}>
-                          <span className={priorityStyles.iconColor}>
-                            {priorityStyles.icon}
-                          </span>
+      <CardContent className="p-4">
+        {loading ? (
+          <div className="flex justify-center items-center h-24">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-gray-500 dark:border-gray-400"></div>
+          </div>
+        ) : error ? (
+          <p className="text-center text-red-500 dark:text-red-400">{error}</p>
+        ) : alerts.length === 0 ? (
+          <p className="text-center text-gray-500 dark:text-gray-400">No alerts to display</p>
+        ) : (
+          <div className="relative overflow-hidden">
+            {/* Horizontal Scroll Container */}
+            <div className="flex gap-4 animate-[scroll_20s_linear_infinite] hover:pause-animation">
+              {alerts.concat(alerts).map((alert, index) => { // Duplicate alerts for seamless scrolling
+                const typeStyles = alertTypeStyles[alert.Type] || alertTypeStyles[5]; // Default to Tamper
+                const statusStyles = getStatusStyles(alert.AlertStatus);
+
+                return (
+                  <div
+                    key={`${alert._id}-${index}`} // Unique key for duplicated items
+                    className={cn(
+                      "flex-shrink-0 w-64 p-3 rounded-md border transition-colors",
+                      typeStyles.bg,
+                      statusStyles.border,
+                      statusStyles.bgHover,
+                      "group"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={typeStyles.color}>{typeStyles.icon}</span>
+                        <div>
+                          <p className={cn("text-sm font-medium", typeStyles.color)}>
+                            {typeStyles.name}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Device <span className="font-semibold text-sm">{alert.DEVICE_ID}</span>
+                          </p>
                         </div>
-                        <span className={cn("font-medium text-sm", priorityStyles.text)}>
-                          {alert.device}
-                        </span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Badge className={cn(
-                          statusStyles.bg,
-                          statusStyles.text,
-                          "flex items-center gap-0.5 h-5 text-xs px-1.5"
-                        )}>
-                          {statusStyles.icon}
-                          <span className="text-xs">{alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}</span>
-                        </Badge>
-                        <Button variant="ghost" size="sm" className="w-6 h-6 p-0 rounded-full">
-                          <DotsThreeOutline size={16} />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1 text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <DotsThreeOutline size={14} />
+                      </Button>
                     </div>
-                    <p className={cn("text-xs pl-7", priorityStyles.text)}>
-                      {alert.message}
+                    <p className={cn("text-xs mt-1", statusStyles.text)}>
+                      {formatTimestamp(alert.TS)} • {alert.AlertStatus}
                     </p>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+            {/* Fade Edges */}
+            <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white dark:from-card to-transparent pointer-events-none" />
+            <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white dark:from-card to-transparent pointer-events-none" />
           </div>
-          
-          {/* "Show more" button */}
-          <div className="ml-10 mt-4 flex justify-center">
+        )}
+        {!loading && alerts.length > 0 && (
+          <div className="mt-4 flex justify-center">
             <Button
               onClick={handleViewAll}
-              variant="outline"
-              size="sm"
-              className="text-xs h-8"
+              variant="ghost"
+              className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             >
-              <Plus size={14} className="mr-1" />
-              Show more alerts
+              See Full Alert Log
             </Button>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
