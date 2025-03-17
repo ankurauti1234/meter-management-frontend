@@ -19,6 +19,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { fetchAllMeters } from "@/utils/events-apis";
+import dynamic from "next/dynamic"; // Import dynamic for client-side only loading
+
+// Dynamically import DeviceLocationMap with SSR disabled
+const DeviceLocationMap = dynamic(() => import("./map"), {
+  ssr: false, // Disable server-side rendering for this component
+});
 
 export default function LiveMonitor() {
   const [meters, setMeters] = useState([]);
@@ -61,7 +67,8 @@ export default function LiveMonitor() {
   };
 
   return (
-    <div className="mx-auto container py-8">
+    <div className="mx-auto container py-8 space-y-6">
+      <DeviceLocationMap/>
       <Card className="w-full rounded-lg">
         <CardHeader className="px-6 py-4">
           <CardTitle className="flex items-center gap-2 text-xl font-bold">
