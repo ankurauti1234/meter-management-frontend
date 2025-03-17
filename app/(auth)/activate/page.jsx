@@ -37,7 +37,7 @@ function ActivateForm() {
     setError(null);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/activate", {
+      const response = await axios.post("https://apm-api-v2.webdevava.live/api/auth/activate", {
         token,
         otp,
         newPassword,
