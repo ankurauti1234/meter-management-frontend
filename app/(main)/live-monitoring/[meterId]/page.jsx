@@ -11,13 +11,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getRealtimeEventsUrl } from "@/utils/events-apis";
+import { fetchEvents } from "@/utils/events-apis";
 
 export default function LiveMonitoringMeterId() {
   const { meterId } = useParams();
   const [type29Events, setType29Events] = useState([]);
   const [type30Events, setType30Events] = useState([]);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const formatTimestamp = (ts) => {
     if (typeof ts === "string") return new Date(ts).toLocaleString();
@@ -25,47 +26,41 @@ export default function LiveMonitoringMeterId() {
     return "-";
   };
 
-  useEffect(() => {
-    const setupEventSource = (type, setEvents) => {
+  const fetchMeterEvents = async (type, setEvents) => {
+    try {
       const filters = {
-        deviceId: meterId, // Explicitly set deviceId to meterId
-        type,             // Type 29 or 30
-        limit: 10,        // Limit to 10 events
-        page: 1,          // Default page
+        deviceId: meterId,
+        type,
+        limit: 10,
+        page: 1,
       };
-      const url = getRealtimeEventsUrl(filters);
-      console.log(`EventSource URL for Type ${type}: ${url}`); // Debug log to verify URL
+      const response = await fetchEvents(filters);
+      setEvents(response.events || []);
+    } catch (err) {
+      setError(err.message || "Failed to fetch events");
+    }
+  };
 
-      const eventSource = new EventSource(url);
-
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === "initial") {
-          setEvents(data.events);
-        } else if (data.type === "new") {
-          setEvents((prev) => [...data.events, ...prev].slice(0, 10)); // Keep latest 10
-        } else if (data.type === "error") {
-          setError(data.message);
-          eventSource.close();
-        }
-      };
-
-      eventSource.onerror = () => {
-        setError("Failed to connect to real-time events.");
-        eventSource.close();
-      };
-
-      return () => eventSource.close();
+  useEffect(() => {
+    // Initial fetch
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      await Promise.all([
+        fetchMeterEvents(29, setType29Events),
+        fetchMeterEvents(30, setType30Events),
+      ]);
+      setIsLoading(false);
     };
+    loadInitialData();
 
-    // Set up EventSource for Type 29 and Type 30
-    const cleanup29 = setupEventSource(29, setType29Events);
-    const cleanup30 = setupEventSource(30, setType30Events);
+    // Set up 5-second refresh interval
+    const interval = setInterval(() => {
+      fetchMeterEvents(29, setType29Events);
+      fetchMeterEvents(30, setType30Events);
+    }, 5000);
 
-    return () => {
-      cleanup29();
-      cleanup30();
-    };
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, [meterId]);
 
   return (
@@ -95,7 +90,13 @@ export default function LiveMonitoringMeterId() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {type29Events.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      <div className="animate-pulse">Loading...</div>
+                    </TableCell>
+                  </TableRow>
+                ) : type29Events.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground">
                       No Type 29 events available
@@ -130,7 +131,13 @@ export default function LiveMonitoringMeterId() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {type30Events.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                      <div className="animate-pulse">Loading...</div>
+                    </TableCell>
+                  </TableRow>
+                ) : type30Events.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground">
                       No Type 30 events available
