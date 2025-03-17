@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { parse } from "cookie";
 
-const publicRoutes = ["/login", "/_next", "/static", "/assets", "/favicon.ico"];
+const publicRoutes = ["/login", "/activate", "/_next", "/static", "/assets", "/favicon.ico"];
 
 export function middleware(request) {
   const cookieHeader = request.headers.get("cookie");
