@@ -120,7 +120,19 @@ export default function EventTypes() {
 
   const handleUpdateEventType = async () => {
     try {
-      await updateEventType(editingEventType._id, editingEventType);
+      // Create the update data object without priority initially
+      const updateData = {
+        typeId: editingEventType.typeId,
+        name: editingEventType.name,
+        isAlert: editingEventType.isAlert,
+      };
+  
+      // Only include priority if isAlert is true
+      if (editingEventType.isAlert) {
+        updateData.priority = editingEventType.priority;
+      }
+  
+      await updateEventType(editingEventType._id, updateData);
       setEditingEventType(null);
       fetchEventTypesData();
       toast({

@@ -56,7 +56,7 @@ const formatTimestamp = (ts) => {
   return new Date(timestamp).toLocaleString();
 };
 
-export default function EventStream() {
+export default function LiveStream() {
   const router = useRouter();
   const [events, setEvents] = useState([]);
   const [eventTypes, setEventTypes] = useState([]);
@@ -158,7 +158,7 @@ export default function EventStream() {
           <CardHeader className="px-6 py-4 flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-xl font-bold">
               <Queue className="text-primary" size={20} weight="duotone" />
-              Event Stream
+              Live Monitoring
             </CardTitle>
           </CardHeader>
           <CardContent className="py-12 text-center text-muted-foreground">
@@ -176,7 +176,7 @@ export default function EventStream() {
           <div>
             <CardTitle className="flex items-center gap-2 text-xl font-bold">
               <Queue className="text-primary" size={20} weight="duotone" />
-              Event Stream
+              Live Monitoring
             </CardTitle>
             <CardDescription className="text-sm mt-1">
               {events.length} events shown of {totalEvents} total

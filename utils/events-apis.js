@@ -183,6 +183,39 @@ const parseDeviceSearch = (deviceSearch) => {
   return { deviceId: deviceSearch };
 };
 
+export const fetchEventsReport = async (filters, format = 'json') => {
+  try {
+    const deviceParams = parseDeviceSearch(filters.deviceSearch);
+    const params = {
+      ...deviceParams,
+      ...(filters.type && filters.type !== "all" && { type: filters.type }),
+      ...(filters.fromDate && { fromDate: filters.fromDate }),
+      ...(filters.toDate && { toDate: filters.toDate }),
+      format
+    };
+
+    const response = await api.get("/events/reports", { 
+      params,
+      responseType: format === 'json' ? 'json' : 'blob' // Handle binary responses for CSV/XLSX
+    });
+
+    if (format === 'json') {
+      return response.data.data;
+    } else {
+      // For CSV and XLSX, return blob URL for download
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      return {
+        url,
+        filename: `events_report.${format}`
+      };
+    }
+  } catch (error) {
+    console.error("Failed to fetch events report:", error);
+    throw error;
+  }
+};
+
 export default {
   fetchEvents,
   getRealtimeEventsUrl,
@@ -192,5 +225,6 @@ export default {
   fetchAllMeters,
   fetchAllSubmeters,
   fetchAlerts,
-  updateAlertStatus
+  updateAlertStatus,
+  fetchEventsReport
 };
