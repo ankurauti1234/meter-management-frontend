@@ -45,7 +45,7 @@ export default function MeterManagementLayout({ children }) {
           onValueChange={handleTabChange}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-6 mb-4 bg-card pb-4 border">
+          <TabsList className="grid w-full grid-cols-7 mb-4 bg-card pb-4 border">
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
