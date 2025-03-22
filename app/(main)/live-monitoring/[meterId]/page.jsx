@@ -34,10 +34,9 @@ export default function LiveMonitoringMeterId() {
     return "-";
   };
 
-  // New fetch function with specific URL
   const fetchMeterEvents = async (type, setEvents) => {
     try {
-      const url = `http://localhost:5000/api/events?page=1&limit=10&type=${type}&deviceId=${meterId}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/events?page=1&limit=10&type=${type}&deviceId=${meterId}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -51,7 +50,7 @@ export default function LiveMonitoringMeterId() {
       }
       
       const data = await response.json();
-      setEvents(data.data?.events || data.events || []); // Adjust based on your API response structure
+      setEvents(data.data?.events || data.events || []);
     } catch (err) {
       setError(err.message || "Failed to fetch events");
       console.error('Fetch error:', err);
@@ -70,7 +69,6 @@ export default function LiveMonitoringMeterId() {
     };
     loadInitialData();
 
-    // Use the selected refresh interval
     const intervalMs = parseInt(refreshInterval) * 1000;
     const interval = setInterval(() => {
       fetchMeterEvents(29, setType29Events);
@@ -82,7 +80,7 @@ export default function LiveMonitoringMeterId() {
       clearInterval(interval);
       console.log('Interval cleared at:', new Date().toLocaleTimeString());
     };
-  }, [meterId, refreshInterval]); // Add refreshInterval to dependency array
+  }, [meterId, refreshInterval]);
 
   return (
     <div className="mx-auto container py-8">
