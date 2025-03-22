@@ -19,6 +19,7 @@ export default function MeterManagementLayout({ children }) {
       { value: "event-stream", label: "Event Stream", path: "/meter-management/event-stream" },
       { value: "event-types", label: "Event Types", path: "/meter-management/event-types" },
       { value: "alerts", label: "Alerts", path: "/meter-management/alerts" },
+      { value: "reports", label: "Reports", path: "/meter-management/reports" },
     { value: "config", label: "Configuration", path: "/meter-management/config" },
     { value: "ota", label: "OTA", path: "/meter-management/ota" },
     { value: "decommission", label: "Decommission", path: "/meter-management/decommission" },
