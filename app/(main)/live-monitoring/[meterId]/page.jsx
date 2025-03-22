@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowClockwise } from "@phosphor-icons/react";
-import { fetchEvents } from "@/utils/events-apis";
 
 export default function LiveMonitoringMeterId() {
   const { meterId } = useParams();
@@ -27,7 +26,7 @@ export default function LiveMonitoringMeterId() {
   const [type28Events, setType28Events] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState("30"); // Default 30 seconds
+  const [refreshInterval, setRefreshInterval] = useState("30");
 
   const formatTimestamp = (ts) => {
     if (typeof ts === "string") return new Date(ts).toLocaleString();
@@ -35,18 +34,27 @@ export default function LiveMonitoringMeterId() {
     return "-";
   };
 
+  // New fetch function with specific URL
   const fetchMeterEvents = async (type, setEvents) => {
     try {
-      const filters = {
-        deviceId: meterId,
-        type,
-        limit: 10,
-        page: 1,
-      };
-      const response = await fetchEvents(filters);
-      setEvents(response.events || []);
+      const url = `http://localhost:5000/api/events?page=1&limit=10&type=${type}&deviceId=${meterId}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add any additional headers if needed (e.g., authorization)
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setEvents(data.data?.events || data.events || []); // Adjust based on your API response structure
     } catch (err) {
       setError(err.message || "Failed to fetch events");
+      console.error('Fetch error:', err);
     }
   };
 
@@ -61,20 +69,20 @@ export default function LiveMonitoringMeterId() {
       console.log('Initial data loaded at:', new Date().toLocaleTimeString());
     };
     loadInitialData();
-  
-    // Set up 5-second refresh interval
+
+    // Use the selected refresh interval
+    const intervalMs = parseInt(refreshInterval) * 1000;
     const interval = setInterval(() => {
       fetchMeterEvents(29, setType29Events);
       fetchMeterEvents(28, setType28Events);
       console.log('Data refreshed at:', new Date().toLocaleTimeString());
-    }, 5000); // 5000 milliseconds = 5 seconds
-  
-    // Cleanup interval on unmount
+    }, intervalMs);
+
     return () => {
       clearInterval(interval);
       console.log('Interval cleared at:', new Date().toLocaleTimeString());
     };
-  }, [meterId]);
+  }, [meterId, refreshInterval]); // Add refreshInterval to dependency array
 
   return (
     <div className="mx-auto container py-8">
@@ -126,19 +134,13 @@ export default function LiveMonitoringMeterId() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
                       <div className="animate-pulse">Loading...</div>
                     </TableCell>
                   </TableRow>
                 ) : type29Events.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
                       No Logo Detection events available
                     </TableCell>
                   </TableRow>
@@ -148,9 +150,7 @@ export default function LiveMonitoringMeterId() {
                       <TableCell>
                         {formatTimestamp(event.timestamp || event.TS)}
                       </TableCell>
-                      <TableCell>
-                        {event.Details?.Channel_name || "-"}
-                      </TableCell>
+                      <TableCell>{event.Details?.Channel_name || "-"}</TableCell>
                       <TableCell>{event.Details?.score || "-"}</TableCell>
                       <TableCell>{event.Event_Name || "-"}</TableCell>
                     </TableRow>
@@ -178,19 +178,13 @@ export default function LiveMonitoringMeterId() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={2}
-                      className="text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
                       <div className="animate-pulse">Loading...</div>
                     </TableCell>
                   </TableRow>
                 ) : type28Events.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={2}
-                      className="text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
                       No Audio Detection events available
                     </TableCell>
                   </TableRow>
@@ -199,11 +193,11 @@ export default function LiveMonitoringMeterId() {
                     <TableRow key={event.ID || event._id}>
                       <TableCell>{formatTimestamp(event.TS)}</TableCell>
                       <TableCell>
-                        {event.Details 
+                        {event.Details
                           ? Object.entries(event.Details)
                               .map(([key, value]) => `${key}: ${value}`)
-                              .join(', ') 
-                          : '-'}
+                              .join(", ")
+                          : "-"}
                       </TableCell>
                       <TableCell>{event.Event_Name || "-"}</TableCell>
                     </TableRow>
