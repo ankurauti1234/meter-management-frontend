@@ -36,7 +36,7 @@ export default function LiveMonitoringMeterId() {
 
   const fetchMeterEvents = async (type, setEvents) => {
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/events?page=1&limit=10&type=${type}&deviceId=${meterId}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/events?page=1&limit=10&type=${type}&deviceId=${meterId}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
