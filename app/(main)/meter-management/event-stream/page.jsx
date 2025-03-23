@@ -56,6 +56,19 @@ const formatTimestamp = (ts) => {
   return new Date(timestamp).toLocaleString();
 };
 
+// New function to format Details object
+const formatDetails = (details, type) => {
+  if (!details) return "-";
+  
+  // For Type 29, remove image_path from the display
+  if (type === 29 || type === "29") {
+    const { image_path, ...rest } = details;
+    return JSON.stringify(rest);
+  }
+  
+  return JSON.stringify(details);
+};
+
 export default function EventStream() {
   const router = useRouter();
   const [events, setEvents] = useState([]);
@@ -357,7 +370,7 @@ export default function EventStream() {
                       <TableCell>{event.Type}</TableCell>
                       <TableCell>{event.Event_Name || "-"}</TableCell>
                       <TableCell className="text-right">
-                        {event.Details ? JSON.stringify(event.Details) : "-"}
+                        {formatDetails(event.Details, event.Type)}
                       </TableCell>
                     </TableRow>
                   ))
