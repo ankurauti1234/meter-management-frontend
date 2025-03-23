@@ -18,7 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { ArrowClockwise } from "@phosphor-icons/react";
+import Image from "next/image";
 
 export default function LiveMonitoringMeterId() {
   const { meterId } = useParams();
@@ -27,6 +33,7 @@ export default function LiveMonitoringMeterId() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState("30");
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const formatTimestamp = (ts) => {
     if (typeof ts === "string") return new Date(ts).toLocaleString();
@@ -41,7 +48,6 @@ export default function LiveMonitoringMeterId() {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Add any additional headers if needed (e.g., authorization)
         },
       });
       
@@ -127,18 +133,19 @@ export default function LiveMonitoringMeterId() {
                   <TableHead>Detection</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Event Name</TableHead>
+                  <TableHead>Image</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       <div className="animate-pulse">Loading...</div>
                     </TableCell>
                   </TableRow>
                 ) : type29Events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       No Logo Detection events available
                     </TableCell>
                   </TableRow>
@@ -151,6 +158,40 @@ export default function LiveMonitoringMeterId() {
                       <TableCell>{event.Details?.Channel_name || "-"}</TableCell>
                       <TableCell>{event.Details?.score || "-"}</TableCell>
                       <TableCell>{event.Event_Name || "-"}</TableCell>
+                      <TableCell>
+                        {event.Details?.image_path ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <div className="cursor-pointer" onClick={() => setSelectedImage(event.Details.image_path)}>
+                                <Image
+                                  src={event.Details.image_path}
+                                  alt="Detection preview"
+                                  width={50}
+                                  height={50}
+                                  className="object-cover rounded"
+                                  onError={(e) => {
+                                    e.target.src = "/placeholder-image.jpg"; // Add a fallback image
+                                  }}
+                                />
+                              </div>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl">
+                              <Image
+                                src={selectedImage}
+                                alt="Full detection image"
+                                width={800}
+                                height={600}
+                                className="object-contain w-full h-auto"
+                                onError={(e) => {
+                                  e.target.src = "/placeholder-image.jpg"; // Add a fallback image
+                                }}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -176,13 +217,13 @@ export default function LiveMonitoringMeterId() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
                       <div className="animate-pulse">Loading...</div>
                     </TableCell>
                   </TableRow>
                 ) : type28Events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
                       No Audio Detection events available
                     </TableCell>
                   </TableRow>
