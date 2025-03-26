@@ -79,7 +79,7 @@
 
               // Set cookies with explicit attributes
               Cookies.set("token", response.token, {
-                expires: 1, // Expires in 1 day
+                expires: 1/24, // Expires in 1 day
                 path: "/",
                 sameSite: "Lax",
                 secure: process.env.NODE_ENV === "production",
@@ -91,7 +91,7 @@
                 "userName",
                 `${response.user.firstname} ${response.user.lastname}`,
                 {
-                  expires: 1, // Expires in 1 day
+                  expires: 1/24, // Expires in 1 day
                   path: "/",
                   sameSite: "Lax",
                   secure: process.env.NODE_ENV === "production",
@@ -100,7 +100,7 @@
               );
 
               Cookies.set("userEmail", response.user.email, {
-                expires: 1, // Expires in 1 day
+                expires: 1/24, // Expires in 1 day
                 path: "/",
                 sameSite: "Lax",
                 secure: process.env.NODE_ENV === "production",
@@ -108,7 +108,7 @@
               });
 
               Cookies.set("userRole", response.user.role, {
-                expires: 1, // Expires in 1 day
+                expires: 1/24, // Expires in 1 day
                 path: "/",
                 sameSite: "Lax",
                 secure: process.env.NODE_ENV === "production",
@@ -116,7 +116,7 @@
               });
 
               Cookies.set("userCreatedAt", response.user.created_at, {
-                expires: 1, // Expires in 1 day
+                expires: 1/24, // Expires in 1 day
                 path: "/",
                 sameSite: "Lax",
                 secure: process.env.NODE_ENV === "production",
