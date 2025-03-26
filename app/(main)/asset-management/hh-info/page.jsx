@@ -49,6 +49,8 @@ export default function HouseholdStream() {
   const [households, setHouseholds] = useState([]);
   const [filters, setFilters] = useState({
     hhid: "",
+    is_assigned: undefined, // undefined means no filter applied
+    meter_id: "",
     page: 1,
     limit: "10",
   });
@@ -66,7 +68,7 @@ export default function HouseholdStream() {
     setFilters((prev) => ({
       ...prev,
       [name]: value,
-      page: 1,
+      page: 1, // Reset to page 1 when filters change
     }));
   };
 
@@ -74,6 +76,8 @@ export default function HouseholdStream() {
   const resetFilters = () => {
     const resetState = {
       hhid: "",
+      is_assigned: undefined,
+      meter_id: "",
       page: 1,
       limit: "10",
     };
@@ -82,9 +86,13 @@ export default function HouseholdStream() {
   };
 
   const isFilterSelected = () =>
-    filters.hhid !== "" || filters.limit !== "10";
+    filters.hhid !== "" ||
+    filters.is_assigned !== undefined ||
+    filters.meter_id !== "" ||
+    filters.limit !== "10";
 
   const areFiltersApplied = () => appliedFilters !== null;
+
   const goToPage = (page) => {
     setFilters((prev) => ({ ...prev, page }));
     if (appliedFilters) setAppliedFilters((prev) => ({ ...prev, page }));
@@ -100,7 +108,7 @@ export default function HouseholdStream() {
         const response = await fetchAllHouseholds(activeFilters);
 
         setHouseholds(response.households || []);
-        setTotalHouseholds(response.totalHouseholds || 0);
+        setTotalHouseholds(response.totalCount || 0); // Use totalCount from API
         setTotalPages(response.totalPages || 1);
       } catch (error) {
         console.error("Error fetching households:", error);
@@ -189,7 +197,64 @@ export default function HouseholdStream() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Items per Page</label>
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      Assignment Status
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info size={16} className="text-muted-foreground hover:text-primary" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            Filter by whether the household is assigned.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </label>
+                    <Select
+                      value={filters.is_assigned === undefined ? "all" : filters.is_assigned.toString()}
+                      onValueChange={(value) =>
+                        handleFilterChange(
+                          "is_assigned",
+                          value === "all" ? undefined : value === "true"
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-10 bg-background/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="true">Assigned</SelectItem>
+                        <SelectItem value="false">Not Assigned</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      Meter ID
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info size={16} className="text-muted-foreground hover:text-primary" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            Enter a specific Meter ID (e.g., "5001").
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </label>
+                    <Input
+                      name="meter_id"
+                      value={filters.meter_id}
+                      onChange={(e) => handleFilterChange("meter_id", e.target.value)}
+                      placeholder="e.g., 5001"
+                      className="h-10 bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Items per Page
+                    </label>
                     <Select
                       value={filters.limit}
                       onValueChange={(value) => handleFilterChange("limit", value)}
@@ -237,8 +302,8 @@ export default function HouseholdStream() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead>HHID</TableHead>
                   <TableHead>Members</TableHead>
-                  <TableHead>Associated</TableHead>
-                  <TableHead>Meter ID</TableHead>
+                  <TableHead>Assigned</TableHead>
+                  <TableHead>Submeters</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -256,11 +321,13 @@ export default function HouseholdStream() {
                   </TableRow>
                 ) : (
                   households.map((household) => (
-                    <TableRow key={household.hhid}>
-                      <TableCell className="font-medium">{household.hhid}</TableCell>
+                    <TableRow key={household.HHID}>
+                      <TableCell className="font-medium">{household.HHID}</TableCell>
                       <TableCell>{household.members.join(", ")}</TableCell>
-                      <TableCell>{household.associated ? "Yes" : "No"}</TableCell>
-                      <TableCell>{household.meterId || "-"}</TableCell>
+                      <TableCell>{household.is_assigned ? "Yes" : "No"}</TableCell>
+                      <TableCell>
+                        {household.submeters.length > 0 ? household.submeters.join(", ") : "-"}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

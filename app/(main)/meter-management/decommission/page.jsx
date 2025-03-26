@@ -284,6 +284,7 @@ export default function DecommissionPage() {
                   <TableHead>Devices</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created At</TableHead>
+                  <TableHead>Performed By</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -318,6 +319,8 @@ export default function DecommissionPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>{new Date(log.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="font-medium">{log.performedBy?.email}</TableCell>
+
                     </TableRow>
                   ))
                 )}

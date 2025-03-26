@@ -380,7 +380,7 @@ export default function AlertsPage() {
                   <TableHead>Event Name</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
-                  {/* <TableHead className="text-right">Actions</TableHead> */}
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -426,7 +426,7 @@ export default function AlertsPage() {
                             (eventTypes.find(t => t.typeId === alert.Type)?.priority || "unknown").slice(1)}
                         </Badge>
                       </TableCell>
-                      {/* <TableCell className="text-right">
+                      <TableCell className="text-right">
                         <Button
                           variant="outline"
                           size="sm"
@@ -435,7 +435,7 @@ export default function AlertsPage() {
                         >
                           Change Status
                         </Button>
-                      </TableCell> */}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
