@@ -16,33 +16,20 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { useState } from "react";
-
-// Dummy data for 10 meters
-const dummyMeters = Array.from({ length: 10 }, (_, i) => {
-  const meterId = 50000101 + i;
-  return {
-    meterId,
-    sim1: i % 2 === 0 ? "Active" : "Inactive",
-    sim2: i % 3 === 0 ? "Active" : "Inactive",
-    motherboardSerial: `MB${meterId}`,
-    imeiSerial: `IMEI${meterId}`,
-    powerPcbSerial: `PCB${meterId}`,
-    hardwareVersion: `v${(i % 3) + 1}.0`, // v1.0, v2.0, v3.0
-    softwareVersion: `v${(i % 2) + 1}.1`, // v1.1, v2.1
-    ethernetMac: `00:1A:2B:${String(i + 10).padStart(2, "0")}:00:${String(i).padStart(2, "0")}`,
-    bleAddress: `BLE:${meterId}`,
-    wifiMac: `00:16:17:${String(i + 20).padStart(2, "0")}:00:${String(i).padStart(2, "0")}`,
-    validFrom: "2025-01-01",
-    validTo: i % 4 === 0 ? "2025-12-31" : "2026-12-31",
-  };
-});
+import { useState, useEffect } from "react";
+import metersData from "./meters.json"; // Adjust the path according to your file location
 
 export default function MasterData() {
-  const [meters, setMeters] = useState(dummyMeters);
+  const [meters, setMeters] = useState([]);
   const [page, setPage] = useState(1);
   const limit = 10; // Items per page
-  const totalMeters = dummyMeters.length;
+
+  // Load data from JSON file when component mounts
+  useEffect(() => {
+    setMeters(metersData);
+  }, []);
+
+  const totalMeters = meters.length;
   const totalPages = Math.ceil(totalMeters / limit);
 
   // Pagination logic
@@ -73,13 +60,13 @@ export default function MasterData() {
                   <TableHead>Meter ID</TableHead>
                   <TableHead>SIM 1</TableHead>
                   <TableHead>SIM 2</TableHead>
-                  <TableHead>Motherboard S. No</TableHead>
-                  <TableHead>IMEI Sr No</TableHead>
+                  <TableHead>Baseboard Sr. No</TableHead>
+                  <TableHead>IMSI 1 Sr No</TableHead>
+                  <TableHead>IMSI 2 Sr No</TableHead>
                   <TableHead>POWER PCB Sr No</TableHead>
-                  <TableHead>H/W Version</TableHead>
+                  <TableHead>Firmware Version</TableHead>
                   <TableHead>S/W Version</TableHead>
                   <TableHead>Ethernet MAC</TableHead>
-                  <TableHead>BLE Address</TableHead>
                   <TableHead>WiFi MAC</TableHead>
                   <TableHead>Valid From</TableHead>
                   <TableHead>Valid To</TableHead>
@@ -98,13 +85,13 @@ export default function MasterData() {
                       <TableCell className="font-medium">{meter.meterId}</TableCell>
                       <TableCell>{meter.sim1}</TableCell>
                       <TableCell>{meter.sim2}</TableCell>
-                      <TableCell>{meter.motherboardSerial}</TableCell>
-                      <TableCell>{meter.imeiSerial}</TableCell>
+                      <TableCell>{meter.baseboardSerial}</TableCell>
+                      <TableCell>{meter.imsiSerial}</TableCell>
+                      <TableCell>{meter.imsiSerial2}</TableCell>
                       <TableCell>{meter.powerPcbSerial}</TableCell>
-                      <TableCell>{meter.hardwareVersion}</TableCell>
+                      <TableCell>{meter.firmwareVersion}</TableCell>
                       <TableCell>{meter.softwareVersion}</TableCell>
                       <TableCell>{meter.ethernetMac}</TableCell>
-                      <TableCell>{meter.bleAddress}</TableCell>
                       <TableCell>{meter.wifiMac}</TableCell>
                       <TableCell>{meter.validFrom}</TableCell>
                       <TableCell>{meter.validTo}</TableCell>
