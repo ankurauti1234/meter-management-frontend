@@ -45,21 +45,21 @@ export default function LiveMonitoringMeterId() {
     try {
       const url = `${process.env.NEXT_PUBLIC_API_URL}/events?page=1&limit=10&type=${type}&deviceId=${meterId}`;
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setEvents(data.data?.events || data.events || []);
     } catch (err) {
       setError(err.message || "Failed to fetch events");
-      console.error('Fetch error:', err);
+      console.error("Fetch error:", err);
     }
   };
 
@@ -71,7 +71,7 @@ export default function LiveMonitoringMeterId() {
         fetchMeterEvents(28, setType28Events),
       ]);
       setIsLoading(false);
-      console.log('Initial data loaded at:', new Date().toLocaleTimeString());
+      console.log("Initial data loaded at:", new Date().toLocaleTimeString());
     };
     loadInitialData();
 
@@ -79,14 +79,18 @@ export default function LiveMonitoringMeterId() {
     const interval = setInterval(() => {
       fetchMeterEvents(29, setType29Events);
       fetchMeterEvents(28, setType28Events);
-      console.log('Data refreshed at:', new Date().toLocaleTimeString());
+      console.log("Data refreshed at:", new Date().toLocaleTimeString());
     }, intervalMs);
 
     return () => {
       clearInterval(interval);
-      console.log('Interval cleared at:', new Date().toLocaleTimeString());
+      console.log("Interval cleared at:", new Date().toLocaleTimeString());
     };
   }, [meterId, refreshInterval]);
+
+  const handleImageError = (e) => {
+    e.target.src = "/placeholder-image.jpg"; // Ensure you have a placeholder image in your public folder
+  };
 
   return (
     <div className="mx-auto container py-8">
@@ -96,10 +100,7 @@ export default function LiveMonitoringMeterId() {
         </h1>
         <div className="flex items-center gap-2">
           <ArrowClockwise size={16} className="text-muted-foreground" />
-          <Select
-            value={refreshInterval}
-            onValueChange={setRefreshInterval}
-          >
+          <Select value={refreshInterval} onValueChange={setRefreshInterval}>
             <SelectTrigger className="h-9 w-24 bg-background/50">
               <SelectValue />
             </SelectTrigger>
@@ -139,13 +140,19 @@ export default function LiveMonitoringMeterId() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-muted-foreground"
+                    >
                       <div className="animate-pulse">Loading...</div>
                     </TableCell>
                   </TableRow>
                 ) : type29Events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-muted-foreground"
+                    >
                       No Logo Detection events available
                     </TableCell>
                   </TableRow>
@@ -162,29 +169,32 @@ export default function LiveMonitoringMeterId() {
                         {event.Details?.image_path ? (
                           <Dialog>
                             <DialogTrigger asChild>
-                              <div className="cursor-pointer" onClick={() => setSelectedImage(event.Details.image_path)}>
+                              <div
+                                className="cursor-pointer"
+                                onClick={() => setSelectedImage(event.Details.image_path)}
+                              >
                                 <Image
                                   src={event.Details.image_path}
                                   alt="Detection preview"
                                   width={50}
                                   height={50}
                                   className="object-cover rounded"
-                                  onError={(e) => {
-                                    e.target.src = "/placeholder-image.jpg"; // Add a fallback image
-                                  }}
+                                  unoptimized // Disable Next.js optimization for external images if needed
+                                  loading="lazy" // Lazy load images
+                                  onError={handleImageError}
                                 />
                               </div>
                             </DialogTrigger>
                             <DialogContent className="max-w-3xl">
                               <Image
-                                src={selectedImage}
+                                src={selectedImage || "/placeholder-image.jpg"}
                                 alt="Full detection image"
                                 width={800}
                                 height={600}
                                 className="object-contain w-full h-auto"
-                                onError={(e) => {
-                                  e.target.src = "/placeholder-image.jpg"; // Add a fallback image
-                                }}
+                                unoptimized
+                                loading="lazy"
+                                onError={handleImageError}
                               />
                             </DialogContent>
                           </Dialog>
@@ -217,13 +227,19 @@ export default function LiveMonitoringMeterId() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={3}
+                      className="text-center text-muted-foreground"
+                    >
                       <div className="animate-pulse">Loading...</div>
                     </TableCell>
                   </TableRow>
                 ) : type28Events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={3}
+                      className="text-center text-muted-foreground"
+                    >
                       No Audio Detection events available
                     </TableCell>
                   </TableRow>
