@@ -8,6 +8,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import {
+  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -21,102 +22,50 @@ import {
   TrendDown,
 } from "@phosphor-icons/react";
 
-// Chart data for past 6 weeks (total 20 devices)
+// Chart data for past 4 weeks (total 15 devices: 7 Touch + 8 APM)
 const chartData = [
-  { 
-    week: "Week 1", 
-    fieldTouch: 2, 
-    fieldAPM: 1, 
-    labTouch: 1, 
-    labAPM: 0 
-  },
-  { 
-    week: "Week 2", 
-    fieldTouch: 2, 
-    fieldAPM: 2, 
-    labTouch: 1, 
-    labAPM: 1 
-  },
-  { 
-    week: "Week 3", 
-    fieldTouch: 1, 
-    fieldAPM: 1, 
-    labTouch: 2, 
-    labAPM: 1 
-  },
-  { 
-    week: "Week 4", 
-    fieldTouch: 2, 
-    fieldAPM: 1, 
-    labTouch: 1, 
-    labAPM: 1 
-  },
-  { 
-    week: "Week 5", 
-    fieldTouch: 1, 
-    fieldAPM: 2, 
-    labTouch: 1, 
-    labAPM: 0 
-  },
-  { 
-    week: "Week 6", 
-    fieldTouch: 2, 
-    fieldAPM: 1, 
-    labTouch: 1, 
-    labAPM: 1 
-  },
+  { week: "Week 1", touch: 3, apm: 3 },
+  { week: "Week 2", touch: 2, apm: 2 },
+  { week: "Week 3", touch: 1, apm: 2 },
+  { week: "Week 4", touch: 1, apm: 1 },
 ];
 
 // Chart configuration
 const chartConfig = {
-  fieldTouch: {
-    label: "Field (Touch)",
+  touch: {
+    label: "Touch Meter",
     color: "hsl(var(--chart-1))",
   },
-  fieldAPM: {
-    label: "Field (APM)",
+  apm: {
+    label: "APM Meter",
     color: "hsl(var(--chart-2))",
   },
-  labTouch: {
-    label: "Lab (Touch)",
-    color: "hsl(var(--chart-3))",
-  },
-  labAPM: {
-    label: "Lab (APM)",
-    color: "hsl(var(--chart-4))",
-  },
-} 
+}
 
 export default function DeviceInstallationChart() {
   // Calculate metrics
-  const totalDevices = 20;
+  const totalDevices = chartData.reduce(
+    (sum, week) => sum + week.touch + week.apm,
+    0
+  );
   
-  const totalFieldTouch = chartData.reduce((sum, week) => sum + week.fieldTouch, 0);
-  const totalFieldAPM = chartData.reduce((sum, week) => sum + week.fieldAPM, 0);
-  const totalLabTouch = chartData.reduce((sum, week) => sum + week.labTouch, 0);
-  const totalLabAPM = chartData.reduce((sum, week) => sum + week.labAPM, 0);
-
-  const totalField = totalFieldTouch + totalFieldAPM;
-  const totalLab = totalLabTouch + totalLabAPM;
+  const totalTouch = chartData.reduce((sum, week) => sum + week.touch, 0);
+  const totalAPM = chartData.reduce((sum, week) => sum + week.apm, 0);
 
   // Calculate percentages and trends
-  const fieldRate = Math.round((totalField / totalDevices) * 100);
-  const labRate = Math.round((totalLab / totalDevices) * 100);
+  const touchRate = Math.round((totalTouch / totalDevices) * 100);
+  const apmRate = Math.round((totalAPM / totalDevices) * 100);
 
   // Compare last two weeks for trend
   const lastWeek = chartData[chartData.length - 1];
   const prevWeek = chartData[chartData.length - 2];
   
-  const fieldTrend = Math.round(
-    (((lastWeek.fieldTouch + lastWeek.fieldAPM) - 
-      (prevWeek.fieldTouch + prevWeek.fieldAPM)) / 
-      (prevWeek.fieldTouch + prevWeek.fieldAPM)) * 100
+  const touchTrend = Math.round(
+    ((lastWeek.touch - prevWeek.touch) / prevWeek.touch) * 100
   ) || 0;
   
-  const labTrend = Math.round(
-    (((lastWeek.labTouch + lastWeek.labAPM) - 
-      (prevWeek.labTouch + prevWeek.labAPM)) / 
-      (prevWeek.labTouch + prevWeek.labAPM)) * 100
+  const apmTrend = Math.round(
+    ((lastWeek.apm - prevWeek.apm) / prevWeek.apm) * 100
   ) || 0;
 
   return (
@@ -128,18 +77,18 @@ export default function DeviceInstallationChart() {
           </div>
           <div>
             <p className="font-semibold text-2xl flex items-baseline gap-2">
-              {totalField}
+              {totalTouch}
               <span
                 className={`text-sm flex gap-1 items-baseline ${
-                  fieldTrend >= 0 ? "text-green-500" : "text-red-500"
+                  touchTrend >= 0 ? "text-green-500" : "text-red-500"
                 }`}
               >
-                {fieldTrend >= 0 ? "+" : ""}
-                {fieldTrend}%
-                {fieldTrend >= 0 ? <TrendUp size={16} /> : <TrendDown size={16} />}
+                {touchTrend >= 0 ? "+" : ""}
+                {touchTrend}%
+                {touchTrend >= 0 ? <TrendUp size={16} /> : <TrendDown size={16} />}
               </span>
             </p>
-            <p className="text-xs">Field Installations</p>
+            <p className="text-xs">Touch Meter Installations</p>
           </div>
         </div>
 
@@ -149,18 +98,18 @@ export default function DeviceInstallationChart() {
           </div>
           <div>
             <p className="font-semibold text-2xl flex items-baseline gap-2">
-              {totalLab}
+              {totalAPM}
               <span
                 className={`text-sm flex gap-1 items-baseline ${
-                  labTrend >= 0 ? "text-green-500" : "text-red-500"
+                  apmTrend >= 0 ? "text-green-500" : "text-red-500"
                 }`}
               >
-                {labTrend >= 0 ? "+" : ""}
-                {labTrend}%
-                {labTrend >= 0 ? <TrendUp size={16} /> : <TrendDown size={16} />}
+                {apmTrend >= 0 ? "+" : ""}
+                {apmTrend}%
+                {apmTrend >= 0 ? <TrendUp size={16} /> : <TrendDown size={16} />}
               </span>
             </p>
-            <p className="text-xs">Lab Installations</p>
+            <p className="text-xs">APM Meter Installations</p>
           </div>
         </div>
 
@@ -170,10 +119,10 @@ export default function DeviceInstallationChart() {
           </div>
           <div>
             <p className="font-semibold text-2xl flex items-baseline gap-2">
-              {fieldRate + labRate}%
+              {totalDevices}
               <span className="text-green-500 text-sm">Total</span>
             </p>
-            <p className="text-xs">Installation Rate</p>
+            <p className="text-xs">Total Installations</p>
           </div>
         </div>
       </div>
@@ -187,26 +136,18 @@ export default function DeviceInstallationChart() {
                 Device Installation Statistics
               </CardTitle>
               <CardDescription className="text-sm mt-1">
-                Field vs Lab Installations (Last 6 Weeks) - Touch & APM Meters
+                Touch vs APM Meter Installations (Last 4 Weeks)
               </CardDescription>
             </div>
 
-            <div className="flex gap-4 items-center flex-wrap">
+            <div className="flex gap-4 items-center">
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-sm bg-[hsl(var(--chart-1))]"></div>
-                <span className="text-xs font-medium">Field (Touch)</span>
+                <span className="text-xs font-medium">Touch Meter</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-sm bg-[hsl(var(--chart-2))]"></div>
-                <span className="text-xs font-medium">Field (APM)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-sm bg-[hsl(var(--chart-3))]"></div>
-                <span className="text-xs font-medium">Lab (Touch)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-sm bg-[hsl(var(--chart-4))]"></div>
-                <span className="text-xs font-medium">Lab (APM)</span>
+                <span className="text-xs font-medium">APM Meter</span>
               </div>
             </div>
           </div>
@@ -229,6 +170,9 @@ export default function DeviceInstallationChart() {
               <YAxis
                 tickLine={false}
                 axisLine={false}
+                domain={[0, 3]} // Set max value based on highest data point
+                tickCount={4} // Number of ticks (0 through 3)
+                allowDecimals={false} // Force whole numbers only
                 label={{
                   value: "Number of Devices",
                   angle: -90,
@@ -246,23 +190,13 @@ export default function DeviceInstallationChart() {
                 content={<ChartTooltipContent indicator="dashed" />}
               />
               <Bar
-                dataKey="fieldTouch"
-                fill="var(--color-fieldTouch)"
+                dataKey="touch"
+                fill="var(--color-touch)"
                 radius={4}
               />
               <Bar
-                dataKey="fieldAPM"
-                fill="var(--color-fieldAPM)"
-                radius={4}
-              />
-              <Bar
-                dataKey="labTouch"
-                fill="var(--color-labTouch)"
-                radius={4}
-              />
-              <Bar
-                dataKey="labAPM"
-                fill="var(--color-labAPM)"
+                dataKey="apm"
+                fill="var(--color-apm)"
                 radius={4}
               />
             </BarChart>
