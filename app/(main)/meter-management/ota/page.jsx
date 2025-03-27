@@ -380,7 +380,9 @@ export default function OtaUploader() {
                   <TableHead>Filename</TableHead>
                   <TableHead>URL</TableHead>
                   <TableHead>Delta URL</TableHead>
-                  <TableHead className="text-right">Upload Date</TableHead>
+                  <TableHead>Upload Date</TableHead>
+                  <TableHead className="text-right">Performed By</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -422,7 +424,9 @@ export default function OtaUploader() {
                           </a>
                         ) : "-"}
                       </TableCell>
-                      <TableCell className="text-right">{formatDate(item.uploadDate)}</TableCell>
+                      <TableCell>{formatDate(item.uploadDate)}</TableCell>
+                      <TableCell className="text-right">{item.performedBy?.email}</TableCell>
+
                     </TableRow>
                   ))
                 )}

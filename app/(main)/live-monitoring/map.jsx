@@ -17,16 +17,16 @@ const Tooltip = dynamic(() => import("react-leaflet").then((mod) => mod.Tooltip)
 
 // Enhanced Pune locations with status
 const locations = [
-  { lat: 18.5204, lng: 73.8567, name: "Shaniwar Wada", status: "active", deviceId: "METER-001", lastPing: "10 mins ago" },
-  { lat: 18.5123, lng: 73.8384, name: "Aga Khan Palace", status: "active", deviceId: "METER-002", lastPing: "15 mins ago" },
-  { lat: 18.5529, lng: 73.7739, name: "Sinhagad Fort", status: "inactive", deviceId: "METER-003", lastPing: "3 days ago" },
-  { lat: 18.5293, lng: 73.8492, name: "Pataleshwar Cave", status: "active", deviceId: "METER-004", lastPing: "5 mins ago" },
-  { lat: 18.5389, lng: 73.8860, name: "Kelkar Museum", status: "active", deviceId: "METER-005", lastPing: "12 mins ago" },
-  { lat: 18.5067, lng: 73.8223, name: "Parvati Hill", status: "active", deviceId: "METER-006", lastPing: "8 mins ago" },
-  { lat: 18.4801, lng: 73.8910, name: "Phoenix Marketcity", status: "active", deviceId: "METER-007", lastPing: "3 mins ago" },
-  { lat: 18.5626, lng: 73.9167, name: "Koregaon Park", status: "active", deviceId: "METER-008", lastPing: "7 mins ago" },
-  { lat: 18.5353, lng: 73.8769, name: "Fergusson College", status: "inactive", deviceId: "METER-009", lastPing: "5 days ago" },
-  { lat: 18.5196, lng: 73.8554, name: "Pune Station", status: "active", deviceId: "METER-010", lastPing: "1 min ago" },
+  { lat: 18.596024, lng: 73.924698, name: "Lohegaon, Pune", status: "active", deviceId: "METER-001", lastPing: "10 mins ago" },
+  { lat: 18.5908, lng: 73.9110, name: "Khese Park Lohegaon Pune", status: "active", deviceId: "METER-002", lastPing: "15 mins ago" },
+  { lat: 18.4965, lng: 73.9595, name: "Vista Luxuria Hadapsar Pune", status: "active", deviceId: "METER-003", lastPing: "3 days ago" },
+  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-004", lastPing: "5 mins ago" },
+  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-005", lastPing: "12 mins ago" },
+  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-006", lastPing: "8 mins ago" },
+  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-007", lastPing: "3 mins ago" },
+  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-008", lastPing: "7 mins ago" },
+  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "inactive", deviceId: "METER-009", lastPing: "5 days ago" },
+  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-010", lastPing: "1 min ago" },
 ];
 
 // Custom marker icon based on status

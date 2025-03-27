@@ -384,7 +384,8 @@ export default function ConfigPage() {
                   <TableHead>Value</TableHead>
                   <TableHead>Devices</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Created At</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead className="text-right">Performed By</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -420,9 +421,10 @@ export default function ConfigPage() {
                           {log.completedAt ? "Completed" : "Pending"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell>
                         {new Date(log.createdAt).toLocaleString()}
                       </TableCell>
+                      <TableCell className="text-right">{log.performedBy?.email}</TableCell>
                     </TableRow>
                   ))
                 )}
