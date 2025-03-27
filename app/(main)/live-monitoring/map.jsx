@@ -17,16 +17,15 @@ const Tooltip = dynamic(() => import("react-leaflet").then((mod) => mod.Tooltip)
 
 // Enhanced Pune locations with status
 const locations = [
-  { lat: 18.596024, lng: 73.924698, name: "Lohegaon, Pune", status: "active", deviceId: "METER-001", lastPing: "10 mins ago" },
-  { lat: 18.5908, lng: 73.9110, name: "Khese Park Lohegaon Pune", status: "active", deviceId: "METER-002", lastPing: "15 mins ago" },
-  { lat: 18.4965, lng: 73.9595, name: "Vista Luxuria Hadapsar Pune", status: "active", deviceId: "METER-003", lastPing: "3 days ago" },
-  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-004", lastPing: "5 mins ago" },
-  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-005", lastPing: "12 mins ago" },
-  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-006", lastPing: "8 mins ago" },
-  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-007", lastPing: "3 mins ago" },
-  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-008", lastPing: "7 mins ago" },
-  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "inactive", deviceId: "METER-009", lastPing: "5 days ago" },
-  { lat: 18.5526, lng: 73.9485, name: "WTC Kharadi Pune", status: "active", deviceId: "METER-010", lastPing: "1 min ago" },
+  { lat: 18.5934673, lng: 73.9490801, name: "Shiv Colony, Sr. No. 84, Pawar Wasti Rd, near Trimurti Lawns, Lohegaon, Pune, Maharashtra 411047", status: "active", deviceId: "1100006", lastPing: "unknown" },
+  { lat: 18.5978404, lng: 73.9366586, name: "HWXP+6PM, Adarsh Nagar, Sant Nagar, Lohegaon, Pune, Maharashtra 411047", status: "active", deviceId: "1100007", lastPing: "unknown" },
+  { lat: 18.5516145, lng: 73.9445414, name: "Marvel Citrine, Rakshak Nagar, Kharadi, Pune, Maharashtra 411014", status: "active", deviceId: "1100008", lastPing: "unknown" },
+  { lat: 18.5518714, lng: 73.9447167, name: "Marvel Citrine, Rakshak Nagar, Kharadi, Pune, Maharashtra 411014", status: "active", deviceId: "1100009", lastPing: "unknown" },
+  { lat: 18.5887872, lng: 73.9091094, name: "K-57, Khese Park, Lohegaon, Pune, Maharashtra 411032", status: "active", deviceId: "1100010", lastPing: "unknown" },
+  { lat: 18.5585257, lng: 73.9321773, name: "Shop no.10, Sai Rishi Plaza, Kharadi Rd, Preet Nagar, Wadgaon Sheri, Pune, Maharashtra 411014", status: "active", deviceId: "5500006", lastPing: "unknown" },
+  { lat: 18.6083681, lng: 73.9070001, name: "United Arise, Dighi, Pune, Maharashtra 411047", status: "active", deviceId: "5500007", lastPing: "unknown" },
+  { lat: 18.5595171, lng: 73.9487621, name: "S. No.58/2/ 1A/1A/2, D P Rd, Near Near Eon IT Park, Tulaja Bhawani Nagar, Kharadi, Pune, Maharashtra 411014", status: "active", deviceId: "5500008", lastPing: "unknown" },
+  { lat: 18.5409197, lng: 73.9278429, name: "GWRH+F52, Wadgaon Sheri - Sainath Nagar Rd, Sainath Nagar, Wadgaon Sheri, Pune, Maharashtra 411014", status: "active", deviceId: "5500010", lastPing: "unknown" }
 ];
 
 // Custom marker icon based on status
@@ -77,8 +76,8 @@ const DeviceLocationMap = () => {
               className="rounded-lg z-10"
             >
               <TileLayer
-               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
               />
               {filteredLocations.map((location, index) => (
                 <Marker
@@ -87,7 +86,10 @@ const DeviceLocationMap = () => {
                   icon={createCustomMarker(location.status)}
                 >
                   <Tooltip direction="top" offset={[0, -36]} opacity={1} permanent={false}>
-                    <div className="text-xs font-semibold">{location.name}</div>
+                    <div>
+                      <div className="text-xs font-semibold">{location.name}</div>
+                      <div className="text-xs text-muted-foreground">Meter ID: {location.deviceId}</div>
+                    </div>
                   </Tooltip>
                   <Popup className="rounded-lg overflow-hidden">
                     <div className="p-1">
