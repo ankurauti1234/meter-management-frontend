@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -23,17 +23,21 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ArrowClockwise } from "@phosphor-icons/react";
+import { ArrowClockwise, MagnifyingGlass } from "@phosphor-icons/react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
 export default function LiveMonitoringMeterId() {
   const { meterId } = useParams();
+  const router = useRouter();
   const [type29Events, setType29Events] = useState([]);
   const [type28Events, setType28Events] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState("30");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [searchInput, setSearchInput] = useState(meterId || "");
 
   const formatTimestamp = (ts) => {
     if (typeof ts === "string") return new Date(ts).toLocaleString();
@@ -89,28 +93,45 @@ export default function LiveMonitoringMeterId() {
   }, [meterId, refreshInterval]);
 
   const handleImageError = (e) => {
-    e.target.src = "/placeholder-image.jpg"; // Ensure you have a placeholder image in your public folder
+    e.target.src = "/placeholder-image.jpg";
+  };
+
+  const handleSearch = () => {
+    if (searchInput && searchInput !== meterId) {
+      router.push(`/live-monitoring/${searchInput}`);
+    }
   };
 
   return (
     <div className="mx-auto container py-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-6 mb-6">
         <h1 className="text-2xl font-bold">
           Live Monitoring - Meter ID: {meterId}
         </h1>
-        <div className="flex items-center gap-2">
-          <ArrowClockwise size={16} className="text-muted-foreground" />
-          <Select value={refreshInterval} onValueChange={setRefreshInterval}>
-            <SelectTrigger className="h-9 w-24 bg-background/50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5 sec</SelectItem>
-              <SelectItem value="10">10 sec</SelectItem>
-              <SelectItem value="30">30 sec</SelectItem>
-              <SelectItem value="60">60 sec</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-4 justify-end">
+         <div className="flex items-center  bg-card border border-foreground/25 rounded-lg overflow-hidden">
+         <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Enter Meter ID"
+            className="max-w-sm rounded-none"
+          />
+          <Button variant="ghost" onClick={handleSearch}><MagnifyingGlass/></Button>
+         </div>
+          <div className="flex items-center gap-2">
+            <ArrowClockwise size={16} className="text-muted-foreground" />
+            <Select value={refreshInterval} onValueChange={setRefreshInterval}>
+              <SelectTrigger className="h-9 w-24 bg-card border-foreground/25">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5 sec</SelectItem>
+                <SelectItem value="10">10 sec</SelectItem>
+                <SelectItem value="30">30 sec</SelectItem>
+                <SelectItem value="60">60 sec</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -122,13 +143,13 @@ export default function LiveMonitoringMeterId() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Type 29 Table */}
-        <Card>
+        <Card className="h-[500px] flex flex-col">
           <CardHeader>
             <CardTitle>Logo Detection</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background">
                 <TableRow>
                   <TableHead>Timestamp</TableHead>
                   <TableHead>Detection</TableHead>
@@ -142,7 +163,7 @@ export default function LiveMonitoringMeterId() {
                   <TableRow>
                     <TableCell
                       colSpan={5}
-                      className="text-center text-muted-foreground"
+                      className="text-center text-muted-foreground h-full"
                     >
                       <div className="animate-pulse">Loading...</div>
                     </TableCell>
@@ -151,7 +172,7 @@ export default function LiveMonitoringMeterId() {
                   <TableRow>
                     <TableCell
                       colSpan={5}
-                      className="text-center text-muted-foreground"
+                      className="text-center text-muted-foreground h-full"
                     >
                       No Logo Detection events available
                     </TableCell>
@@ -179,8 +200,8 @@ export default function LiveMonitoringMeterId() {
                                   width={50}
                                   height={50}
                                   className="object-cover rounded"
-                                  unoptimized // Disable Next.js optimization for external images if needed
-                                  loading="lazy" // Lazy load images
+                                  unoptimized
+                                  loading="lazy"
                                   onError={handleImageError}
                                 />
                               </div>
@@ -211,13 +232,13 @@ export default function LiveMonitoringMeterId() {
         </Card>
 
         {/* Type 28 Table */}
-        <Card>
+        <Card className="h-[500px] flex flex-col">
           <CardHeader>
             <CardTitle>Audio Detection Events</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background">
                 <TableRow>
                   <TableHead>Timestamp</TableHead>
                   <TableHead>Detection</TableHead>
@@ -226,10 +247,10 @@ export default function LiveMonitoringMeterId() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
+                  <TableRow >
                     <TableCell
                       colSpan={3}
-                      className="text-center text-muted-foreground"
+                      className="text-center text-muted-foreground h-full"
                     >
                       <div className="animate-pulse">Loading...</div>
                     </TableCell>
@@ -238,7 +259,7 @@ export default function LiveMonitoringMeterId() {
                   <TableRow>
                     <TableCell
                       colSpan={3}
-                      className="text-center text-muted-foreground"
+                      className="text-center text-muted-foreground h-full"
                     >
                       No Audio Detection events available
                     </TableCell>
@@ -249,9 +270,7 @@ export default function LiveMonitoringMeterId() {
                       <TableCell>{formatTimestamp(event.TS)}</TableCell>
                       <TableCell>
                         {event.Details
-                          ? Object.entries(event.Details)
-                              .map(([key, value]) => `${key}: ${value}`)
-                              .join(", ")
+                          ? Object.values(event.Details).join(", ")
                           : "-"}
                       </TableCell>
                       <TableCell>{event.Event_Name || "-"}</TableCell>
