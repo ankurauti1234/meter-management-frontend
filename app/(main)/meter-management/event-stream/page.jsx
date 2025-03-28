@@ -56,17 +56,24 @@ const formatTimestamp = (ts) => {
   return new Date(timestamp).toLocaleString();
 };
 
-// New function to format Details object
 const formatDetails = (details, type) => {
   if (!details) return "-";
   
   // For Type 29, remove image_path from the display
   if (type === 29 || type === "29") {
     const { image_path, ...rest } = details;
-    return JSON.stringify(rest);
+    // Convert to string and remove curly brackets
+    return JSON.stringify(rest).replace(/[{}"]/g, '').replace(/:/g, ': ');
   }
   
-  return JSON.stringify(details);
+  // For Type 28, show only values without keys
+  if (type === 28 || type === "28") {
+    const values = Object.values(details);
+    return values.join(', ');
+  }
+  
+  // For all other types, show string without curly brackets
+  return JSON.stringify(details).replace(/[{}"]/g, '').replace(/:/g, ': ');
 };
 
 export default function EventStream() {
