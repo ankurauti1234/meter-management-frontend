@@ -232,7 +232,7 @@ export default function ReportsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Event Type</TableHead>
-                    <TableHead>TS</TableHead>
+                    <TableHead>Timestamp</TableHead>
                     <TableHead>Event Name</TableHead>
                     <TableHead>Details</TableHead>
                   </TableRow>

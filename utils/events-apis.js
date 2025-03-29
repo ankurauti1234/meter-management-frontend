@@ -183,6 +183,38 @@ const parseDeviceSearch = (deviceSearch) => {
   return { deviceId: deviceSearch };
 };
 
+// Create a descriptive filename based on filters
+const generateReportFilename = (filters, format) => {
+  // Handle device ID part
+  let devicePart = 'all-devices';
+  if (filters.deviceSearch) {
+    if (filters.deviceSearch.includes('-')) {
+      const [min, max] = filters.deviceSearch.split('-').map(d => d.trim());
+      devicePart = `devices-${min}-to-${max}`;
+    } else {
+      devicePart = `device-${filters.deviceSearch.trim()}`;
+    }
+  }
+  
+  // Handle date range part
+  let datePart = 'all-time';
+  if (filters.fromDate && filters.toDate) {
+    datePart = `${filters.fromDate.replace(/-/g, '')}-to-${filters.toDate.replace(/-/g, '')}`;
+  } else if (filters.fromDate) {
+    datePart = `from-${filters.fromDate.replace(/-/g, '')}`;
+  } else if (filters.toDate) {
+    datePart = `to-${filters.toDate.replace(/-/g, '')}`;
+  }
+  
+  // Add event type if specified
+  let typePart = '';
+  if (filters.type && filters.type !== 'all') {
+    typePart = `-type-${filters.type.replace(/,/g, '-')}`;
+  }
+  
+  return `${devicePart}_${datePart}${typePart}_report.${format}`;
+};
+
 export const fetchEventsReport = async (filters, format = 'json') => {
   try {
     const deviceParams = parseDeviceSearch(filters.deviceSearch);
@@ -193,6 +225,9 @@ export const fetchEventsReport = async (filters, format = 'json') => {
       ...(filters.toDate && { toDate: filters.toDate }),
       format
     };
+
+    // Request human-readable timestamp format
+    params.humanReadableTimestamp = true;
 
     const response = await api.get("/events/reports", { 
       params,
@@ -205,9 +240,25 @@ export const fetchEventsReport = async (filters, format = 'json') => {
       // For CSV and XLSX, return blob URL for download
       const blob = new Blob([response.data]);
       const url = window.URL.createObjectURL(blob);
+      
+      // Try to get filename from Content-Disposition header first
+      let filename = null;
+      const contentDisposition = response.headers?.get('content-disposition');
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+?)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      // If no filename from header, generate one based on filters
+      if (!filename) {
+        filename = generateReportFilename(filters, format);
+      }
+      
       return {
         url,
-        filename: `events_report.${format}`
+        filename
       };
     }
   } catch (error) {
