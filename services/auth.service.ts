@@ -16,19 +16,19 @@ export interface ChangePasswordData {
 export interface CreateUserData {
   email: string;
   name: string;
-  role?: "ADMIN" | "DEVELOPER" | "VIEWER"; // Match your backend UserRole enum
+  role?: "admin" | "developer" | "viewer"; // Match your backend UserRole enum
 }
 
 export interface UpdateUserData {
   name?: string;
-  role?: "ADMIN" | "DEVELOPER" | "VIEWER";
+  role?: "admin" | "developer" | "viewer";
 }
 
 export interface User {
   id: string; // UUID string from backend
   email: string;
   name: string;
-  role: "ADMIN" | "DEVELOPER" | "VIEWER";
+  role: "admin" | "developer" | "viewer";
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -38,7 +38,7 @@ export interface GetAllUsersParams {
   page?: number;
   limit?: number;
   search?: string;
-  role?: "ADMIN" | "DEVELOPER" | "VIEWER";
+  role?: "admin" | "developer" | "viewer";
   isActive?: boolean;
   sortBy?: "name" | "email" | "role" | "createdAt" | "updatedAt";
   sortOrder?: "ASC" | "DESC";
