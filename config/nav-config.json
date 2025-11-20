@@ -1,0 +1,122 @@
+{
+  "navMain": [
+    {
+      "title": "Dashboard",
+      "url": "/dashboard",
+      "icon": "LayoutGrid",
+      "roles": ["admin", "developer", "user"]
+    },
+    {
+      "title": "Assets Management",
+      "icon": "Boxes",
+      "roles": ["admin", "developer"],
+      "items": [
+        {
+          "title": "Inventory",
+          "url": "/assets/inventory",
+          "icon": "ClipboardList",
+          "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Master Data",
+          "url": "/assets/master-data",
+          "icon": "DatabaseZap",
+          "roles": ["admin"]
+        },
+        {
+          "title": "Household Info",
+          "url": "/assets/households",
+          "icon": "Home",
+          "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Upload Assets",
+          "url": "/assets/upload",
+          "icon": "UploadCloud",
+          "roles": ["admin"]
+        }
+      ]
+    },
+    {
+      "title": "Device Management",
+      "icon": "Cpu",
+      "roles": ["admin", "developer"],
+      "items": [
+        {
+          "title": "Event Mapping",
+          "url": "/devices/event-mapping",
+          "icon": "GitBranch",
+          "roles": ["admin"]
+        },
+        {
+          "title": "OTA Updates",
+          "url": "/devices/ota",
+          "icon": "RefreshCw",
+          "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Decommission",
+          "url": "/devices/decommission",
+          "icon": "PowerOff",
+          "roles": ["admin"]
+        },
+        {
+          "title": "Configuration",
+          "url": "/devices/configuration",
+          "icon": "Settings2",
+          "roles": ["admin", "developer"]
+        }
+      ]
+    },
+    {
+      "title": "Live Monitoring",
+      "icon": "Activity",
+      "roles": ["admin", "developer", "user"],
+      "items": [
+        {
+          "title": "Device Events",
+          "url": "/live-monitoring/device-events",
+          "icon": "Monitor",
+          "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Media Events",
+          "url": "/live-monitoring/media-events",
+          "icon": "Video",
+          "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Alerts",
+          "url": "/live-monitoring/alerts",
+          "icon": "BellRing",
+          "roles": ["admin", "developer"]
+        }
+      ]
+    },
+    {
+      "title": "Reports",
+      "url": "/reports",
+      "icon": "BarChart3",
+      "roles": ["admin", "developer"]
+    },
+    {
+      "title": "Remote Access",
+      "url": "/remote-access",
+      "icon": "Network",
+      "roles": ["admin", "developer"]
+    },
+    {
+      "title": "User Management",
+      "url": "/users",
+      "icon": "UserCog",
+      "roles": ["admin"]
+    },
+    {
+      "title": "Settings",
+      "url": "/settings",
+      "icon": "SlidersHorizontal",
+      "roles": ["admin", "developer", "user"]
+    }
+  ],
+  "projects": []
+}
