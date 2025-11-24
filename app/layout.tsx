@@ -42,7 +42,7 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${sourceSerif.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           {children}
           <Toaster richColors closeButton />
         </ThemeProvider>
