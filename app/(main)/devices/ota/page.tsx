@@ -124,7 +124,11 @@ export default function OtaPage() {
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await OtaService.getMyJobs(page, limit, debouncedSearch || undefined);
+      const res = await OtaService.getMyJobs(
+        page,
+        limit,
+        debouncedSearch || undefined
+      );
       setJobs(res.jobs);
       setTotal(res.pagination?.total || 0);
     } catch (err: any) {
@@ -251,7 +255,9 @@ export default function OtaPage() {
     {
       accessorKey: "version",
       header: "Version",
-      cell: ({ row }) => <span className="font-semibold">{row.original.version}</span>,
+      cell: ({ row }) => (
+        <span className="font-semibold">{row.original.version}</span>
+      ),
     },
     {
       accessorKey: "fileName",
@@ -259,7 +265,7 @@ export default function OtaPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <File className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">{row.original.fileName}</span>
+          <span className="text-xs">{row.original.fileName}</span>
         </div>
       ),
     },
@@ -269,7 +275,7 @@ export default function OtaPage() {
       cell: ({ row }) => {
         const targets = row.original.targets;
         return (
-          <span className="text-sm">
+          <span className="text-xs">
             {targets.length === 1
               ? targets[0].split("/").pop()
               : `${targets.length} devices`}
@@ -286,7 +292,7 @@ export default function OtaPage() {
       accessorKey: "createdAt",
       header: "Created",
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {format(new Date(row.original.createdAt), "MMM d, yyyy HH:mm")}
         </span>
       ),
@@ -335,7 +341,9 @@ export default function OtaPage() {
             <ButtonGroup>
               <Select
                 value={autoRefresh ? String(autoRefresh) : "off"}
-                onValueChange={(v) => setAutoRefresh(v === "off" ? null : Number(v))}
+                onValueChange={(v) =>
+                  setAutoRefresh(v === "off" ? null : Number(v))
+                }
               >
                 <SelectTrigger className="w-fit">
                   <SelectValue />
@@ -354,7 +362,9 @@ export default function OtaPage() {
                 variant="outline"
                 size="icon"
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                />
               </Button>
             </ButtonGroup>
 
@@ -375,7 +385,10 @@ export default function OtaPage() {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead key={header.id}>
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -387,7 +400,9 @@ export default function OtaPage() {
                   <TableCell colSpan={7} className="h-64">
                     <div className="flex flex-col items-center justify-center h-full gap-4">
                       <Spinner className="h-8 w-8" />
-                      <p className="text-muted-foreground">Loading OTA jobs...</p>
+                      <p className="text-muted-foreground">
+                        Loading OTA jobs...
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -420,7 +435,10 @@ export default function OtaPage() {
                   <TableRow key={row.id} className="hover:bg-muted/50">
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -432,18 +450,27 @@ export default function OtaPage() {
 
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-sm text-muted-foreground">
-              Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total.toLocaleString()} jobs
+            <p className="text-xs text-muted-foreground">
+              Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)}{" "}
+              of {total.toLocaleString()} jobs
             </p>
 
             <div className="flex items-center gap-3">
-              <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
+              <Select
+                value={String(limit)}
+                onValueChange={(v) => {
+                  setLimit(Number(v));
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {[10, 25, 50, 100].map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n} rows</SelectItem>
+                    <SelectItem key={n} value={String(n)}>
+                      {n} rows
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -457,7 +484,7 @@ export default function OtaPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium px-3 border-y">
+                <span className="text-xs font-medium px-3 border-y">
                   Page {page} / {Math.ceil(total / limit) || 1}
                 </span>
                 <Button
@@ -478,15 +505,19 @@ export default function OtaPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl">Create OTA Update Job</DialogTitle>
+            <DialogTitle className="text-lg">Create OTA Update Job</DialogTitle>
           </DialogHeader>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* File Upload */}
               <div
-                className={`border-2 border-dashed rounded-xl p-10 text-center transition-all
-                  ${file ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"}
+                className={`border-2 border-dashed rounded-lg p-10 text-center transition-all
+                  ${
+                    file
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-primary/50"
+                  }
                   ${uploading ? "opacity-60" : "cursor-pointer"}`}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -494,20 +525,24 @@ export default function OtaPage() {
                   if (f) handleFileSelect(f);
                 }}
                 onDragOver={(e) => e.preventDefault()}
-                onClick={() => !uploading && document.getElementById("ota-file")?.click()}
+                onClick={() =>
+                  !uploading && document.getElementById("ota-file")?.click()
+                }
               >
                 <input
                   id="ota-file"
                   type="file"
                   className="hidden"
                   accept=".bin,.hex,.zip"
-                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                  onChange={(e) =>
+                    e.target.files?.[0] && handleFileSelect(e.target.files[0])
+                  }
                 />
                 {file ? (
                   <div className="space-y-3">
                     <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
                     <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                     <Button
@@ -528,7 +563,7 @@ export default function OtaPage() {
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Drop firmware file here</p>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         or click to browse • .bin, .hex, .zip • Max 100MB
                       </p>
                     </div>
@@ -538,7 +573,7 @@ export default function OtaPage() {
 
               {uploading && (
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs">
                     <span>Uploading & creating job...</span>
                     <span>{uploadProgress}%</span>
                   </div>
@@ -584,7 +619,10 @@ export default function OtaPage() {
                     <FormLabel>S3 Bucket (optional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={process.env.NEXT_PUBLIC_DEFAULT_S3_BUCKET || "my-firmware-bucket"}
+                        placeholder={
+                          process.env.NEXT_PUBLIC_DEFAULT_S3_BUCKET ||
+                          "my-firmware-bucket"
+                        }
                         {...field}
                       />
                     </FormControl>
@@ -611,7 +649,9 @@ export default function OtaPage() {
                   name="thingNames"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Specific Thing Names (comma-separated)</FormLabel>
+                      <FormLabel>
+                        Specific Thing Names (comma-separated)
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="meter-001, meter-002" {...field} />
                       </FormControl>
@@ -621,7 +661,11 @@ export default function OtaPage() {
               </div>
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={uploading || !file}>

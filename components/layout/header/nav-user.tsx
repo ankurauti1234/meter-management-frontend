@@ -2,7 +2,7 @@
 "use client";
 
 import Cookies from "js-cookie";
-import { BadgeCheck, Bell, LogOut, Shield} from "lucide-react";
+import { BadgeCheck, Bell, LogOut, Shield } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface User {
-  id: string;        // UUID as string
+  id: string; // UUID as string
   name: string;
   email: string;
   role: string;
@@ -94,7 +94,6 @@ export function NavUser() {
     router.push("/login");
   };
 
-
   if (loading) {
     return (
       <SidebarMenu>
@@ -111,69 +110,79 @@ export function NavUser() {
   if (!user) return null;
 
   return (
-<DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="data-[state=open]:bg-sidebar-accent border data-[state=open]:text-sidebar-accent-foreground p-0 px-0 gap-0"
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                <AvatarFallback className="rounded-lg">
-                  {user.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">
-                    {user.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">{user.email}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              {/* Non-clickable role display */}
-              <div className="flex items-center gap-2 px-2 py-1.5 text-sm opacity-60 cursor-default">
-                <Shield className="h-4 w-4" />
-                <div className="flex items-center justify-between w-full">
-                  <span>Role</span>
-                  <span className="text-xs font-medium capitalize bg-muted px-2 py-0.5 rounded">
-                    {user.role}
-                  </span>
-                </div>
-              </div>
-              <DropdownMenuItem>
-                <BadgeCheck className="mr-2 h-4 w-4" />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive group hover:bg-destructive/50">
-              <LogOut className="mr-2 h-4 w-4 text-destructive group-hover:text-foreground" />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          size="icon"
+          variant="secondary"
+          className="data-[state=open]:bg-sidebar-accent border data-[state=open]:text-sidebar-accent-foreground p-0 px-0 gap-0"
+        >
+          <Avatar className="h-8 w-8 rounded-lg">
+            <AvatarImage
+              src={user.avatar || "/placeholder.svg"}
+              alt={user.name}
+            />
+            <AvatarFallback className="rounded-lg">
+              {user.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+        side={isMobile ? "bottom" : "right"}
+        align="end"
+        sideOffset={4}
+      >
+        <DropdownMenuLabel className="p-0 font-normal">
+          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-xs">
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarImage
+                src={user.avatar || "/placeholder.svg"}
+                alt={user.name}
+              />
+              <AvatarFallback className="rounded-lg">
+                {user.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-xs leading-tight">
+              <span className="truncate font-medium">{user.name}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {user.email}
+              </span>
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          {/* Non-clickable role display */}
+          <div className="flex items-center gap-2 px-2 py-1.5 text-xs opacity-60 cursor-default">
+            <Shield className="h-4 w-4" />
+            <div className="flex items-center justify-between w-full">
+              <span>Role</span>
+              <span className="text-xs font-medium capitalize bg-muted px-2 py-0.5 rounded">
+                {user.role}
+              </span>
+            </div>
+          </div>
+          <DropdownMenuItem>
+            <BadgeCheck className="mr-2 h-4 w-4" />
+            Account
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Bell className="mr-2 h-4 w-4" />
+            Notifications
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="text-destructive group hover:bg-destructive/50"
+        >
+          <LogOut className="mr-2 h-4 w-4 text-destructive group-hover:text-foreground" />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

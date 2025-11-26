@@ -124,7 +124,7 @@ export function NavUser() {
                   {user.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+              <div className="grid flex-1 text-left text-xs leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
                 <span className="truncate text-xs text-muted-foreground">{user.email}</span>
               </div>
@@ -138,14 +138,14 @@ export function NavUser() {
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-xs">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
                   <AvatarFallback className="rounded-lg">
                     {user.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 text-left text-xs leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
                   <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                 </div>
@@ -154,7 +154,7 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               {/* Non-clickable role display */}
-              <div className="flex items-center gap-2 px-2 py-1.5 text-sm opacity-60 cursor-default">
+              <div className="flex items-center gap-2 px-2 py-1.5 text-xs opacity-60 cursor-default">
                 <Shield className="h-4 w-4" />
                 <div className="flex items-center justify-between w-full">
                   <span>Role</span>

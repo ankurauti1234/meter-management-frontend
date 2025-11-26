@@ -222,7 +222,7 @@ export default function MediaEventsPage() {
       accessorKey: "timestamp",
       header: "Time",
       cell: ({ row }) => (
-        <div className="font-mono text-sm">
+        <div className="font-mono text-xs">
           {format(
             new Date(row.original.timestamp * 1000),
             "dd MMM yyyy, HH:mm:ss"
@@ -234,7 +234,7 @@ export default function MediaEventsPage() {
       accessorKey: "device_id",
       header: "Device ID",
       cell: ({ row }) => (
-        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+        <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
           {row.original.device_id}
         </code>
       ),
@@ -267,14 +267,14 @@ export default function MediaEventsPage() {
       accessorKey: "label",
       header: "Channel",
       cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.original.label || "—"}</span>
+        <span className="font-mono text-xs">{row.original.label || "—"}</span>
       ),
     },
     {
       accessorKey: "confidence",
       header: "Confidence",
       cell: ({ row }) => (
-        <div className="font-mono text-sm">
+        <div className="font-mono text-xs">
           {row.original.confidence
             ? `${(row.original.confidence * 100).toFixed(1)}%`
             : "—"}
@@ -305,7 +305,7 @@ export default function MediaEventsPage() {
     //         </DialogTrigger>
     //         <DialogContent className="max-w-6xl p-0 gap-0">
     //           <DialogHeader className="p-4">
-    //             <DialogTitle className="font-normal"><code className="text-lg font-mono bg-muted px-2 py-1 rounded">
+    //             <DialogTitle className="font-normal"><code className="text-base font-mono bg-muted px-2 py-1 rounded">
     //       {row.original.device_id}
     //     </code> {row.original.status}</DialogTitle>
     //             <DialogDescription>
@@ -570,7 +570,7 @@ export default function MediaEventsPage() {
 
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Showing {(filters.page - 1) * filters.limit + 1}–
               {Math.min(filters.page * filters.limit, total)} of{" "}
               {total.toLocaleString()} events
@@ -606,7 +606,7 @@ export default function MediaEventsPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium p-2 pb-0 border-y">
+                <span className="text-xs font-medium p-2 pb-0 border-y">
                   Page {filters.page} of {Math.ceil(total / filters.limit)}
                 </span>
                 <Button

@@ -22,10 +22,10 @@ interface PageHeaderProps {
 }
 
 const titleSizeClasses: Record<PageHeaderSize, string> = {
-  sm: "text-xl",
-  md: "text-2xl",
-  lg: "text-3xl",
-  xl: "text-4xl",
+  sm: "text-lg",
+  md: "text-xl",
+  lg: "text-2xl",
+  xl: "text-3xl",
 };
 
 export function PageHeader({
@@ -48,21 +48,26 @@ export function PageHeader({
     >
       <ItemContent className="flex-1">
         <div className="flex items-center gap-3">
-          <ItemTitle className={cn("font-semibold leading-tight", titleSizeClasses[size])}>
+          <ItemTitle
+            className={cn(
+              "font-semibold leading-tight",
+              titleSizeClasses[size]
+            )}
+          >
             {title}
           </ItemTitle>
-          {badge && (
-           badge
-          )}
+          {badge && badge}
         </div>
         {description && (
-          <ItemDescription className="text-sm text-muted-foreground max-w-3xl">
+          <ItemDescription className="text-xs text-muted-foreground max-w-3xl">
             {description}
           </ItemDescription>
         )}
       </ItemContent>
 
-      {actions && <ItemActions className="flex items-center gap-3">{actions}</ItemActions>}
+      {actions && (
+        <ItemActions className="flex items-center gap-3">{actions}</ItemActions>
+      )}
     </Item>
   );
 }

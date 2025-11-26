@@ -70,7 +70,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 
-import ReportService, { ReportEvent, ReportFilters } from "@/services/report.service";
+import ReportService, {
+  ReportEvent,
+  ReportFilters,
+} from "@/services/report.service";
 
 // Zod Schema
 const reportSchema = z.object({
@@ -118,7 +121,9 @@ export default function ReportsPage() {
 
     const filters: ReportFilters = {
       type: debouncedType?.trim() || undefined,
-      start_time: watchStart ? Math.floor(watchStart.getTime() / 1000) : undefined,
+      start_time: watchStart
+        ? Math.floor(watchStart.getTime() / 1000)
+        : undefined,
       end_time: watchEnd ? Math.floor(watchEnd.getTime() / 1000) : undefined,
       page,
       limit,
@@ -169,7 +174,10 @@ export default function ReportsPage() {
       const a = document.createElement("a");
       a.href = url;
       const ext = values.format === "xlsx" ? "xlsx" : values.format;
-      a.download = `events-report-${format(new Date(), "yyyyMMdd-HHmm")}.${ext}`;
+      a.download = `events-report-${format(
+        new Date(),
+        "yyyyMMdd-HHmm"
+      )}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -177,7 +185,9 @@ export default function ReportsPage() {
 
       clearInterval(progressInterval);
       setDownloadProgress(100);
-      toast.success(`Report downloaded successfully (${values.format.toUpperCase()})`);
+      toast.success(
+        `Report downloaded successfully (${values.format.toUpperCase()})`
+      );
     } catch (err: any) {
       toast.error("Download failed. Please try again.");
     } finally {
@@ -203,15 +213,18 @@ export default function ReportsPage() {
       accessorKey: "device_id",
       header: "Meter ID",
       cell: ({ row }) => (
-        <code className="font-mono text-sm">{row.original.device_id}</code>
+        <code className="font-mono text-xs">{row.original.device_id}</code>
       ),
     },
     {
       accessorKey: "timestamp",
       header: "Timestamp",
       cell: ({ row }) => (
-        <span className="text-sm">
-          {format(new Date(row.original.timestamp * 1000), "MMM d, yyyy HH:mm:ss")}
+        <span className="text-xs">
+          {format(
+            new Date(row.original.timestamp * 1000),
+            "MMM d, yyyy HH:mm:ss"
+          )}
         </span>
       ),
     },
@@ -263,7 +276,11 @@ export default function ReportsPage() {
                       <FormControl>
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input placeholder="e.g. 3, 14, 100" className="pl-10" {...field} />
+                          <Input
+                            placeholder="e.g. 3, 14, 100"
+                            className="pl-10"
+                            {...field}
+                          />
                         </div>
                       </FormControl>
                     </FormItem>
@@ -287,7 +304,9 @@ export default function ReportsPage() {
                               )}
                             >
                               <Calendar className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, "PPP") : "Pick date"}
+                              {field.value
+                                ? format(field.value, "PPP")
+                                : "Pick date"}
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -296,7 +315,9 @@ export default function ReportsPage() {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date > new Date() || date < new Date("2020-01-01")}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("2020-01-01")
+                            }
                             initialFocus
                           />
                         </PopoverContent>
@@ -322,7 +343,9 @@ export default function ReportsPage() {
                               )}
                             >
                               <Calendar className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, "PPP") : "Pick date"}
+                              {field.value
+                                ? format(field.value, "PPP")
+                                : "Pick date"}
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -331,7 +354,9 @@ export default function ReportsPage() {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date > new Date() || date < new Date("2020-01-01")}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("2020-01-01")
+                            }
                             initialFocus
                           />
                         </PopoverContent>
@@ -346,7 +371,10 @@ export default function ReportsPage() {
                   render={({ field }) => (
                     <FormItem className="min-w-48">
                       <FormLabel>Format</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
@@ -390,7 +418,9 @@ export default function ReportsPage() {
         <div className="rounded-lg border bg-card p-6 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="font-medium">Generating report...</span>
-            <span className="text-sm text-muted-foreground">{downloadProgress}%</span>
+            <span className="text-xs text-muted-foreground">
+              {downloadProgress}%
+            </span>
           </div>
           <Progress value={downloadProgress} className="h-3" />
         </div>
@@ -405,7 +435,10 @@ export default function ReportsPage() {
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
                       <TableHead key={header.id} className="bg-background">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -417,7 +450,9 @@ export default function ReportsPage() {
                     <TableCell colSpan={5} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center gap-4">
                         <Spinner className="h-8 w-8" />
-                        <p className="text-muted-foreground">Loading events...</p>
+                        <p className="text-muted-foreground">
+                          Loading events...
+                        </p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -439,10 +474,16 @@ export default function ReportsPage() {
                   </TableRow>
                 ) : (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
+                    <TableRow
+                      key={row.id}
+                      className="hover:bg-muted/50 transition-colors"
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -454,18 +495,27 @@ export default function ReportsPage() {
 
           {total > 0 && (
             <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-              <p className="text-sm text-muted-foreground">
-                Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total.toLocaleString()} events
+              <p className="text-xs text-muted-foreground">
+                Showing {(page - 1) * limit + 1}–{Math.min(page * limit, total)}{" "}
+                of {total.toLocaleString()} events
               </p>
 
               <div className="flex items-center gap-3">
-                <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
+                <Select
+                  value={String(limit)}
+                  onValueChange={(v) => {
+                    setLimit(Number(v));
+                    setPage(1);
+                  }}
+                >
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {[10, 25, 50, 100].map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n} per page</SelectItem>
+                      <SelectItem key={n} value={String(n)}>
+                        {n} per page
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -479,7 +529,7 @@ export default function ReportsPage() {
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="px-3 py-2 text-sm font-medium border-y">
+                  <span className="px-3 py-2 text-xs font-medium border-y">
                     Page {page} of {Math.ceil(total / limit) || 1}
                   </span>
                   <Button

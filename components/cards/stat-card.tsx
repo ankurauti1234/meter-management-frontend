@@ -22,7 +22,8 @@ export const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
   description,
-  color,bgColor
+  color,
+  bgColor,
 }) => {
   return (
     <Item
@@ -30,18 +31,18 @@ export const StatCard: React.FC<StatCardProps> = ({
       className="hover:shadow-md transition-all duration-200 bg-card grid grid-cols-5 divide-x p-0 gap-0 overflow-hidden"
     >
       <ItemContent className="col-span-4 p-2 ">
-        <ItemTitle className="text-sm text-muted-foreground">{title}</ItemTitle>
-        <ItemDescription className="text-2xl font-semibold text-foreground font-mono leading-tight">
+        <ItemTitle className="text-xs text-muted-foreground">{title}</ItemTitle>
+        <ItemDescription className="text-xl font-semibold text-foreground font-mono leading-tight">
           {value}
         </ItemDescription>
         {description && (
-          <p className="text-xs text-muted-foreground">
-            {description}
-          </p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         )}
       </ItemContent>
 
-      <ItemMedia className={`col-span-1 w-full h-full p-0 flex items-center justify-center -mt-0.5 ${bgColor}`}>
+      <ItemMedia
+        className={`col-span-1 w-full h-full p-0 flex items-center justify-center -mt-0.5 ${bgColor}`}
+      >
         <Icon className={`${color} size-6 `} />
       </ItemMedia>
     </Item>

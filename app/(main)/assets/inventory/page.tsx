@@ -237,7 +237,7 @@ export default function ListMetersPage() {
       accessorKey: "meterId",
       header: "Meter ID",
       cell: ({ row }) => (
-        <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+        <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
           {row.original.meterId}
         </code>
       ),
@@ -261,7 +261,9 @@ export default function ListMetersPage() {
       header: "HAT",
       cell: ({ row }) => (
         <Badge
-          variant={row.original.powerHATStatus === "Flashed" ? "default" : "secondary"}
+          variant={
+            row.original.powerHATStatus === "Flashed" ? "default" : "secondary"
+          }
         >
           {row.original.powerHATStatus || "Unknown"}
         </Badge>
@@ -272,7 +274,9 @@ export default function ListMetersPage() {
       header: "Status",
       cell: ({ row }) => (
         <Badge
-          variant={row.original.status === "REGISTERED" ? "default" : "destructive"}
+          variant={
+            row.original.status === "REGISTERED" ? "default" : "destructive"
+          }
         >
           {row.original.status || "unknown"}
         </Badge>
@@ -341,7 +345,8 @@ export default function ListMetersPage() {
                   <DialogHeader>
                     <DialogTitle>Filter Meters</DialogTitle>
                     <DialogDescription>
-                      Narrow down meters by ID, type, HAT status, group, or registration status.
+                      Narrow down meters by ID, type, HAT status, group, or
+                      registration status.
                     </DialogDescription>
                   </DialogHeader>
 
@@ -354,7 +359,10 @@ export default function ListMetersPage() {
                           placeholder="e.g., METER123"
                           value={tempFilters.search}
                           onChange={(e) =>
-                            setTempFilters((p) => ({ ...p, search: e.target.value }))
+                            setTempFilters((p) => ({
+                              ...p,
+                              search: e.target.value,
+                            }))
                           }
                           className="pl-10"
                         />
@@ -367,7 +375,10 @@ export default function ListMetersPage() {
                         placeholder="e.g., TouchMeterWithWiFi"
                         value={tempFilters.meterType}
                         onChange={(e) =>
-                          setTempFilters((p) => ({ ...p, meterType: e.target.value }))
+                          setTempFilters((p) => ({
+                            ...p,
+                            meterType: e.target.value,
+                          }))
                         }
                       />
                     </div>
@@ -401,7 +412,10 @@ export default function ListMetersPage() {
                         placeholder="e.g., armenia_meter"
                         value={tempFilters.groupName}
                         onChange={(e) =>
-                          setTempFilters((p) => ({ ...p, groupName: e.target.value }))
+                          setTempFilters((p) => ({
+                            ...p,
+                            groupName: e.target.value,
+                          }))
                         }
                       />
                     </div>
@@ -430,7 +444,10 @@ export default function ListMetersPage() {
                   </div>
 
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button onClick={handleApplyFilters}>Apply Filters</Button>
@@ -439,7 +456,11 @@ export default function ListMetersPage() {
               </Dialog>
 
               {hasActiveFilters && (
-                <Button variant="outline" size="icon" onClick={handleResetFilters}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleResetFilters}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               )}
@@ -448,7 +469,9 @@ export default function ListMetersPage() {
             <ButtonGroup>
               <Select
                 value={refreshInterval ? String(refreshInterval) : "off"}
-                onValueChange={(v) => setRefreshInterval(v === "off" ? null : Number(v))}
+                onValueChange={(v) =>
+                  setRefreshInterval(v === "off" ? null : Number(v))
+                }
               >
                 <SelectTrigger className="w-fit">
                   <SelectValue placeholder="Refresh: Off" />
@@ -486,7 +509,10 @@ export default function ListMetersPage() {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead key={header.id} className="bg-background">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -534,7 +560,10 @@ export default function ListMetersPage() {
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -546,9 +575,10 @@ export default function ListMetersPage() {
 
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Showing {(filters.page - 1) * filters.limit + 1}–
-              {Math.min(filters.page * filters.limit, total)} of {total.toLocaleString()} meters
+              {Math.min(filters.page * filters.limit, total)} of{" "}
+              {total.toLocaleString()} meters
             </p>
 
             <div className="flex items-center gap-3">
@@ -574,18 +604,22 @@ export default function ListMetersPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
+                  onClick={() =>
+                    setFilters((p) => ({ ...p, page: p.page - 1 }))
+                  }
                   disabled={filters.page === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium p-2 pb-0 border-y">
+                <span className="text-xs font-medium p-2 pb-0 border-y">
                   Page {filters.page} of {Math.ceil(total / filters.limit)}
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
+                  onClick={() =>
+                    setFilters((p) => ({ ...p, page: p.page + 1 }))
+                  }
                   disabled={filters.page >= Math.ceil(total / filters.limit)}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -601,7 +635,8 @@ export default function ListMetersPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Edit Meter: <code className="font-mono">{editingMeter?.meterId}</code>
+              Edit Meter:{" "}
+              <code className="font-mono">{editingMeter?.meterId}</code>
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -613,7 +648,10 @@ export default function ListMetersPage() {
                   <FormItem>
                     <FormLabel>Meter Type</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., TouchMeterWithWiFi" {...field} />
+                      <Input
+                        placeholder="e.g., TouchMeterWithWiFi"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -641,7 +679,10 @@ export default function ListMetersPage() {
                   <FormItem>
                     <FormLabel>Power HAT Status</FormLabel>
                     <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
@@ -659,7 +700,11 @@ export default function ListMetersPage() {
               />
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditModalOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit">Save Changes</Button>

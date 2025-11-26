@@ -79,7 +79,7 @@ export default function AppHeader() {
 
   return (
     <div className="z-10 flex-col sticky top-0 w-full bg-sidebar">
-      <header className="flex justify-between h-16 px-2 w-full bg-sidebar shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+      <header className="flex justify-between h-12 px-2 w-full bg-sidebar shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
         <div className="flex items-center gap-2 px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator

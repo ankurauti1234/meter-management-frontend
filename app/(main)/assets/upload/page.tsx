@@ -109,7 +109,10 @@ export default function UploadAssetsPage() {
         setProgress((p) => Math.min(p + 15, 90));
       }, 400);
 
-      const result = await AssetsService.uploadMeters(data.file, data.groupName);
+      const result = await AssetsService.uploadMeters(
+        data.file,
+        data.groupName
+      );
 
       clearInterval(interval);
       setProgress(100);
@@ -120,7 +123,9 @@ export default function UploadAssetsPage() {
         data: result,
       });
 
-      toast.success(`Saved ${result.saved} meters • Synced ${result.synced} with AWS`);
+      toast.success(
+        `Saved ${result.saved} meters • Synced ${result.synced} with AWS`
+      );
       form.reset();
     } catch (error: any) {
       const msg =
@@ -147,7 +152,10 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `sample_meters_upload_${format(new Date(), "yyyy-MM-dd")}.csv`);
+    link.setAttribute(
+      "download",
+      `sample_meters_upload_${format(new Date(), "yyyy-MM-dd")}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -172,7 +180,10 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
           <Card>
             <CardContent className="pt-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
                   {/* File Dropzone */}
                   <FormField
                     control={form.control}
@@ -183,8 +194,16 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
                         <FormControl>
                           <div
                             className={`border-2 border-dashed rounded-lg p-8 text-center transition-all
-                              ${isUploading ? "opacity-60" : "hover:border-primary/50"}
-                              ${file ? "border-primary/50 bg-primary/5" : "border-muted-foreground/25"}
+                              ${
+                                isUploading
+                                  ? "opacity-60"
+                                  : "hover:border-primary/50"
+                              }
+                              ${
+                                file
+                                  ? "border-primary/50 bg-primary/5"
+                                  : "border-muted-foreground/25"
+                              }
                             `}
                           >
                             <Input
@@ -199,14 +218,17 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
                               }}
                               {...field}
                             />
-                            <label htmlFor="file-upload" className="cursor-pointer">
+                            <label
+                              htmlFor="file-upload"
+                              className="cursor-pointer"
+                            >
                               {file ? (
                                 <div className="space-y-3">
                                   <div className="flex items-center justify-center gap-3 text-green-600">
                                     <CheckCircle2 className="h-10 w-10" />
                                   </div>
                                   <p className="font-medium">{file.name}</p>
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-xs text-muted-foreground">
                                     {(file.size / 1024 / 1024).toFixed(2)} MB
                                   </p>
                                   <Button
@@ -227,7 +249,7 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
                                 <div className="space-y-4">
                                   <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                                   <div>
-                                    <p className="text-sm font-medium">
+                                    <p className="text-xs font-medium">
                                       Drop your file here, or click to browse
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
@@ -258,7 +280,13 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
                             value={field.value}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder={loadingGroups ? "Loading groups..." : "Select or type group name"} />
+                              <SelectValue
+                                placeholder={
+                                  loadingGroups
+                                    ? "Loading groups..."
+                                    : "Select or type group name"
+                                }
+                              />
                             </SelectTrigger>
                             <SelectContent>
                               {groups.map((g) => (
@@ -267,7 +295,7 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
                                 </SelectItem>
                               ))}
                               {groups.length === 0 && !loadingGroups && (
-                                <div className="p-3 text-center text-sm text-muted-foreground">
+                                <div className="p-3 text-center text-xs text-muted-foreground">
                                   No groups found
                                 </div>
                               )}
@@ -282,8 +310,10 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
                   {/* Progress */}
                   {isUploading && (
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium">Uploading & processing...</span>
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">
+                          Uploading & processing...
+                        </span>
                         <span>{progress}%</span>
                       </div>
                       <Progress value={progress} className="h-3" />
@@ -329,16 +359,22 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
                     )}
                     <div>
                       <p className="font-semibold">
-                        {uploadResult.success ? "Upload Successful!" : "Upload Failed"}
+                        {uploadResult.success
+                          ? "Upload Successful!"
+                          : "Upload Failed"}
                       </p>
-                      <AlertDescription className="mt-1 text-sm">
+                      <AlertDescription className="mt-1 text-xs">
                         {uploadResult.success && uploadResult.data ? (
                           <div className="space-y-1">
                             <p>{uploadResult.message}</p>
                             <ul className="mt-2 text-xs opacity-90">
-                              <li>• Rows processed: {uploadResult.data.uploaded}</li>
+                              <li>
+                                • Rows processed: {uploadResult.data.uploaded}
+                              </li>
                               <li>• Meters saved: {uploadResult.data.saved}</li>
-                              <li>• Synced with AWS: {uploadResult.data.synced}</li>
+                              <li>
+                                • Synced with AWS: {uploadResult.data.synced}
+                              </li>
                             </ul>
                           </div>
                         ) : (
@@ -358,7 +394,11 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
           <Card>
             <CardContent className="pt-6">
               <h3 className="font-semibold mb-4">Quick Actions</h3>
-              <Button onClick={downloadSampleCSV} variant="outline" className="w-full">
+              <Button
+                onClick={downloadSampleCSV}
+                variant="outline"
+                className="w-full"
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download Sample CSV
               </Button>
@@ -368,7 +408,7 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
           <Card>
             <CardContent className="pt-6 space-y-4">
               <h3 className="font-semibold">Required Columns</h3>
-              <ul className="text-sm space-y-2 text-muted-foreground">
+              <ul className="text-xs space-y-2 text-muted-foreground">
                 <li>
                   <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
                     meterId
@@ -396,7 +436,7 @@ MTR-003,TouchMeterWithWiFi,ASN1003,Unknown`;
               </ul>
 
               <div className="mt-6 pt-4 border-t">
-                <h4 className="text-sm font-medium mb-2">Tips</h4>
+                <h4 className="text-xs font-medium mb-2">Tips</h4>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• First row must be headers</li>
                   <li>• Max file size: 10 MB</li>

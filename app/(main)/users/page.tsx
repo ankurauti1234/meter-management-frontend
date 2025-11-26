@@ -255,7 +255,7 @@ export default function UsersPage() {
     {
       accessorKey: "email",
       header: "Email",
-      cell: ({ row }) => <code className="text-sm">{row.original.email}</code>,
+      cell: ({ row }) => <code className="text-xs">{row.original.email}</code>,
     },
     {
       accessorKey: "role",
@@ -275,7 +275,7 @@ export default function UsersPage() {
       accessorKey: "createdAt",
       header: "Created",
       cell: ({ row }) => (
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {format(new Date(row.original.createdAt), "dd MMM yyyy")}
         </div>
       ),
@@ -587,7 +587,7 @@ export default function UsersPage() {
 
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Showing {(filters.page - 1) * filters.limit + 1}–
               {Math.min(filters.page * filters.limit, total)} of {total} users
             </p>
@@ -621,7 +621,7 @@ export default function UsersPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium px-3">
+                <span className="text-xs font-medium px-3">
                   Page {filters.page} of {Math.ceil(total / filters.limit)}
                 </span>
                 <Button

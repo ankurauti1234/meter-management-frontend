@@ -3,11 +3,7 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -48,7 +44,7 @@ export function LoginForm({
         };
         document.cookie = `user=${JSON.stringify(
           userData
-        )}; path=/; max-age=604800`; // 7 days
+        )}; path=/; max-age=604800`;
         router.push("/dashboard");
       }
     } catch (err: any) {
@@ -65,17 +61,19 @@ export function LoginForm({
       {...props}
     >
       <FieldGroup>
-        <div className="flex flex-col items-left gap-1">
-          <h1 className="text-2xl">Login to your account</h1>
-          <p className="text-muted-foreground text-sm text-balance">
-            Enter your email and password to access your account.
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Welcome back
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your credentials to access Indirex Studio
           </p>
         </div>
 
         {error && (
-          <div className="text-destructive text-sm text-left bg-destructive/10 p-1 rounded flex items-center gap-1">
-            <AlertCircle size={14} />
-            {error}
+          <div className="text-sm text-destructive bg-destructive/10 px-3 py-2.5 rounded-md flex items-center gap-2">
+            <AlertCircle size={16} />
+            <span>{error}</span>
           </div>
         )}
 
@@ -84,7 +82,7 @@ export function LoginForm({
           <Input
             id="email"
             type="email"
-            placeholder="m@example.com"
+            placeholder="you@inditronics.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -93,17 +91,16 @@ export function LoginForm({
         </Field>
 
         <Field>
-          <div className="flex items-center">
+          <div className="flex items-center justify-between mb-2">
             <FieldLabel htmlFor="password">Password</FieldLabel>
             <a
               href="#"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
+              className="text-xs text-primary hover:underline underline-offset-4"
             >
-              Forgot your password?
+              Forgot password?
             </a>
           </div>
 
-          {/* Password input with eye toggle */}
           <InputGroup>
             <InputGroupInput
               id="password"
@@ -132,18 +129,20 @@ export function LoginForm({
           </InputGroup>
         </Field>
 
-        <Field>
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Logging in...
-              </>
-            ) : (
-              "Login"
-            )}
-          </Button>
-        </Field>
+        <Button type="submit" disabled={loading} className="w-full h-11">
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign in"
+          )}
+        </Button>
+
+        <p className="text-xs text-center text-muted-foreground">
+          Internal tool for authorized personnel only
+        </p>
       </FieldGroup>
     </form>
   );

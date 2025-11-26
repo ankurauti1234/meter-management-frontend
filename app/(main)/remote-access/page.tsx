@@ -4,7 +4,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import remoteAccessService, { ActiveMeter } from "@/services/remote-access.service";
+import remoteAccessService, {
+  ActiveMeter,
+} from "@/services/remote-access.service";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,7 +38,9 @@ export default function RemoteAccessPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [connectingMeterId, setConnectingMeterId] = useState<string | null>(null);
+  const [connectingMeterId, setConnectingMeterId] = useState<string | null>(
+    null
+  );
 
   const fetchMeters = async () => {
     try {
@@ -44,7 +48,9 @@ export default function RemoteAccessPage() {
       const response = await remoteAccessService.listMeters();
       setMeters(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.msg || err.message || "Failed to fetch meters");
+      setError(
+        err.response?.data?.msg || err.message || "Failed to fetch meters"
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -83,7 +89,11 @@ export default function RemoteAccessPage() {
   if (loading) {
     return (
       <div className="p-4 space-y-6">
-        <PageHeader title="Remote Access" description="Connect to active meters via SSH tunnel" size="sm" />
+        <PageHeader
+          title="Remote Access"
+          description="Connect to active meters via SSH tunnel"
+          size="sm"
+        />
         <div className="rounded-md border overflow-hidden">
           <Skeleton className="h-96 w-full" />
         </div>
@@ -99,8 +109,14 @@ export default function RemoteAccessPage() {
         badge={<Badge variant="outline">{meters.length} active</Badge>}
         size="sm"
         actions={
-          <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
-            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          <Button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            variant="outline"
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+            />
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
         }
@@ -122,13 +138,15 @@ export default function RemoteAccessPage() {
               </EmptyMedia>
               <EmptyTitle>No Active Meters</EmptyTitle>
               <EmptyDescription>
-                There are no meters currently connected to the jump host.
-                New connections will appear here automatically.
+                There are no meters currently connected to the jump host. New
+                connections will appear here automatically.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Button onClick={handleRefresh} variant="outline">
-                <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                />
                 Refresh List
               </Button>
             </EmptyContent>
@@ -149,7 +167,10 @@ export default function RemoteAccessPage() {
                 const isConnecting = connectingMeterId === meter.meterId;
 
                 return (
-                  <TableRow key={meter.meterId} className="hover:bg-muted/50 transition-colors">
+                  <TableRow
+                    key={meter.meterId}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
                     <TableCell className="font-mono font-medium">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -165,12 +186,14 @@ export default function RemoteAccessPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className="flex items-center gap-1.5 font-mono text-sm">
+                      <span className="flex items-center gap-1.5 font-mono text-xs">
                         <Zap className="h-4 w-4 text-yellow-500" />
                         {meter.port}
                       </span>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">{meter.pid}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {meter.pid}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="sm"

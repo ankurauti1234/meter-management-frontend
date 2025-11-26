@@ -256,7 +256,7 @@ export default function TerminalPage() {
         title={meterId}
         description={
           meterInfo ? (
-            <span className="font-mono text-sm">
+            <span className="font-mono text-xs">
               Port: <span className="text-primary">{meterInfo.port}</span> •
               PID: {meterInfo.pid}
             </span>

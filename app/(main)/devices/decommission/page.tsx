@@ -190,7 +190,7 @@ export default function DecommissionPage() {
         <div>
           <strong>{selectedMeter.meterId}</strong> decommissioned successfully
           <br />
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             From household: {result.previousHouseholdHhid}
           </span>
         </div>
@@ -219,7 +219,7 @@ export default function DecommissionPage() {
       accessorKey: "meterId",
       header: "Meter ID",
       cell: ({ row }) => (
-        <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+        <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
           {row.original.meterId}
         </code>
       ),
@@ -228,7 +228,7 @@ export default function DecommissionPage() {
       accessorKey: "meterrType",
       header: "Type",
       cell: ({ row }) => (
-        <span className="text-sm">{row.original.meterType || "—"}</span>
+        <span className="text-xs">{row.original.meterType || "—"}</span>
       ),
     },
     {
@@ -248,7 +248,7 @@ export default function DecommissionPage() {
         return h ? (
           <div className="flex items-center gap-2">
             <Home className="h-3.5 w-3.5 text-muted-foreground" />
-            <code className="text-sm font-medium">{h.hhid}</code>
+            <code className="text-xs font-medium">{h.hhid}</code>
           </div>
         ) : (
           <span className="text-muted-foreground">—</span>
@@ -259,7 +259,7 @@ export default function DecommissionPage() {
       accessorKey: "assignedAt",
       header: "Assigned On",
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {format(new Date(row.original.assignedAt), "dd MMM yyyy")}
         </span>
       ),
@@ -285,7 +285,7 @@ export default function DecommissionPage() {
       accessorKey: "meterId",
       header: "Meter ID",
       cell: ({ row }) => (
-        <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+        <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
           {row.original.meterId}
         </code>
       ),
@@ -296,7 +296,7 @@ export default function DecommissionPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Home className="h-3.5 w-3.5 text-muted-foreground" />
-          <code className="text-sm">{row.original.householdHhid}</code>
+          <code className="text-xs">{row.original.householdHhid}</code>
         </div>
       ),
     },
@@ -308,7 +308,7 @@ export default function DecommissionPage() {
         return by ? (
           <div className="flex items-center gap-2">
             <User className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-sm">{by.name}</span>
+            <span className="text-xs">{by.name}</span>
           </div>
         ) : (
           <span className="text-muted-foreground">System</span>
@@ -319,7 +319,7 @@ export default function DecommissionPage() {
       accessorKey: "reason",
       header: "Reason",
       cell: ({ row }) => (
-        <span className="text-sm">
+        <span className="text-xs">
           {row.original.reason || (
             <em className="text-muted-foreground">No reason</em>
           )}
@@ -330,7 +330,7 @@ export default function DecommissionPage() {
       accessorKey: "decommissionedAt",
       header: "Decommissioned On",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 text-sm">
+        <div className="flex items-center gap-1.5 text-xs">
           <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
           {format(
             new Date(row.original.decommissionedAt),
@@ -343,7 +343,9 @@ export default function DecommissionPage() {
 
   const table = useReactTable<TableRowData>({
     data: activeTab === "assigned" ? assignedMeters : logs,
-    columns: (activeTab === "assigned" ? assignedColumns : logColumns) as ColumnDef<TableRowData>[],
+    columns: (activeTab === "assigned"
+      ? assignedColumns
+      : logColumns) as ColumnDef<TableRowData>[],
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     pageCount: Math.ceil(
@@ -517,7 +519,7 @@ export default function DecommissionPage() {
 
         {(activeTab === "assigned" ? totalAssigned : totalLogs) > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Showing {(filters.page - 1) * filters.limit + 1}–
               {Math.min(
                 filters.page * filters.limit,
@@ -559,7 +561,7 @@ export default function DecommissionPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium px-3">
+                <span className="text-xs font-medium px-3">
                   Page {filters.page} of{" "}
                   {Math.ceil(
                     (activeTab === "assigned" ? totalAssigned : totalLogs) /
@@ -604,7 +606,7 @@ export default function DecommissionPage() {
 
           {selectedMeter && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
                   <Label>Meter ID</Label>
                   <code className="block font-mono bg-muted px-2 py-1 rounded mt-1">

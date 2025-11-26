@@ -67,7 +67,7 @@ export function NavMain({
                   <SidebarMenuButton
                     tooltip={item.title}
                     className={clsx(
-                      "relative flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200",
+                      "relative flex items-center text-xs gap-2 px-3 py-2 rounded-md transition-all duration-200",
                       "hover:bg-accent/50",
                       hasActiveSub(item.items) && [
                         "bg-accent",
@@ -80,7 +80,7 @@ export function NavMain({
                       ]
                     )}
                   >
-                    {item.icon && <item.icon className="h-4 w-4" />}
+                    {item.icon && <item.icon className="size-2" />}
                     <span>{item.title}</span>
                     <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                   </SidebarMenuButton>
@@ -99,7 +99,7 @@ export function NavMain({
                             <CollapsibleTrigger asChild>
                               <SidebarMenuSubButton
                                 className={clsx(
-                                  "relative flex items-center gap-2 text-sm font-normal px-3 py-1 rounded-md transition-all duration-200",
+                                  "relative flex items-center text-xs gap-2 text-xs font-normal px-3 py-1 rounded-md transition-all duration-200",
                                   "hover:bg-accent/50",
                                   hasActiveSub(subItem.items) && [
                                     "bg-accent",
@@ -109,7 +109,7 @@ export function NavMain({
                                 )}
                               >
                                 {subItem.icon && (
-                                  <subItem.icon className="h-4 w-4 opacity-80" />
+                                  <subItem.icon className="size-2 opacity-80" />
                                 )}
                                 <span>{subItem.title}</span>
                                 <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -122,7 +122,7 @@ export function NavMain({
                                     <SidebarMenuSubButton
                                       asChild
                                       className={clsx(
-                                        "relative flex items-center gap-2 text-sm font-normal px-3 py-1 rounded-md transition-all duration-200",
+                                        "relative flex items-center text-xs gap-2 text-xs font-normal px-3 py-1 rounded-md transition-all duration-200",
                                         "hover:bg-accent/50",
                                         isActive(subSub.url) && [
                                           "bg-accent",
@@ -133,7 +133,7 @@ export function NavMain({
                                     >
                                       <a href={subSub.url}>
                                         {subSub.icon && (
-                                          <subSub.icon className="h-4 w-4 opacity-80" />
+                                          <subSub.icon className="size-2 opacity-80" />
                                         )}
                                         <span>{subSub.title}</span>
                                       </a>
@@ -149,7 +149,7 @@ export function NavMain({
                           <SidebarMenuSubButton
                             asChild
                             className={clsx(
-                              "relative flex items-center gap-2 text-sm font-normal px-3 py-1 rounded-md transition-all duration-200",
+                              "relative flex items-center text-xs gap-2 text-xs font-normal px-3 py-1 rounded-md transition-all duration-200",
                               "hover:bg-accent/50",
                               isActive(subItem.url) && [
                                 "bg-accent",
@@ -160,7 +160,7 @@ export function NavMain({
                           >
                             <a href={subItem.url}>
                               {subItem.icon && (
-                                <subItem.icon className="h-4 w-4 opacity-80" />
+                                <subItem.icon className="size-2 opacity-80" />
                               )}
                               <span>{subItem.title}</span>
                             </a>
@@ -178,7 +178,7 @@ export function NavMain({
                 asChild
                 tooltip={item.title}
                 className={clsx(
-                  "relative flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200",
+                  "relative flex items-center text-xs gap-2 px-3 py-2 rounded-md transition-all duration-200",
                   "hover:bg-accent/50",
                   isActive(item.url) && [
                     "bg-accent",
@@ -192,7 +192,7 @@ export function NavMain({
                 )}
               >
                 <a href={item.url}>
-                  {item.icon && <item.icon className="h-4 w-4" />}
+                  {item.icon && <item.icon className="size-2" />}
                   <span>{item.title}</span>
                 </a>
               </SidebarMenuButton>

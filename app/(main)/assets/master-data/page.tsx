@@ -140,7 +140,9 @@ export default function MasterDataPage() {
         setThings(res.things);
         setTotalThings(res.pagination.total);
       } else if (activeTab === "unregistered" && filters.groupName) {
-        const res = await AssetsService.getUnregisteredInGroup(filters.groupName);
+        const res = await AssetsService.getUnregisteredInGroup(
+          filters.groupName
+        );
         setUnregistered(res);
       }
     } catch (err) {
@@ -203,7 +205,7 @@ export default function MasterDataPage() {
       accessorKey: "meterId",
       header: "Meter ID",
       cell: ({ row }) => (
-        <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+        <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
           {row.original.meterId}
         </code>
       ),
@@ -227,7 +229,9 @@ export default function MasterDataPage() {
       header: "HAT",
       cell: ({ row }) => (
         <Badge
-          variant={row.original.powerHATStatus === "Flashed" ? "default" : "secondary"}
+          variant={
+            row.original.powerHATStatus === "Flashed" ? "default" : "secondary"
+          }
         >
           {row.original.powerHATStatus || "Unknown"}
         </Badge>
@@ -237,7 +241,11 @@ export default function MasterDataPage() {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
-        <Badge variant={row.original.status === "REGISTERED" ? "default" : "destructive"}>
+        <Badge
+          variant={
+            row.original.status === "REGISTERED" ? "default" : "destructive"
+          }
+        >
           {row.original.status}
         </Badge>
       ),
@@ -263,7 +271,7 @@ export default function MasterDataPage() {
       accessorKey: "thingName",
       header: "Thing Name",
       cell: ({ row }) => (
-        <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+        <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
           {row.original.thingName}
         </code>
       ),
@@ -272,7 +280,11 @@ export default function MasterDataPage() {
       accessorKey: "status",
       header: "DB Status",
       cell: ({ row }) => (
-        <Badge variant={row.original.status === "REGISTERED" ? "default" : "secondary"}>
+        <Badge
+          variant={
+            row.original.status === "REGISTERED" ? "default" : "secondary"
+          }
+        >
           {row.original.status}
         </Badge>
       ),
@@ -334,7 +346,10 @@ export default function MasterDataPage() {
                           placeholder="Meter ID, Thing Name..."
                           value={tempFilters.search}
                           onChange={(e) =>
-                            setTempFilters((p) => ({ ...p, search: e.target.value }))
+                            setTempFilters((p) => ({
+                              ...p,
+                              search: e.target.value,
+                            }))
                           }
                           className="pl-10"
                         />
@@ -346,7 +361,10 @@ export default function MasterDataPage() {
                       <Select
                         value={tempFilters.status || "all"}
                         onValueChange={(v) =>
-                          setTempFilters((p) => ({ ...p, status: v === "all" ? "" : v }))
+                          setTempFilters((p) => ({
+                            ...p,
+                            status: v === "all" ? "" : v,
+                          }))
                         }
                       >
                         <SelectTrigger>
@@ -388,14 +406,20 @@ export default function MasterDataPage() {
                         placeholder="e.g. armenia_meter"
                         value={tempFilters.groupName}
                         onChange={(e) =>
-                          setTempFilters((p) => ({ ...p, groupName: e.target.value }))
+                          setTempFilters((p) => ({
+                            ...p,
+                            groupName: e.target.value,
+                          }))
                         }
                       />
                     </div>
                   </div>
 
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button onClick={handleApplyFilters}>Apply</Button>
@@ -404,7 +428,11 @@ export default function MasterDataPage() {
               </Dialog>
 
               {hasActiveFilters && (
-                <Button variant="outline" size="icon" onClick={handleResetFilters}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleResetFilters}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               )}
@@ -413,7 +441,9 @@ export default function MasterDataPage() {
             <ButtonGroup>
               <Select
                 value={refreshInterval ? String(refreshInterval) : "off"}
-                onValueChange={(v) => setRefreshInterval(v === "off" ? null : Number(v))}
+                onValueChange={(v) =>
+                  setRefreshInterval(v === "off" ? null : Number(v))
+                }
               >
                 <SelectTrigger className="w-fit">
                   <SelectValue placeholder="Refresh: Off" />
@@ -433,7 +463,9 @@ export default function MasterDataPage() {
                 variant="outline"
                 size="icon"
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                />
               </Button>
             </ButtonGroup>
           </div>
@@ -443,11 +475,13 @@ export default function MasterDataPage() {
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="meters">
-            Meters {totalMeters > 0 && <Badge className="ml-2">{totalMeters}</Badge>}
+            Meters{" "}
+            {totalMeters > 0 && <Badge className="ml-2">{totalMeters}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="groups">Groups</TabsTrigger>
           <TabsTrigger value="things" disabled={!filters.groupName}>
-            Things {totalThings > 0 && <Badge className="ml-2">{totalThings}</Badge>}
+            Things{" "}
+            {totalThings > 0 && <Badge className="ml-2">{totalThings}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="unregistered" disabled={!filters.groupName}>
             Unregistered
@@ -464,7 +498,10 @@ export default function MasterDataPage() {
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header) => (
                         <TableHead key={header.id} className="bg-background">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -476,7 +513,9 @@ export default function MasterDataPage() {
                       <TableCell colSpan={6} className="h-64">
                         <div className="flex flex-col items-center justify-center h-full gap-4">
                           <Spinner className="h-8 w-8" />
-                          <p className="text-muted-foreground">Loading meters...</p>
+                          <p className="text-muted-foreground">
+                            Loading meters...
+                          </p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -503,7 +542,10 @@ export default function MasterDataPage() {
                       <TableRow key={row.id} className="hover:bg-muted/50">
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -515,14 +557,17 @@ export default function MasterDataPage() {
 
             {totalMeters > 0 && (
               <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Showing {(filters.page - 1) * filters.limit + 1}–
-                  {Math.min(filters.page * filters.limit, totalMeters)} of {totalMeters.toLocaleString()} meters
+                  {Math.min(filters.page * filters.limit, totalMeters)} of{" "}
+                  {totalMeters.toLocaleString()} meters
                 </p>
                 <div className="flex items-center gap-3">
                   <Select
                     value={String(filters.limit)}
-                    onValueChange={(v) => setFilters((p) => ({ ...p, limit: Number(v), page: 1 }))}
+                    onValueChange={(v) =>
+                      setFilters((p) => ({ ...p, limit: Number(v), page: 1 }))
+                    }
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
@@ -540,19 +585,26 @@ export default function MasterDataPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
+                      onClick={() =>
+                        setFilters((p) => ({ ...p, page: p.page - 1 }))
+                      }
                       disabled={filters.page === 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm font-medium p-2 pb-0 border-y">
-                      Page {filters.page} of {Math.ceil(totalMeters / filters.limit)}
+                    <span className="text-xs font-medium p-2 pb-0 border-y">
+                      Page {filters.page} of{" "}
+                      {Math.ceil(totalMeters / filters.limit)}
                     </span>
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-                      disabled={filters.page >= Math.ceil(totalMeters / filters.limit)}
+                      onClick={() =>
+                        setFilters((p) => ({ ...p, page: p.page + 1 }))
+                      }
+                      disabled={
+                        filters.page >= Math.ceil(totalMeters / filters.limit)
+                      }
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -592,8 +644,12 @@ export default function MasterDataPage() {
                     <Radio className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">{g.groupName}</h3>
                   </div>
-                  <code className="text-xs text-muted-foreground block">{g.groupId}</code>
-                  <p className="text-xs text-muted-foreground mt-3">Click to view things →</p>
+                  <code className="text-xs text-muted-foreground block">
+                    {g.groupId}
+                  </code>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Click to view things →
+                  </p>
                 </div>
               ))
             )}
@@ -604,7 +660,9 @@ export default function MasterDataPage() {
         <TabsContent value="things" className="mt-6">
           <div className="mb-4 flex items-center gap-3">
             <Label>Selected Group:</Label>
-            <code className="font-mono bg-muted px-3 py-1 rounded">{filters.groupName}</code>
+            <code className="font-mono bg-muted px-3 py-1 rounded">
+              {filters.groupName}
+            </code>
           </div>
 
           <div className="rounded-md border overflow-hidden">
@@ -615,7 +673,10 @@ export default function MasterDataPage() {
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header) => (
                         <TableHead key={header.id} className="bg-background">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -627,7 +688,9 @@ export default function MasterDataPage() {
                       <TableCell colSpan={2} className="h-64">
                         <div className="flex flex-col items-center justify-center h-full gap-4">
                           <Spinner className="h-8 w-8" />
-                          <p className="text-muted-foreground">Loading things...</p>
+                          <p className="text-muted-foreground">
+                            Loading things...
+                          </p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -644,7 +707,10 @@ export default function MasterDataPage() {
                       <TableRow key={row.id} className="hover:bg-muted/50">
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
                           </TableCell>
                         ))}
                       </TableRow>
@@ -656,14 +722,17 @@ export default function MasterDataPage() {
 
             {totalThings > 0 && (
               <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Showing {(filters.page - 1) * filters.limit + 1}–
-                  {Math.min(filters.page * filters.limit, totalThings)} of {totalThings.toLocaleString()} things
+                  {Math.min(filters.page * filters.limit, totalThings)} of{" "}
+                  {totalThings.toLocaleString()} things
                 </p>
                 <div className="flex items-center gap-3">
                   <Select
                     value={String(filters.limit)}
-                    onValueChange={(v) => setFilters((p) => ({ ...p, limit: Number(v), page: 1 }))}
+                    onValueChange={(v) =>
+                      setFilters((p) => ({ ...p, limit: Number(v), page: 1 }))
+                    }
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
@@ -681,19 +750,26 @@ export default function MasterDataPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
+                      onClick={() =>
+                        setFilters((p) => ({ ...p, page: p.page - 1 }))
+                      }
                       disabled={filters.page === 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm font-medium p-2 pb-0 border-y">
-                      Page {filters.page} of {Math.ceil(totalThings / filters.limit)}
+                    <span className="text-xs font-medium p-2 pb-0 border-y">
+                      Page {filters.page} of{" "}
+                      {Math.ceil(totalThings / filters.limit)}
                     </span>
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-                      disabled={filters.page >= Math.ceil(totalThings / filters.limit)}
+                      onClick={() =>
+                        setFilters((p) => ({ ...p, page: p.page + 1 }))
+                      }
+                      disabled={
+                        filters.page >= Math.ceil(totalThings / filters.limit)
+                      }
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -708,7 +784,9 @@ export default function MasterDataPage() {
         <TabsContent value="unregistered" className="mt-6">
           <div className="mb-4 flex items-center gap-3">
             <Label>Selected Group:</Label>
-            <code className="font-mono bg-muted px-3 py-1 rounded">{filters.groupName}</code>
+            <code className="font-mono bg-muted px-3 py-1 rounded">
+              {filters.groupName}
+            </code>
           </div>
 
           {loading ? (
@@ -718,7 +796,7 @@ export default function MasterDataPage() {
           ) : unregistered.length === 0 ? (
             <div className="text-center py-12 text-green-600">
               <CheckCircle2 className="h-16 w-16 mx-auto mb-4" />
-              <p className="text-lg font-medium">All things are registered!</p>
+              <p className="text-base font-medium">All things are registered!</p>
             </div>
           ) : (
             <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-6">
@@ -730,13 +808,13 @@ export default function MasterDataPage() {
                 {unregistered.map((name) => (
                   <code
                     key={name}
-                    className="text-sm bg-yellow-100 px-3 py-2 rounded font-mono block truncate"
+                    className="text-xs bg-yellow-100 px-3 py-2 rounded font-mono block truncate"
                   >
                     {name}
                   </code>
                 ))}
               </div>
-              <p className="text-sm text-yellow-700 mt-4">
+              <p className="text-xs text-yellow-700 mt-4">
                 These exist in AWS IoT but are not linked in your database.
               </p>
             </div>

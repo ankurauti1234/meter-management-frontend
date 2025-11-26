@@ -15,7 +15,7 @@ export function ThemeToggleButton() {
   const isDark = theme === "dark";
 
   return (
-    <div className="theme-toggle-wrapper border bg-muted shadow-sm size-8 rounded-lg flex items-center justify-center cursor-pointer">
+    <div className="theme-toggle-wrapper border bg-muted shadow-sm size-7 rounded-lg flex items-center justify-center cursor-pointer">
       <label 
         htmlFor="themeToggle" 
         className="themeToggle st-sunMoonThemeToggleBtn" 
@@ -29,8 +29,8 @@ export function ThemeToggleButton() {
           onChange={(e) => setTheme(e.target.checked ? "dark" : "light")}
         />
         <svg 
-          width={18} 
-          height={18} 
+          width={16} 
+          height={16} 
           viewBox="0 0 20 20" 
           fill="currentColor" 
           stroke="none"

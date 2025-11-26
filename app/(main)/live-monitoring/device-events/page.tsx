@@ -250,7 +250,7 @@ export default function DeviceEventsPage() {
       accessorKey: "timestamp",
       header: "Time",
       cell: ({ row }) => (
-        <div className="font-mono text-sm">
+        <div className="font-mono text-xs">
           {format(
             new Date(row.original.timestamp * 1000),
             "dd MMM yyyy, HH:mm:ss"
@@ -262,7 +262,7 @@ export default function DeviceEventsPage() {
       accessorKey: "device_id",
       header: "Device ID",
       cell: ({ row }) => (
-        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+        <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
           {row.original.device_id}
         </code>
       ),
@@ -563,7 +563,7 @@ export default function DeviceEventsPage() {
 
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Showing {(filters.page - 1) * filters.limit + 1}–
               {Math.min(filters.page * filters.limit, total)} of{" "}
               {total.toLocaleString()} events
@@ -599,7 +599,7 @@ export default function DeviceEventsPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium p-2 pb-0 border-y">
+                <span className="text-xs font-medium p-2 pb-0 border-y">
                   Page {filters.page} of {Math.ceil(total / filters.limit)}
                 </span>
                 <Button

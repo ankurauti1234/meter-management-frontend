@@ -180,7 +180,7 @@ export default function ListHouseholdsPage() {
       accessorKey: "hhid",
       header: "HHID",
       cell: ({ row }) => (
-        <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+        <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
           {row.original.hhid}
         </code>
       ),
@@ -207,7 +207,7 @@ export default function ListHouseholdsPage() {
       header: "Meter ID",
       cell: ({ row }) =>
         row.original.assignedMeterId ? (
-          <code className="text-sm font-mono">
+          <code className="text-xs font-mono">
             {row.original.assignedMeterId}
           </code>
         ) : (
@@ -231,7 +231,7 @@ export default function ListHouseholdsPage() {
       accessorKey: "createdAt",
       header: "Created",
       cell: ({ row }) => (
-        <div className="font-mono text-sm">
+        <div className="font-mono text-xs">
           {format(new Date(row.original.createdAt), "dd MMM yyyy, HH:mm")}
         </div>
       ),
@@ -492,7 +492,7 @@ export default function ListHouseholdsPage() {
 
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Showing {((filters.page || 1) - 1) * (filters.limit || 25) + 1}–
               {Math.min((filters.page || 1) * (filters.limit || 25), total)} of{" "}
               {total.toLocaleString()} households
@@ -528,7 +528,7 @@ export default function ListHouseholdsPage() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium p-2 pb-0 border-y">
+                <span className="text-xs font-medium p-2 pb-0 border-y">
                   Page {filters.page ?? 1} of{" "}
                   {Math.ceil(total / (filters.limit ?? 25))}
                 </span>

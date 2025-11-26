@@ -82,7 +82,10 @@ import EventMappingService, {
 
 // Zod Schema - matches the service DTO exactly
 const mappingSchema = z.object({
-  type: z.coerce.number().int().positive("Event type must be a positive number"),
+  type: z.coerce
+    .number()
+    .int()
+    .positive("Event type must be a positive number"),
   name: z.string().min(1, "Name is required").max(100),
   description: z.string().max(500).optional(),
   is_alert: z.boolean(),
@@ -112,7 +115,9 @@ export default function EventMappingPage() {
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedMapping, setSelectedMapping] = useState<EventMapping | null>(null);
+  const [selectedMapping, setSelectedMapping] = useState<EventMapping | null>(
+    null
+  );
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
@@ -137,7 +142,7 @@ export default function EventMappingPage() {
       setTotal(res.pagination?.total || 0);
     } catch (err: any) {
       toast.error("Failed to load event mappings");
-      console.log(err)
+      console.log(err);
       setData([]);
       setTotal(0);
     } finally {
@@ -191,8 +196,8 @@ export default function EventMappingPage() {
     setFilterDialogOpen(true);
   };
 
-const form = useForm({
-  resolver: zodResolver(mappingSchema),
+  const form = useForm({
+    resolver: zodResolver(mappingSchema),
     defaultValues: {
       type: 0,
       name: "",
@@ -272,7 +277,7 @@ const form = useForm({
       accessorKey: "type",
       header: "Type",
       cell: ({ row }) => (
-        <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+        <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
           {row.original.type}
         </code>
       ),
@@ -280,7 +285,9 @@ const form = useForm({
     {
       accessorKey: "name",
       header: "Name",
-      cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+      cell: ({ row }) => (
+        <span className="font-medium">{row.original.name}</span>
+      ),
     },
     {
       accessorKey: "is_alert",
@@ -364,7 +371,10 @@ const form = useForm({
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <ButtonGroup>
-              <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+              <Dialog
+                open={filterDialogOpen}
+                onOpenChange={setFilterDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button variant="outline" onClick={openFilterDialog}>
                     <Filter className="mr-2 h-4 w-4" />
@@ -388,7 +398,8 @@ const form = useForm({
                   <DialogHeader>
                     <DialogTitle>Filter Event Mappings</DialogTitle>
                     <DialogDescription>
-                      Narrow down by name, alert status, severity, or enabled state.
+                      Narrow down by name, alert status, severity, or enabled
+                      state.
                     </DialogDescription>
                   </DialogHeader>
 
@@ -401,7 +412,10 @@ const form = useForm({
                           placeholder="Name or type..."
                           value={tempFilters.search || ""}
                           onChange={(e) =>
-                            setTempFilters((p) => ({ ...p, search: e.target.value }))
+                            setTempFilters((p) => ({
+                              ...p,
+                              search: e.target.value,
+                            }))
                           }
                           className="pl-10"
                         />
@@ -411,7 +425,11 @@ const form = useForm({
                     <div className="space-y-2">
                       <Label>Is Alert</Label>
                       <Select
-                        value={tempFilters.is_alert === "" ? "all" : String(tempFilters.is_alert)}
+                        value={
+                          tempFilters.is_alert === ""
+                            ? "all"
+                            : String(tempFilters.is_alert)
+                        }
                         onValueChange={(v) =>
                           setTempFilters((p) => ({
                             ...p,
@@ -457,7 +475,11 @@ const form = useForm({
                     <div className="space-y-2">
                       <Label>Enabled</Label>
                       <Select
-                        value={tempFilters.enabled === "" ? "all" : String(tempFilters.enabled)}
+                        value={
+                          tempFilters.enabled === ""
+                            ? "all"
+                            : String(tempFilters.enabled)
+                        }
                         onValueChange={(v) =>
                           setTempFilters((p) => ({
                             ...p,
@@ -478,7 +500,10 @@ const form = useForm({
                   </div>
 
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setFilterDialogOpen(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setFilterDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button onClick={handleApplyFilters}>Apply Filters</Button>
@@ -487,7 +512,11 @@ const form = useForm({
               </Dialog>
 
               {hasActiveFilters && (
-                <Button variant="outline" size="icon" onClick={handleResetFilters}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleResetFilters}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               )}
@@ -496,7 +525,9 @@ const form = useForm({
             <ButtonGroup>
               <Select
                 value={refreshInterval ? String(refreshInterval) : "off"}
-                onValueChange={(v) => setRefreshInterval(v === "off" ? null : Number(v))}
+                onValueChange={(v) =>
+                  setRefreshInterval(v === "off" ? null : Number(v))
+                }
               >
                 <SelectTrigger className="w-fit">
                   <SelectValue placeholder="Refresh: Off" />
@@ -539,7 +570,10 @@ const form = useForm({
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead key={header.id} className="bg-background">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -551,7 +585,9 @@ const form = useForm({
                   <TableCell colSpan={6} className="h-64">
                     <div className="flex flex-col items-center justify-center h-full gap-4">
                       <Spinner className="h-8 w-8" />
-                      <p className="text-muted-foreground">Loading event mappings...</p>
+                      <p className="text-muted-foreground">
+                        Loading event mappings...
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -581,10 +617,16 @@ const form = useForm({
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
+                  <TableRow
+                    key={row.id}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -596,9 +638,10 @@ const form = useForm({
 
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Showing {((filters.page || 1) - 1) * (filters.limit || 25) + 1}–
-              {Math.min((filters.page || 1) * (filters.limit || 25), total)} of {total.toLocaleString()} mappings
+              {Math.min((filters.page || 1) * (filters.limit || 25), total)} of{" "}
+              {total.toLocaleString()} mappings
             </p>
 
             <div className="flex items-center gap-3">
@@ -624,19 +667,30 @@ const form = useForm({
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, (p.page || 1) - 1) }))}
+                  onClick={() =>
+                    setFilters((p) => ({
+                      ...p,
+                      page: Math.max(1, (p.page || 1) - 1),
+                    }))
+                  }
                   disabled={(filters.page || 1) === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium px-3 border-y">
-                  Page {filters.page || 1} / {Math.ceil(total / (filters.limit || 25)) || 1}
+                <span className="text-xs font-medium px-3 border-y">
+                  Page {filters.page || 1} /{" "}
+                  {Math.ceil(total / (filters.limit || 25)) || 1}
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: (p.page || 1) + 1 }))}
-                  disabled={(filters.page || 1) >= Math.ceil(total / (filters.limit || 25))}
+                  onClick={() =>
+                    setFilters((p) => ({ ...p, page: (p.page || 1) + 1 }))
+                  }
+                  disabled={
+                    (filters.page || 1) >=
+                    Math.ceil(total / (filters.limit || 25))
+                  }
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -651,19 +705,28 @@ const form = useForm({
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {selectedMapping ? "Edit Event Mapping" : "Create New Event Mapping"}
+              {selectedMapping
+                ? "Edit Event Mapping"
+                : "Create New Event Mapping"}
             </DialogTitle>
           </DialogHeader>
 
           <Form {...form}>
-           <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-5">
+            <form
+              onSubmit={form.handleSubmit(onSubmit as any)}
+              className="space-y-5"
+            >
               <FormField
                 name="type"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Event Type (Number)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 1001" {...field} />
+                      <Input
+                        type="number"
+                        placeholder="e.g., 1001"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -689,7 +752,11 @@ const form = useForm({
                   <FormItem>
                     <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Brief description..." {...field} value={field.value || ""} />
+                      <Input
+                        placeholder="Brief description..."
+                        {...field}
+                        value={field.value || ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -698,7 +765,6 @@ const form = useForm({
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
-
                   name="is_alert"
                   render={({ field }) => (
                     <FormItem>
@@ -722,13 +788,15 @@ const form = useForm({
                 />
 
                 <FormField
-
                   name="severity"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Severity</FormLabel>
                       <FormControl>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -769,7 +837,11 @@ const form = useForm({
               />
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditDialogOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit">
@@ -792,29 +864,32 @@ const form = useForm({
           </DialogHeader>
 
           <div className="py-6 text-center">
-            <p className="text-lg">
+            <p className="text-base">
               Are you sure you want to delete this mapping?
             </p>
             {selectedMapping && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
-                <p className="font-mono text-sm">
+                <p className="font-mono text-xs">
                   Type: <strong>{selectedMapping.type}</strong>
                 </p>
                 <p className="font-medium mt-1">{selectedMapping.name}</p>
                 {selectedMapping.description && (
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {selectedMapping.description}
                   </p>
                 )}
               </div>
             )}
-            <p className="text-sm text-muted-foreground mt-4">
+            <p className="text-xs text-muted-foreground mt-4">
               This action <strong>cannot be undone</strong>.
             </p>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
