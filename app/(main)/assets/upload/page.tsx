@@ -85,7 +85,7 @@ export default function UploadAssetsPage() {
   const fetchGroups = useCallback(async () => {
     setLoadingGroups(true);
     try {
-      const res = await AssetsService.getThingGroups({ limit: 100 });
+      const res = await AssetsService.getThingGroups({ limit: 25 });
       const groupNames = res.groups.map((g: any) => g.groupName).sort();
       setGroups(groupNames);
     } catch (err) {

@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -21,7 +20,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Image as ImageIcon,
-  Expand,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -67,7 +65,6 @@ import { ButtonGroup } from "@/components/ui/button-group";
 
 import eventsService, { MeterChannel } from "@/services/events.service";
 import { DateTimePicker, DateTime } from "@/components/ui/date-time-picker";
-import { Separator } from "@/components/ui/separator";
 
 const CLOUDFRONT_URL = "http://d1y6od6p0ywz7r.cloudfront.net";
 const S3_BASE =
@@ -284,50 +281,50 @@ export default function MediaEventsPage() {
         </div>
       ),
     },
-    {
-      accessorKey: "processed_s3_key",
-      header: "Image",
-      cell: ({ row }) => {
-        const url = row.original.processed_s3_key;
-        if (!url) return <span className="text-muted-foreground">—</span>;
+    // {
+    //   accessorKey: "processed_s3_key",
+    //   header: "Image",
+    //   cell: ({ row }) => {
+    //     const url = row.original.processed_s3_key;
+    //     if (!url) return <span className="text-muted-foreground">—</span>;
 
-        return (
-          <Dialog>
-            <DialogTrigger asChild>
-              <button className="group relative inline-block h-7 w-14 overflow-hidden rounded-md border bg-muted transition-all hover:scale-105 hover:shadow-md">
-                <img
-                  src={url}
-                  alt="Meter reading"
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Expand className="h-5 w-5 text-white" />
-                </div>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-6xl p-0 gap-0">
-              <DialogHeader className="p-4">
-                <DialogTitle className="font-normal"><code className="text-lg font-mono bg-muted px-2 py-1 rounded">
-          {row.original.device_id}
-        </code> {row.original.status}</DialogTitle>
-                <DialogDescription>
-                  {format(new Date(row.original.timestamp * 1000), "PPp")}
-                </DialogDescription>
-              </DialogHeader>
-              <Separator/>
-              <div className="flex items-center justify-center p-2 bg-muted/20">
-                <img
-                  src={url}
-                  alt="Full size meter reading"
-                  className="max-h-[70vh] rounded-lg shadow-lg"
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-        );
-      },
-    },
+    //     return (
+    //       <Dialog>
+    //         <DialogTrigger asChild>
+    //           <button className="group relative inline-block h-7 w-14 overflow-hidden rounded-md border bg-muted transition-all hover:scale-105 hover:shadow-md">
+    //             <img
+    //               src={url}
+    //               alt="Meter reading"
+    //               className="h-full w-full object-cover"
+    //               loading="lazy"
+    //             />
+    //             <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+    //               <Expand className="h-5 w-5 text-white" />
+    //             </div>
+    //           </button>
+    //         </DialogTrigger>
+    //         <DialogContent className="max-w-6xl p-0 gap-0">
+    //           <DialogHeader className="p-4">
+    //             <DialogTitle className="font-normal"><code className="text-lg font-mono bg-muted px-2 py-1 rounded">
+    //       {row.original.device_id}
+    //     </code> {row.original.status}</DialogTitle>
+    //             <DialogDescription>
+    //               {format(new Date(row.original.timestamp * 1000), "PPp")}
+    //             </DialogDescription>
+    //           </DialogHeader>
+    //           <Separator/>
+    //           <div className="flex items-center justify-center p-2 bg-muted/20">
+    //             <img
+    //               src={url}
+    //               alt="Full size meter reading"
+    //               className="max-h-[70vh] rounded-lg shadow-lg"
+    //             />
+    //           </div>
+    //         </DialogContent>
+    //       </Dialog>
+    //     );
+    //   },
+    // },
   ];
 
   const table = useReactTable({
