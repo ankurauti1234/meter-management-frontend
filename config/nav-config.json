@@ -59,12 +59,6 @@
           "url": "/devices/decommission",
           "icon": "PowerOff",
           "roles": ["admin"]
-        },
-        {
-          "title": "Configuration",
-          "url": "/devices/configuration",
-          "icon": "Settings2",
-          "roles": ["admin", "developer"]
         }
       ]
     },
@@ -110,12 +104,6 @@
       "url": "/users",
       "icon": "UserCog",
       "roles": ["admin"]
-    },
-    {
-      "title": "Settings",
-      "url": "/settings",
-      "icon": "SlidersHorizontal",
-      "roles": ["admin", "developer", "user"]
     }
   ],
   "projects": []

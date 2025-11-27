@@ -24,6 +24,25 @@ export default function MainLayout({
 }
 
 function Content({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-background">
+      {/* Subtle but clearly visible grid */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 select-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+            linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)
+          `,
+          backgroundSize: "48px 48px",
+        }}
+        aria-hidden="true"
+      />
 
-  return <main className="p-4">{children}</main>;
+      {/* Your actual page content */}
+      <div className="relative z-0 p-6 lg:p-8">
+        {children}
+      </div>
+    </main>
+  );
 }
