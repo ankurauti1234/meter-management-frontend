@@ -67,6 +67,8 @@ import { ButtonGroup } from "@/components/ui/button-group";
 
 import eventsService from "@/services/events.service";
 import { DateTimePicker, DateTime } from "@/components/ui/date-time-picker";
+import { EventMapping } from "@/services/event-mapping.service";
+import eventMappingService from "@/services/event-mapping.service";
 
 interface Event {
   id: number;
@@ -99,6 +101,9 @@ export default function DeviceEventsPage() {
 
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [eventMappings, setEventMappings] = useState<EventMapping[]>([]);
+const [mappingsLoading, setMappingsLoading] = useState(true);
 
   const [debouncedDeviceId] = useDebounce(filters.device_id, 600);
 
@@ -153,6 +158,25 @@ export default function DeviceEventsPage() {
     endDateTime,
   ]);
 
+  useEffect(() => {
+  const loadMappings = async () => {
+    try {
+      setMappingsLoading(true);
+      const response = await eventMappingService.getAll({ limit: 1000 }); // get all or reasonable limit
+      // Sort by type for consistent order
+      const sorted = response.data.sort((a, b) => a.type - b.type);
+      setEventMappings(sorted);
+    } catch (err) {
+      console.error("Failed to load event mappings", err);
+      toast.error("Failed to load event type definitions");
+    } finally {
+      setMappingsLoading(false);
+    }
+  };
+
+  loadMappings();
+}, []);
+
   // Auto-refresh
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -199,51 +223,27 @@ export default function DeviceEventsPage() {
     setDialogOpen(true);
   };
 
-  const EventTypeBadge = ({ type }: { type: number }) => {
-    const isAlert = type >= 14;
-    const isSuccess = [1, 2, 3, 4].includes(type);
-    const isWarning = [6, 7, 9].includes(type);
+const EventTypeBadge = ({ type }: { type: number }) => {
+  const mapping = eventMappings.find(m => m.type === type);
+  const isAlert = mapping?.is_alert ?? type >= 14;
 
-    if (isAlert)
-      return (
-        <Badge
-          variant="outline"
-          className="border-red-500 text-red-600 gap-1.5"
-        >
-          <Bell className="h-3 w-3" />
-          Type {type}
-        </Badge>
-      );
-    if (isSuccess)
-      return (
-        <Badge
-          variant="outline"
-          className="border-green-500 text-green-600 gap-1.5"
-        >
-          <CheckCircle2 className="h-3 w-3" />
-          Type {type}
-        </Badge>
-      );
-    if (isWarning)
-      return (
-        <Badge
-          variant="outline"
-          className="border-amber-500 text-amber-600 gap-1.5"
-        >
-          <AlertTriangle className="h-3 w-3" />
-          Type {type}
-        </Badge>
-      );
-    return (
-      <Badge
-        variant="outline"
-        className="border-blue-500 text-blue-600 gap-1.5"
-      >
-        <Info className="h-3 w-3" />
-        Type {type}
-      </Badge>
-    );
-  };
+  const baseClasses = "gap-1.5 text-xs";
+  const content = (
+    <>
+      {isAlert ? <Bell className="h-3 w-3" /> : <Info className="h-3 w-3" />}
+      {mapping ? `${mapping.name} (${type})` : `Type ${type}`}
+    </>
+  );
+
+  if (isAlert)
+    return <Badge variant="outline" className={`border-red-500 text-red-600 ${baseClasses}`}>{content}</Badge>;
+  if ([1, 2, 3, 4].includes(type))
+    return <Badge variant="outline" className={`border-green-500 text-green-600 ${baseClasses}`}>{content}</Badge>;
+  if ([6, 7, 9].includes(type))
+    return <Badge variant="outline" className={`border-amber-500 text-amber-600 ${baseClasses}`}>{content}</Badge>;
+
+  return <Badge variant="outline" className={`border-blue-500 text-blue-600 ${baseClasses}`}>{content}</Badge>;
+};
 
   const columns: ColumnDef<Event>[] = [
     {
@@ -394,22 +394,53 @@ export default function DeviceEventsPage() {
                       <Select
                         value={tempFilters.type}
                         onValueChange={(v) =>
-                          setTempFilters((p) => ({ ...p, type: v }))
+                          setTempFilters((p) => ({ ...p, type: v || "" }))
                         }
+                        disabled={mappingsLoading}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="All types" />
+                          <SelectValue
+                            placeholder={
+                              mappingsLoading ? "Loading types..." : "All types"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={undefined as any}>
-                            All types
-                          </SelectItem>
-                          {[1, 2, 3, 4, 6, 7, 9, 10, 14, 15, 16, 21, 22].map(
-                            (t) => (
-                              <SelectItem key={t} value={String(t)}>
-                                Type {t} {t >= 14 && "(Alert)"}
+                          <SelectItem value="all">All types</SelectItem>
+
+                          {mappingsLoading ? (
+                            <SelectItem value="loading" disabled>
+                              <div className="flex items-center gap-2">
+                                <Spinner className="h-3 w-3" />
+                                Loading event types...
+                              </div>
+                            </SelectItem>
+                          ) : eventMappings.length === 0 ? (
+                            <SelectItem value="none" disabled>
+                              No event types defined
+                            </SelectItem>
+                          ) : (
+                            eventMappings.map((mapping) => (
+                              <SelectItem
+                                key={mapping.id}
+                                value={String(mapping.type)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span>Type {mapping.type}</span>
+                                  <span className="text-muted-foreground">
+                                    – {mapping.name}
+                                  </span>
+                                  {mapping.is_alert && (
+                                    <Badge
+                                      variant="destructive"
+                                      className="text-xs ml-2"
+                                    >
+                                      Alert
+                                    </Badge>
+                                  )}
+                                </div>
                               </SelectItem>
-                            )
+                            ))
                           )}
                         </SelectContent>
                       </Select>
