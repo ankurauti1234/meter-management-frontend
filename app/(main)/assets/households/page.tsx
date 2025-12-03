@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
@@ -20,6 +21,9 @@ import {
   ChevronRight,
   CheckCircle2,
   AlertCircle,
+  Edit2,
+  Check,
+  XCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -91,6 +95,9 @@ export default function ListHouseholdsPage() {
 
   const [debouncedSearch] = useDebounce(filters.search, 600);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingEmail, setEditingEmail] = useState("");
+
   const hasActiveFilters = Boolean(
     filters.search ||
       filters.assigned !== undefined ||
@@ -129,7 +136,6 @@ export default function ListHouseholdsPage() {
     filters.limit,
   ]);
 
-  // Auto-refresh handling
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (refreshInterval) {
@@ -175,6 +181,50 @@ export default function ListHouseholdsPage() {
     setDialogOpen(true);
   };
 
+  // Edit contact email
+  const startEditing = (household: EnrichedHousehold) => {
+    setEditingId(household.id);
+    setEditingEmail(household.preassignedContact?.email || "");
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingEmail("");
+  };
+
+  const saveEditing = async (householdId: string) => {
+    if (!editingEmail.trim() || !editingEmail.includes("@")) {
+      toast.error("Please enter a valid email");
+      return;
+    }
+
+    try {
+      toast.loading("Updating contact email...");
+      await HouseholdService.updatePreassignedContact(householdId, editingEmail.trim());
+
+      setData((prev) =>
+        prev.map((h) =>
+          h.id === householdId
+            ? {
+                ...h,
+                preassignedContact: {
+                  email: editingEmail.trim(),
+                  isActive: true,
+                },
+              }
+            : h
+        )
+      );
+
+      toast.dismiss();
+      toast.success("Contact email updated");
+      setEditingId(null);
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error(err.message || "Failed to update email");
+    }
+  };
+
   const columns: ColumnDef<EnrichedHousehold>[] = [
     {
       accessorKey: "hhid",
@@ -217,10 +267,66 @@ export default function ListHouseholdsPage() {
     {
       accessorKey: "preassignedContact.email",
       header: "Contact Email",
-      cell: ({ row }) =>
-        row.original.preassignedContact?.email || (
-          <span className="text-muted-foreground">—</span>
-        ),
+      cell: ({ row }) => {
+        const household = row.original;
+        const isEditing = editingId === household.id;
+
+        return (
+          <div className="flex items-center gap-2 min-w-[200px]">
+            {isEditing ? (
+              <>
+                <Input
+                  type="email"
+                  value={editingEmail}
+                  onChange={(e) => setEditingEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEditing(household.id);
+                    if (e.key === "Escape") cancelEditing();
+                  }}
+                  className="h-8 text-sm"
+                  autoFocus
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => saveEditing(household.id)}
+                >
+                  <Check className="h-4 w-4 text-green-600" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={cancelEditing}
+                >
+                  <XCircle className="h-4 w-4 text-red-600" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <span
+                  className={`text-sm ${
+                    household.preassignedContact?.email
+                      ? "font-medium"
+                      : "text-muted-foreground italic"
+                  }`}
+                >
+                  {household.preassignedContact?.email || "—"}
+                </span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => startEditing(household)}
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "memberCount",
@@ -473,7 +579,7 @@ export default function ListHouseholdsPage() {
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    className="hover:bg-muted/50 transition-colors"
+                    className="hover:bg-muted/50 transition-colors group"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>

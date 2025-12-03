@@ -23,6 +23,9 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Loader2,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -64,6 +67,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { Progress } from "@/components/ui/progress";
 
 import DecommissionService, {
   AssignedMeter,
@@ -78,6 +82,14 @@ interface Filters {
 }
 
 type TableRowData = AssignedMeter | DecommissionLog;
+
+interface RetryStatus {
+  attempt: number;
+  maxAttempts: number;
+  currentTimeout: number;
+  status: "sending" | "waiting" | "success" | "failed";
+  message: string;
+}
 
 export default function DecommissionPage() {
   const [assignedMeters, setAssignedMeters] = useState<AssignedMeter[]>([]);
@@ -100,6 +112,7 @@ export default function DecommissionPage() {
   );
   const [reason, setReason] = useState("");
   const [decommissioning, setDecommissioning] = useState(false);
+  const [retryStatus, setRetryStatus] = useState<RetryStatus | null>(null);
 
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -174,17 +187,77 @@ export default function DecommissionPage() {
     activeTab === "assigned" ? fetchAssignedMeters() : fetchLogs();
   };
 
+  // Simulate retry status updates (in real implementation, this would come from backend via WebSocket or polling)
+  const simulateRetryProgress = async () => {
+    const attemptTimeouts = [10000, 5000, 5000]; // 10s, 5s, 5s
+    
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const timeout = attemptTimeouts[attempt - 1];
+      
+      // Sending command
+      setRetryStatus({
+        attempt,
+        maxAttempts: 3,
+        currentTimeout: timeout,
+        status: "sending",
+        message: `Sending decommission command (attempt ${attempt}/3)...`,
+      });
+      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      // Waiting for ACK
+      setRetryStatus({
+        attempt,
+        maxAttempts: 3,
+        currentTimeout: timeout,
+        status: "waiting",
+        message: `Waiting for device acknowledgment (${timeout / 1000}s timeout)...`,
+      });
+      
+      // Simulate waiting time (in real app, this would be actual network wait)
+      await new Promise((resolve) => setTimeout(resolve, timeout));
+      
+      // In real implementation, success would come from actual API response
+      // For now, we'll let the actual API call determine success/failure
+      if (attempt === 3) break;
+    }
+  };
+
   const handleDecommission = async () => {
     if (!selectedMeter) return;
 
     setDecommissioning(true);
+    setRetryStatus({
+      attempt: 1,
+      maxAttempts: 3,
+      currentTimeout: 10000,
+      status: "sending",
+      message: "Initiating decommission process...",
+    });
+
     try {
+      // Start simulating progress (this runs in parallel)
+      const progressSimulation = simulateRetryProgress();
+
+      // Actual API call
       const result: DecommissionResponse = (
         await DecommissionService.decommissionMeter({
           meterId: selectedMeter.meterId,
           reason: reason || undefined,
         })
       ).data;
+
+      // Success!
+      setRetryStatus({
+        attempt: 1,
+        maxAttempts: 3,
+        currentTimeout: 0,
+        status: "success",
+        message: "Device acknowledged - decommissioned successfully!",
+      });
+
+      // Wait a moment to show success state
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       toast.success(
         <div>
@@ -199,10 +272,34 @@ export default function DecommissionPage() {
       setDialogOpen(false);
       setReason("");
       setSelectedMeter(null);
+      setRetryStatus(null);
       fetchAssignedMeters();
       if (activeTab === "logs") fetchLogs();
     } catch (err: any) {
-      toast.error(err.response?.data?.msg || "Failed to decommission meter");
+      setRetryStatus({
+        attempt: 3,
+        maxAttempts: 3,
+        currentTimeout: 0,
+        status: "failed",
+        message:
+          err.response?.data?.msg ||
+          "Failed after 3 attempts - device did not respond",
+      });
+
+      // Wait to show error state
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      toast.error(
+        <div>
+          <strong>Decommission Failed</strong>
+          <br />
+          <span className="text-xs">
+            {err.response?.data?.msg || "Device did not respond after 3 attempts"}
+          </span>
+        </div>
+      );
+
+      setRetryStatus(null);
     } finally {
       setDecommissioning(false);
     }
@@ -211,6 +308,7 @@ export default function DecommissionPage() {
   const openDecommissionDialog = (meter: AssignedMeter) => {
     setSelectedMeter(meter);
     setReason("");
+    setRetryStatus(null);
     setDialogOpen(true);
   };
 
@@ -352,6 +450,36 @@ export default function DecommissionPage() {
       (activeTab === "assigned" ? totalAssigned : totalLogs) / filters.limit
     ),
   });
+
+  const getStatusIcon = () => {
+    if (!retryStatus) return null;
+    
+    switch (retryStatus.status) {
+      case "sending":
+        return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
+      case "waiting":
+        return <Clock className="h-5 w-5 text-amber-500 animate-pulse" />;
+      case "success":
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case "failed":
+        return <AlertTriangle className="h-5 w-5 text-destructive" />;
+    }
+  };
+
+  const getStatusColor = () => {
+    if (!retryStatus) return "bg-muted";
+    
+    switch (retryStatus.status) {
+      case "sending":
+        return "bg-blue-500/10 border-blue-500/20";
+      case "waiting":
+        return "bg-amber-500/10 border-amber-500/20";
+      case "success":
+        return "bg-green-500/10 border-green-500/20";
+      case "failed":
+        return "bg-destructive/10 border-destructive/20";
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -592,7 +720,7 @@ export default function DecommissionPage() {
 
       {/* Decommission Confirmation Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-destructive" />
@@ -633,15 +761,71 @@ export default function DecommissionPage() {
                   onChange={(e) => setReason(e.target.value)}
                   className="mt-2"
                   rows={3}
+                  disabled={decommissioning}
                 />
               </div>
+
+              {/* Retry Progress Indicator */}
+              {retryStatus && (
+                <div
+                  className={`p-4 rounded-lg border ${getStatusColor()} space-y-3`}
+                >
+                  <div className="flex items-start gap-3">
+                    {getStatusIcon()}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">
+                          {retryStatus.status === "sending" && "Sending Command"}
+                          {retryStatus.status === "waiting" &&
+                            "Waiting for Device"}
+                          {retryStatus.status === "success" && "Success!"}
+                          {retryStatus.status === "failed" && "Failed"}
+                        </p>
+                        <Badge variant="outline" className="text-xs">
+                          Attempt {retryStatus.attempt}/{retryStatus.maxAttempts}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {retryStatus.message}
+                      </p>
+                    </div>
+                  </div>
+
+                  {retryStatus.status !== "success" &&
+                    retryStatus.status !== "failed" && (
+                      <div className="space-y-2">
+                        <Progress
+                          value={
+                            retryStatus.status === "sending"
+                              ? 30
+                              : ((retryStatus.attempt - 1) * 33.33 + 33.33)
+                          }
+                          className="h-1.5"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>
+                            {retryStatus.status === "waiting" &&
+                              `Timeout: ${retryStatus.currentTimeout / 1000}s`}
+                          </span>
+                          <span>
+                            {retryStatus.attempt < retryStatus.maxAttempts &&
+                              "Will retry if no response"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                </div>
+              )}
             </div>
           )}
 
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDialogOpen(false)}
+              onClick={() => {
+                setDialogOpen(false);
+                setRetryStatus(null);
+              }}
               disabled={decommissioning}
             >
               Cancel

@@ -34,7 +34,15 @@ export interface PaginatedHouseholds {
   };
 }
 
+export interface UploadMembersResult {
+  uploaded: number;
+  saved: number;
+  skipped: number;
+  errors: string[];
+}
+
 class HouseholdService {
+  // Existing
   async getHouseholds(filters: HouseholdFilters = {}): Promise<PaginatedHouseholds> {
     const params = new URLSearchParams();
     if (filters.search) params.append("search", filters.search);
@@ -51,6 +59,26 @@ class HouseholdService {
   async updatePreassignedContact(householdId: string, contactEmail: string) {
     const res = await api.patch(`/households/${householdId}/contact`, { contactEmail });
     return res.data.data;
+  }
+
+  // New: Upload members via CSV/XLSX
+  async uploadMembers(file: File, householdId: string): Promise<UploadMembersResult> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("householdId", householdId);
+
+    const res = await api.post("/households/members/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return res.data.data;
+  }
+
+  // New: Delete a household member
+  async deleteMember(memberId: string): Promise<void> {
+    await api.delete(`/households/members/${memberId}`);
   }
 }
 
