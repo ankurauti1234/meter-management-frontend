@@ -72,13 +72,7 @@
           "url": "/live-monitoring/device-events",
           "icon": "Monitor",
           "roles": ["admin", "developer"]
-        },
-        {
-          "title": "Media Events",
-          "url": "/live-monitoring/media-events",
-          "icon": "Video",
-          "roles": ["admin", "developer"]
-        },
+        }, 
         {
           "title": "Alerts",
           "url": "/live-monitoring/alerts",
