@@ -42,9 +42,11 @@ class EventMappingService {
   }> {
     const params = new URLSearchParams();
     if (filters.search) params.append("search", filters.search);
-    if (filters.is_alert !== undefined && filters.is_alert !== "") params.append("is_alert", String(filters.is_alert));
+    if (filters.is_alert !== undefined && filters.is_alert !== "")
+      params.append("is_alert", String(filters.is_alert));
     if (filters.severity) params.append("severity", filters.severity);
-    if (filters.enabled !== undefined && filters.enabled !== "") params.append("enabled", String(filters.enabled));
+    if (filters.enabled !== undefined && filters.enabled !== "")
+      params.append("enabled", String(filters.enabled));
     if (filters.page) params.append("page", String(filters.page));
     if (filters.limit) params.append("limit", String(filters.limit));
 

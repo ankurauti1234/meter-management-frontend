@@ -164,13 +164,17 @@ export default function DeviceEventsPage() {
       try {
         setMappingsLoading(true);
         const response = await eventMappingService.getAll({ limit: 1000 });
-        
+
         // Extract the data array from nested response structure
         let mappingsData: EventMapping[] = [];
-        
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
+
+        if (
+          response.data &&
+          response.data &&
+          Array.isArray(response.data)
+        ) {
           // Nested structure: { data: { data: [...] } }
-          mappingsData = response.data.data as unknown as EventMapping[];
+          mappingsData = response.data as unknown as EventMapping[];
         } else if (response.data && Array.isArray(response.data)) {
           // Direct structure: { data: [...] }
           mappingsData = response.data as EventMapping[];
@@ -178,11 +182,11 @@ export default function DeviceEventsPage() {
           // Direct array response
           mappingsData = response as EventMapping[];
         }
-        
+
         // Sort by type for consistent order
         const sorted = mappingsData.sort((a, b) => a.type - b.type);
         setEventMappings(sorted);
-        
+
         console.log("Event mappings loaded:", sorted);
       } catch (err) {
         console.error("Failed to load event mappings", err);
@@ -247,7 +251,7 @@ export default function DeviceEventsPage() {
   };
 
   const EventTypeBadge = ({ type }: { type: number }) => {
-    const mapping = eventMappings.find(m => m.type === type);
+    const mapping = eventMappings.find((m) => m.type === type);
     const isAlert = mapping?.is_alert ?? type >= 14;
 
     const baseClasses = "gap-1.5 text-xs";
@@ -259,13 +263,41 @@ export default function DeviceEventsPage() {
     );
 
     if (isAlert)
-      return <Badge variant="outline" className={`border-red-500 text-red-600 ${baseClasses}`}>{content}</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className={`border-red-500 text-red-600 ${baseClasses}`}
+        >
+          {content}
+        </Badge>
+      );
     if ([1, 2, 3, 4].includes(type))
-      return <Badge variant="outline" className={`border-green-500 text-green-600 ${baseClasses}`}>{content}</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className={`border-green-500 text-green-600 ${baseClasses}`}
+        >
+          {content}
+        </Badge>
+      );
     if ([6, 7, 9].includes(type))
-      return <Badge variant="outline" className={`border-amber-500 text-amber-600 ${baseClasses}`}>{content}</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className={`border-amber-500 text-amber-600 ${baseClasses}`}
+        >
+          {content}
+        </Badge>
+      );
 
-    return <Badge variant="outline" className={`border-blue-500 text-blue-600 ${baseClasses}`}>{content}</Badge>;
+    return (
+      <Badge
+        variant="outline"
+        className={`border-blue-500 text-blue-600 ${baseClasses}`}
+      >
+        {content}
+      </Badge>
+    );
   };
 
   const columns: ColumnDef<Event>[] = [
@@ -299,9 +331,12 @@ export default function DeviceEventsPage() {
       id: "details",
       header: "Details",
       cell: ({ row }) => (
-        <DetailsHoverCard details={row.original.details || {}} type={row.original.type} />
+        <DetailsHoverCard
+          details={row.original.details || {}}
+          type={row.original.type}
+        />
       ),
-    }
+    },
   ];
 
   const table = useReactTable({
@@ -376,7 +411,10 @@ export default function DeviceEventsPage() {
                       <Select
                         value={tempFilters.type || "all"}
                         onValueChange={(v) =>
-                          setTempFilters((p) => ({ ...p, type: v === "all" ? "" : v }))
+                          setTempFilters((p) => ({
+                            ...p,
+                            type: v === "all" ? "" : v,
+                          }))
                         }
                         disabled={mappingsLoading}
                       >
@@ -397,7 +435,8 @@ export default function DeviceEventsPage() {
                                 Loading event types...
                               </div>
                             </SelectItem>
-                          ) : !Array.isArray(eventMappings) || eventMappings.length === 0 ? (
+                          ) : !Array.isArray(eventMappings) ||
+                            eventMappings.length === 0 ? (
                             <SelectItem value="none" disabled>
                               No event types defined
                             </SelectItem>

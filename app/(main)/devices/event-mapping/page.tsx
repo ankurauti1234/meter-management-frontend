@@ -140,7 +140,7 @@ export default function EventMappingPage() {
       });
 
       // FIXED: Extract the actual array and pagination correctly
-      setData((res.data.data as unknown as EventMapping[]) || []);                    // ← This is the array of mappings
+      setData((res.data.data as unknown as EventMapping[]) || []); // ← This is the array of mappings
       setTotal(res.data.pagination?.total || 0); // ← Pagination is nested under data
     } catch (err: any) {
       toast.error("Failed to load event mappings");
@@ -713,12 +713,8 @@ export default function EventMappingPage() {
           </DialogHeader>
 
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-5"
-            >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
-               
                 name="type"
                 render={({ field }) => (
                   <FormItem>
