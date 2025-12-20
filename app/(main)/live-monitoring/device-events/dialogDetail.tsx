@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React from "react";
@@ -31,11 +32,11 @@ export const DetailsHoverCard: React.FC<DetailsHoverCardProps> = ({ details, typ
     if (!entries.length) return <span className="text-muted-foreground">—</span>;
 
     return (
-      <div className="text-xs font-mono space-y-1 max-h-[60vh] overflow-y-auto break-words">
+      <div className="text-xs font-mono space-y-1 max-h-[60vh] overflow-y-auto wrap-break-word">
         {entries.map(([k, v], idx) => (
           <div key={k} className={`flex flex-col gap-1 ${idx === 0 ? "w-full" : ""}`}>
             <span className="text-muted-foreground font-medium">{k}:</span>
-            <span className="whitespace-pre-wrap break-words">
+            <span className="whitespace-pre-wrap wrap-break-word">
               {typeof v === "object" ? JSON.stringify(v, null, 2) : String(v)}
             </span>
           </div>

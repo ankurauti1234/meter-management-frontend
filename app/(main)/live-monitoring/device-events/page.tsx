@@ -104,7 +104,7 @@ export default function DeviceEventsPage() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const [eventMappings, setEventMappings] = useState<EventMapping[]>([]);
-const [mappingsLoading, setMappingsLoading] = useState(true);
+  const [mappingsLoading, setMappingsLoading] = useState(true);
 
   const [debouncedDeviceId] = useDebounce(filters.device_id, 600);
 
@@ -160,23 +160,41 @@ const [mappingsLoading, setMappingsLoading] = useState(true);
   ]);
 
   useEffect(() => {
-  const loadMappings = async () => {
-    try {
-      setMappingsLoading(true);
-      const response = await eventMappingService.getAll({ limit: 1000 }); // get all or reasonable limit
-      // Sort by type for consistent order
-      const sorted = response.data.sort((a, b) => a.type - b.type);
-      setEventMappings(sorted);
-    } catch (err) {
-      console.error("Failed to load event mappings", err);
-      toast.error("Failed to load event type definitions");
-    } finally {
-      setMappingsLoading(false);
-    }
-  };
+    const loadMappings = async () => {
+      try {
+        setMappingsLoading(true);
+        const response = await eventMappingService.getAll({ limit: 1000 });
+        
+        // Extract the data array from nested response structure
+        let mappingsData: EventMapping[] = [];
+        
+        if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          // Nested structure: { data: { data: [...] } }
+          mappingsData = response.data.data as unknown as EventMapping[];
+        } else if (response.data && Array.isArray(response.data)) {
+          // Direct structure: { data: [...] }
+          mappingsData = response.data as EventMapping[];
+        } else if (Array.isArray(response)) {
+          // Direct array response
+          mappingsData = response as EventMapping[];
+        }
+        
+        // Sort by type for consistent order
+        const sorted = mappingsData.sort((a, b) => a.type - b.type);
+        setEventMappings(sorted);
+        
+        console.log("Event mappings loaded:", sorted);
+      } catch (err) {
+        console.error("Failed to load event mappings", err);
+        toast.error("Failed to load event type definitions");
+        setEventMappings([]);
+      } finally {
+        setMappingsLoading(false);
+      }
+    };
 
-  loadMappings();
-}, []);
+    loadMappings();
+  }, []);
 
   // Auto-refresh
   useEffect(() => {
@@ -199,7 +217,7 @@ const [mappingsLoading, setMappingsLoading] = useState(true);
   };
 
   const handleApplyFilters = () => {
-     setFilters({
+    setFilters({
       ...tempFilters,
       type: tempFilters.type === "all" ? "" : tempFilters.type,
       page: 1,
@@ -228,27 +246,27 @@ const [mappingsLoading, setMappingsLoading] = useState(true);
     setDialogOpen(true);
   };
 
-const EventTypeBadge = ({ type }: { type: number }) => {
-  const mapping = eventMappings.find(m => m.type === type);
-  const isAlert = mapping?.is_alert ?? type >= 14;
+  const EventTypeBadge = ({ type }: { type: number }) => {
+    const mapping = eventMappings.find(m => m.type === type);
+    const isAlert = mapping?.is_alert ?? type >= 14;
 
-  const baseClasses = "gap-1.5 text-xs";
-  const content = (
-    <>
-      {isAlert ? <Bell className="h-3 w-3" /> : <Info className="h-3 w-3" />}
-      {mapping ? `${mapping.name} (${type})` : `Type ${type}`}
-    </>
-  );
+    const baseClasses = "gap-1.5 text-xs";
+    const content = (
+      <>
+        {isAlert ? <Bell className="h-3 w-3" /> : <Info className="h-3 w-3" />}
+        {mapping ? `${mapping.name} (${type})` : `Type ${type}`}
+      </>
+    );
 
-  if (isAlert)
-    return <Badge variant="outline" className={`border-red-500 text-red-600 ${baseClasses}`}>{content}</Badge>;
-  if ([1, 2, 3, 4].includes(type))
-    return <Badge variant="outline" className={`border-green-500 text-green-600 ${baseClasses}`}>{content}</Badge>;
-  if ([6, 7, 9].includes(type))
-    return <Badge variant="outline" className={`border-amber-500 text-amber-600 ${baseClasses}`}>{content}</Badge>;
+    if (isAlert)
+      return <Badge variant="outline" className={`border-red-500 text-red-600 ${baseClasses}`}>{content}</Badge>;
+    if ([1, 2, 3, 4].includes(type))
+      return <Badge variant="outline" className={`border-green-500 text-green-600 ${baseClasses}`}>{content}</Badge>;
+    if ([6, 7, 9].includes(type))
+      return <Badge variant="outline" className={`border-amber-500 text-amber-600 ${baseClasses}`}>{content}</Badge>;
 
-  return <Badge variant="outline" className={`border-blue-500 text-blue-600 ${baseClasses}`}>{content}</Badge>;
-};
+    return <Badge variant="outline" className={`border-blue-500 text-blue-600 ${baseClasses}`}>{content}</Badge>;
+  };
 
   const columns: ColumnDef<Event>[] = [
     {
@@ -277,16 +295,13 @@ const EventTypeBadge = ({ type }: { type: number }) => {
       header: "Type",
       cell: ({ row }) => <EventTypeBadge type={row.original.type} />,
     },
-   {
-    id: "details",
-    header: "Details",
-    cell: ({ row }) => (
-      <DetailsHoverCard details={row.original.details || {}} type={row.original.type} />
-    ),
-   }
-
-
-
+    {
+      id: "details",
+      header: "Details",
+      cell: ({ row }) => (
+        <DetailsHoverCard details={row.original.details || {}} type={row.original.type} />
+      ),
+    }
   ];
 
   const table = useReactTable({
@@ -359,9 +374,9 @@ const EventTypeBadge = ({ type }: { type: number }) => {
                     <div className="space-y-2">
                       <Label>Event Type</Label>
                       <Select
-                        value={tempFilters.type}
+                        value={tempFilters.type || "all"}
                         onValueChange={(v) =>
-                          setTempFilters((p) => ({ ...p, type: v || "" }))
+                          setTempFilters((p) => ({ ...p, type: v === "all" ? "" : v }))
                         }
                         disabled={mappingsLoading}
                       >
@@ -382,7 +397,7 @@ const EventTypeBadge = ({ type }: { type: number }) => {
                                 Loading event types...
                               </div>
                             </SelectItem>
-                          ) : eventMappings.length === 0 ? (
+                          ) : !Array.isArray(eventMappings) || eventMappings.length === 0 ? (
                             <SelectItem value="none" disabled>
                               No event types defined
                             </SelectItem>
@@ -411,6 +426,11 @@ const EventTypeBadge = ({ type }: { type: number }) => {
                           )}
                         </SelectContent>
                       </Select>
+                      {!mappingsLoading && Array.isArray(eventMappings) && (
+                        <p className="text-xs text-muted-foreground">
+                          {eventMappings.length} event types available
+                        </p>
+                      )}
                     </div>
 
                     {/* Start */}
@@ -485,7 +505,7 @@ const EventTypeBadge = ({ type }: { type: number }) => {
         }
       />
 
-      {/* Table (unchanged) */}
+      {/* Table */}
       <div className="rounded-md border overflow-hidden">
         <div className="max-h-[70vh] overflow-y-auto">
           <Table className="border-separate border-spacing-0 [&_td]:border-border [&_th]:border-b [&_th]:border-border [&_tr]:border-none [&_tr:not(:last-child)_td]:border-b">
@@ -567,7 +587,7 @@ const EventTypeBadge = ({ type }: { type: number }) => {
               {total.toLocaleString()} events
             </p>
 
-            <div className=" flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <Select
                 value={String(filters.limit)}
                 onValueChange={(v) =>

@@ -80,7 +80,7 @@ import EventMappingService, {
   EventMappingFilters,
 } from "@/services/event-mapping.service";
 
-// Zod Schema - matches the service DTO exactly
+// Zod Schema
 const mappingSchema = z.object({
   type: z.coerce
     .number()
@@ -138,11 +138,13 @@ export default function EventMappingPage() {
         ...filters,
         search: debouncedSearch || undefined,
       });
-      setData(res.data);
-      setTotal(res.pagination?.total || 0);
+
+      // FIXED: Extract the actual array and pagination correctly
+      setData((res.data.data as unknown as EventMapping[]) || []);                    // ← This is the array of mappings
+      setTotal(res.data.pagination?.total || 0); // ← Pagination is nested under data
     } catch (err: any) {
       toast.error("Failed to load event mappings");
-      console.log(err);
+      console.error(err);
       setData([]);
       setTotal(0);
     } finally {
@@ -240,7 +242,6 @@ export default function EventMappingPage() {
 
   const onSubmit = async (values: MappingForm) => {
     try {
-      // Convert empty string to undefined for description
       const payload = {
         ...values,
         description: values.description?.trim() || undefined,
@@ -713,10 +714,11 @@ export default function EventMappingPage() {
 
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(onSubmit as any)}
+              onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-5"
             >
               <FormField
+               
                 name="type"
                 render={({ field }) => (
                   <FormItem>

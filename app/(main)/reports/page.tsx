@@ -1,10 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
-import { useDebounce } from "use-debounce";
 import {
   ColumnDef,
   flexRender,
@@ -15,15 +15,13 @@ import {
 import {
   Download,
   Calendar,
-  RefreshCw,
   FileText,
-  Search,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -33,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Table,
   TableBody,
@@ -74,10 +73,13 @@ import ReportService, {
   ReportEvent,
   ReportFilters,
 } from "@/services/report.service";
+import EventMappingService, {
+  EventMapping,
+} from "@/services/event-mapping.service";
 
 // Zod Schema
 const reportSchema = z.object({
-  type: z.string().optional(),
+  types: z.array(z.number()).optional(),
   start_time: z.date().optional(),
   end_time: z.date().optional(),
   format: z.enum(["json", "csv", "xlsx", "xml"]),
@@ -95,10 +97,13 @@ export default function ReportsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
 
+  const [eventMappings, setEventMappings] = useState<EventMapping[]>([]);
+  const [loadingMappings, setLoadingMappings] = useState(true);
+
   const form = useForm<ReportForm>({
     resolver: zodResolver(reportSchema),
     defaultValues: {
-      type: "",
+      types: [],
       format: "json",
     },
   });
@@ -106,9 +111,37 @@ export default function ReportsPage() {
   const watchFormat = form.watch("format");
   const watchStart = form.watch("start_time");
   const watchEnd = form.watch("end_time");
-  const watchType = form.watch("type");
+  const watchTypes = form.watch("types") || [];
 
-  const [debouncedType] = useDebounce(watchType, 600);
+  // Load all event mappings on mount
+  useEffect(() => {
+    const loadMappings = async () => {
+      setLoadingMappings(true);
+      try {
+        const res = await EventMappingService.getAll({ limit: 1000 });
+        
+        // Extract the data array from the nested response structure
+        if (res.data && res.data.data && Array.isArray(res.data.data)) {
+          setEventMappings(res.data.data as unknown as EventMapping[]);
+          console.log("Event mappings loaded:", res.data.data);
+        } else if (res.data && Array.isArray(res.data)) {
+          // Fallback if the structure is different
+          setEventMappings(res.data as EventMapping[]);
+          console.log("Event mappings loaded (fallback):", res.data);
+        } else {
+          console.warn("Unexpected response structure:", res);
+          setEventMappings([]);
+        }
+      } catch (err) {
+        toast.error("Failed to load event types");
+        console.error("Error loading mappings:", err);
+        setEventMappings([]);
+      } finally {
+        setLoadingMappings(false);
+      }
+    };
+    loadMappings();
+  }, []);
 
   const fetchPreview = useCallback(async () => {
     if (watchFormat !== "json") {
@@ -119,8 +152,10 @@ export default function ReportsPage() {
 
     setLoading(true);
 
+    const typeString = watchTypes.length > 0 ? watchTypes.join(",") : undefined;
+
     const filters: ReportFilters = {
-      type: debouncedType?.trim() || undefined,
+      type: typeString,
       start_time: watchStart
         ? Math.floor(watchStart.getTime() / 1000)
         : undefined,
@@ -132,8 +167,8 @@ export default function ReportsPage() {
 
     try {
       const res = await ReportService.getReport(filters);
-      setEvents(res.data.events || []);
-      setTotal(res.data.pagination?.total || 0);
+      setEvents(res.data.data?.events || []);
+      setTotal(res.data.data?.pagination?.total || 0);
     } catch (err: any) {
       toast.error("Failed to load events preview");
       setEvents([]);
@@ -141,7 +176,7 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [watchFormat, debouncedType, watchStart, watchEnd, page, limit]);
+  }, [watchFormat, watchTypes, watchStart, watchEnd, page, limit]);
 
   useEffect(() => {
     fetchPreview();
@@ -161,15 +196,21 @@ export default function ReportsPage() {
       setDownloadProgress((prev) => Math.min(prev + 15, 90));
     }, 500);
 
-    const filters: ReportFilters = {
-      type: values.type?.trim() || undefined,
-      start_time: Math.floor(values.start_time.getTime() / 1000),
-      end_time: Math.floor(values.end_time.getTime() / 1000),
-      format: values.format,
-    };
+    let downloadSuccess = false;
+
+    const typeString =
+      values.types && values.types.length > 0
+        ? values.types.join(",")
+        : undefined;
 
     try {
-      const blob = await ReportService.getReport(filters);
+      const blob = await ReportService.getReport({
+        type: typeString,
+        start_time: Math.floor(values.start_time.getTime() / 1000),
+        end_time: Math.floor(values.end_time.getTime() / 1000),
+        format: values.format,
+      });
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -183,19 +224,25 @@ export default function ReportsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      downloadSuccess = true;
+
       clearInterval(progressInterval);
       setDownloadProgress(100);
       toast.success(
         `Report downloaded successfully (${values.format.toUpperCase()})`
       );
     } catch (err: any) {
+      console.error("Download error:", err);
       toast.error("Download failed. Please try again.");
     } finally {
       clearInterval(progressInterval);
-      setTimeout(() => {
-        setDownloadProgress(0);
-        setDownloading(false);
-      }, 1000);
+      setTimeout(
+        () => {
+          setDownloading(false);
+          setDownloadProgress(0);
+        },
+        downloadSuccess ? 1500 : 1000
+      );
     }
   };
 
@@ -231,11 +278,21 @@ export default function ReportsPage() {
     {
       accessorKey: "type",
       header: "Type",
-      cell: ({ row }) => (
-        <Badge variant="outline" className="font-mono">
-          {row.original.type}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const mapping = eventMappings.find((m) => m.type === row.original.type);
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="outline" className="font-mono w-fit">
+              {row.original.type}
+            </Badge>
+            {mapping && (
+              <span className="text-xs text-muted-foreground">
+                {mapping.name}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "details",
@@ -269,20 +326,37 @@ export default function ReportsPage() {
               <div className="flex flex-wrap items-end gap-3">
                 <FormField
                   control={form.control}
-                  name="type"
+                  name="types"
                   render={({ field }) => (
-                    <FormItem className="min-w-48">
-                      <FormLabel>Event Type(s)</FormLabel>
+                    <FormItem className="min-w-64">
+                      <FormLabel>Event Types</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="e.g. 3, 14, 100"
-                            className="pl-10"
-                            {...field}
-                          />
-                        </div>
+                        <MultiSelect
+                          options={
+                            Array.isArray(eventMappings)
+                              ? eventMappings.map((m) => ({
+                                  value: m.type,
+                                  label: `${m.type} - ${m.name}`,
+                                }))
+                              : []
+                          }
+                          selected={field.value || []}
+                          onChange={field.onChange}
+                          placeholder={
+                            loadingMappings
+                              ? "Loading types..."
+                              : !Array.isArray(eventMappings) || eventMappings.length === 0
+                              ? "No types available"
+                              : "All types"
+                          }
+                          disabled={loadingMappings}
+                        />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {Array.isArray(eventMappings) && eventMappings.length > 0
+                          ? `${eventMappings.length} types available. Leave empty to include all.`
+                          : "Leave empty to include all event types"}
+                      </p>
                     </FormItem>
                   )}
                 />
