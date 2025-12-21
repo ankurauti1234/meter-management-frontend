@@ -1,6 +1,5 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -119,19 +118,10 @@ export default function ReportsPage() {
       setLoadingMappings(true);
       try {
         const res = await EventMappingService.getAll({ limit: 1000 });
-        
-        // Extract the data array from the nested response structure
-        if (res.data && res.data.data && Array.isArray(res.data.data)) {
-          setEventMappings(res.data.data as unknown as EventMapping[]);
-          console.log("Event mappings loaded:", res.data.data);
-        } else if (res.data && Array.isArray(res.data)) {
-          // Fallback if the structure is different
-          setEventMappings(res.data as EventMapping[]);
-          console.log("Event mappings loaded (fallback):", res.data);
-        } else {
-          console.warn("Unexpected response structure:", res);
-          setEventMappings([]);
-        }
+
+        // Clean: res.data is now the array directly
+        const mappings = Array.isArray(res.data) ? res.data : [];
+        setEventMappings(mappings.sort((a, b) => a.type - b.type));
       } catch (err) {
         toast.error("Failed to load event types");
         console.error("Error loading mappings:", err);
@@ -167,10 +157,13 @@ export default function ReportsPage() {
 
     try {
       const res = await ReportService.getReport(filters);
-      setEvents(res.data.data?.events || []);
-      setTotal(res.data.data?.pagination?.total || 0);
+
+      // Clean structure: res.data.events and res.data.pagination
+      setEvents(res.data?.events || []);
+      setTotal(res.data?.pagination?.total || 0);
     } catch (err: any) {
       toast.error("Failed to load events preview");
+      console.error(err);
       setEvents([]);
       setTotal(0);
     } finally {
@@ -193,13 +186,13 @@ export default function ReportsPage() {
     setDownloadProgress(20);
 
     const progressInterval = setInterval(() => {
-      setDownloadProgress((prev) => Math.min(prev + 15, 90));
+      setDownloadProgress((prev) => Math.min(prev + 10, 90));
     }, 500);
 
     let downloadSuccess = false;
 
     const typeString =
-      values.types && values.types.length > 0
+      Array.isArray(values.types) && values.types.length > 0
         ? values.types.join(",")
         : undefined;
 
@@ -225,12 +218,9 @@ export default function ReportsPage() {
       URL.revokeObjectURL(url);
 
       downloadSuccess = true;
-
       clearInterval(progressInterval);
       setDownloadProgress(100);
-      toast.success(
-        `Report downloaded successfully (${values.format.toUpperCase()})`
-      );
+      toast.success(`Report downloaded (${values.format.toUpperCase()})`);
     } catch (err: any) {
       console.error("Download error:", err);
       toast.error("Download failed. Please try again.");
@@ -266,14 +256,28 @@ export default function ReportsPage() {
     {
       accessorKey: "timestamp",
       header: "Timestamp",
-      cell: ({ row }) => (
-        <span className="text-xs">
-          {format(
-            new Date(row.original.timestamp * 1000),
-            "MMM d, yyyy HH:mm:ss"
-          )}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const ts = row.original.timestamp;
+
+        // Detect if timestamp is in seconds (10 digits) or milliseconds (13 digits)
+        const timestampMs =
+          ts.toString().length >= 12 ? Number(ts) : Number(ts) * 1000;
+
+        const date = new Date(timestampMs);
+
+        // Safety check for invalid dates
+        if (isNaN(date.getTime())) {
+          return (
+            <span className="text-red-500 text-xs">Invalid timestamp</span>
+          );
+        }
+
+        return (
+          <span className="text-xs font-mono">
+            {format(date, "MMM d, yyyy HH:mm:ss")}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "type",
@@ -332,20 +336,16 @@ export default function ReportsPage() {
                       <FormLabel>Event Types</FormLabel>
                       <FormControl>
                         <MultiSelect
-                          options={
-                            Array.isArray(eventMappings)
-                              ? eventMappings.map((m) => ({
-                                  value: m.type,
-                                  label: `${m.type} - ${m.name}`,
-                                }))
-                              : []
-                          }
+                          options={eventMappings.map((m) => ({
+                            value: m.type,
+                            label: `${m.type} - ${m.name}`,
+                          }))}
                           selected={field.value || []}
                           onChange={field.onChange}
                           placeholder={
                             loadingMappings
                               ? "Loading types..."
-                              : !Array.isArray(eventMappings) || eventMappings.length === 0
+                              : eventMappings.length === 0
                               ? "No types available"
                               : "All types"
                           }
@@ -353,8 +353,8 @@ export default function ReportsPage() {
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {Array.isArray(eventMappings) && eventMappings.length > 0
-                          ? `${eventMappings.length} types available. Leave empty to include all.`
+                        {eventMappings.length > 0
+                          ? `${eventMappings.length} types available. Leave empty for all.`
                           : "Leave empty to include all event types"}
                       </p>
                     </FormItem>

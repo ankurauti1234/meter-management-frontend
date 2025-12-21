@@ -19,8 +19,6 @@ import {
   X,
   Bell,
   Info,
-  CheckCircle2,
-  AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -67,14 +65,13 @@ import { ButtonGroup } from "@/components/ui/button-group";
 
 import eventsService from "@/services/events.service";
 import { DateTimePicker, DateTime } from "@/components/ui/date-time-picker";
-import { EventMapping } from "@/services/event-mapping.service";
-import eventMappingService from "@/services/event-mapping.service";
+import eventMappingService, { EventMapping } from "@/services/event-mapping.service";
 import { DetailsHoverCard } from "./dialogDetail";
 
 interface Event {
   id: number;
   device_id: string;
-  timestamp: number;
+  timestamp: number; // milliseconds
   type: number;
   details: Record<string, any>;
   createdAt: string;
@@ -109,10 +106,13 @@ export default function DeviceEventsPage() {
   const [debouncedDeviceId] = useDebounce(filters.device_id, 600);
 
   const hasActiveFilters = Boolean(
-    filters.device_id || filters.type || startDateTime.date || endDateTime.date
+    filters.device_id ||
+      filters.type ||
+      startDateTime.date ||
+      endDateTime.date
   );
 
-  const getUnix = (dt: DateTime): number | undefined => {
+  const getUnixSeconds = (dt: DateTime): number | undefined => {
     if (!dt.date) return undefined;
     const [h = 0, m = 0] = (dt.time || "00:00").split(":").map(Number);
     const date = new Date(dt.date);
@@ -120,70 +120,61 @@ export default function DeviceEventsPage() {
     return Math.floor(date.getTime() / 1000);
   };
 
-  const fetchEvents = useCallback(async () => {
-    setLoading(true);
-    try {
-      const start = getUnix(startDateTime);
-      const end = getUnix(endDateTime);
+const fetchEvents = useCallback(async () => {
+  setLoading(true);
+  try {
+    const start = getUnixSeconds(startDateTime);
+    const end = getUnixSeconds(endDateTime);
 
-      const res = await eventsService.getEvents({
-        device_id: debouncedDeviceId || undefined,
-        type: filters.type || undefined,
-        start_time: start,
-        end_time: end,
-        page: filters.page,
-        limit: filters.limit,
-      });
+    const res = await eventsService.getEvents({
+      device_id: debouncedDeviceId || undefined,
+      type: filters.type ? Number(filters.type) : undefined,
+      start_time: start,
+      end_time: end,
+      page: filters.page,
+      limit: filters.limit,
+    });
 
-      const events = res.events.map((e: any) => ({
-        ...e,
-        timestamp: Number(e.timestamp),
-      }));
+    // FIX: Now correctly extract from nested structure
+    const eventsData = res.data?.events || [];
+    const paginationData = res.data?.pagination;
 
-      setData(events);
-      setTotal(res.pagination.total);
-    } catch {
-      toast.error("Failed to load events");
-      setData([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [
-    debouncedDeviceId,
-    filters.type,
-    filters.page,
-    filters.limit,
-    startDateTime,
-    endDateTime,
-  ]);
+    const events = eventsData.map((e: any) => ({
+      ...e,
+      timestamp: Number(e.timestamp), // convert string to number (ms)
+    }));
 
+    setData(events);
+    setTotal(paginationData?.total || 0);
+  } catch (err) {
+    toast.error("Failed to load events");
+    console.error(err);
+    setData([]);
+    setTotal(0);
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, [
+  debouncedDeviceId,
+  filters.type,
+  filters.page,
+  filters.limit,
+  startDateTime,
+  endDateTime,
+]);
+
+  // Load event mappings once
   useEffect(() => {
     const loadMappings = async () => {
       try {
         setMappingsLoading(true);
-        const response = await eventMappingService.getAll({ limit: 1000 });
-        
-        // Extract the data array from nested response structure
-        let mappingsData: EventMapping[] = [];
-        
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          // Nested structure: { data: { data: [...] } }
-          mappingsData = response.data.data as unknown as EventMapping[];
-        } else if (response.data && Array.isArray(response.data)) {
-          // Direct structure: { data: [...] }
-          mappingsData = response.data as EventMapping[];
-        } else if (Array.isArray(response)) {
-          // Direct array response
-          mappingsData = response as EventMapping[];
-        }
-        
-        // Sort by type for consistent order
-        const sorted = mappingsData.sort((a, b) => a.type - b.type);
+        const res = await eventMappingService.getAll({ limit: 1000 });
+
+        // Clean: res.data is now the array directly
+        const mappings = Array.isArray(res.data) ? res.data : [];
+        const sorted = mappings.sort((a, b) => a.type - b.type);
         setEventMappings(sorted);
-        
-        console.log("Event mappings loaded:", sorted);
       } catch (err) {
         console.error("Failed to load event mappings", err);
         toast.error("Failed to load event type definitions");
@@ -196,7 +187,7 @@ export default function DeviceEventsPage() {
     loadMappings();
   }, []);
 
-  // Auto-refresh
+  // Auto-refresh interval
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (refreshInterval) {
@@ -207,12 +198,14 @@ export default function DeviceEventsPage() {
     };
   }, [refreshInterval, fetchEvents]);
 
+  // Initial load + dependency changes
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
   const handleRefresh = () => {
     toast.success("Refreshed");
+    setRefreshing(true);
     fetchEvents();
   };
 
@@ -229,7 +222,7 @@ export default function DeviceEventsPage() {
   };
 
   const handleResetFilters = () => {
-    const reset = { device_id: "", type: "", page: 1, limit: filters.limit };
+    const reset = { device_id: "", type: "", page: 1, limit: 25 };
     setFilters(reset);
     setTempFilters(reset);
     setStartDateTime({});
@@ -247,10 +240,11 @@ export default function DeviceEventsPage() {
   };
 
   const EventTypeBadge = ({ type }: { type: number }) => {
-    const mapping = eventMappings.find(m => m.type === type);
+    const mapping = eventMappings.find((m) => m.type === type);
     const isAlert = mapping?.is_alert ?? type >= 14;
 
     const baseClasses = "gap-1.5 text-xs";
+
     const content = (
       <>
         {isAlert ? <Bell className="h-3 w-3" /> : <Info className="h-3 w-3" />}
@@ -259,38 +253,50 @@ export default function DeviceEventsPage() {
     );
 
     if (isAlert)
-      return <Badge variant="outline" className={`border-red-500 text-red-600 ${baseClasses}`}>{content}</Badge>;
+      return (
+        <Badge variant="outline" className={`border-red-500 text-red-600 ${baseClasses}`}>
+          {content}
+        </Badge>
+      );
     if ([1, 2, 3, 4].includes(type))
-      return <Badge variant="outline" className={`border-green-500 text-green-600 ${baseClasses}`}>{content}</Badge>;
+      return (
+        <Badge variant="outline" className={`border-green-500 text-green-600 ${baseClasses}`}>
+          {content}
+        </Badge>
+      );
     if ([6, 7, 9].includes(type))
-      return <Badge variant="outline" className={`border-amber-500 text-amber-600 ${baseClasses}`}>{content}</Badge>;
+      return (
+        <Badge variant="outline" className={`border-amber-500 text-amber-600 ${baseClasses}`}>
+          {content}
+        </Badge>
+      );
 
-    return <Badge variant="outline" className={`border-blue-500 text-blue-600 ${baseClasses}`}>{content}</Badge>;
+    return (
+      <Badge variant="outline" className={`border-blue-500 text-blue-600 ${baseClasses}`}>
+        {content}
+      </Badge>
+    );
   };
 
   const columns: ColumnDef<Event>[] = [
-{
-  accessorKey: "timestamp",
-  header: "Time",
-  cell: ({ row }) => {
-    const ts = row.original.timestamp;
-    
-    // API returns 13-digit Unix timestamp (milliseconds)
-    // So always treat it as milliseconds
-    const date = new Date(ts); // No need for conditional logic
+    {
+      accessorKey: "timestamp",
+      header: "Time",
+      cell: ({ row }) => {
+        const ts = row.original.timestamp;
+        const date = new Date(ts);
 
-    // Optional: Add safety check for invalid dates
-    if (isNaN(date.getTime())) {
-      return <span className="text-red-500">Invalid date</span>;
-    }
+        if (isNaN(date.getTime())) {
+          return <span className="text-red-500 text-xs">Invalid date</span>;
+        }
 
-    return (
-      <div className="font-mono text-xs">
-        {format(date, "dd MMM yyyy, HH:mm:ss")}
-      </div>
-    );
-  },
-},
+        return (
+          <div className="font-mono text-xs">
+            {format(date, "dd MMM yyyy, HH:mm:ss")}
+          </div>
+        );
+      },
+    },
     {
       accessorKey: "device_id",
       header: "Device ID",
@@ -311,7 +317,7 @@ export default function DeviceEventsPage() {
       cell: ({ row }) => (
         <DetailsHoverCard details={row.original.details || {}} type={row.original.type} />
       ),
-    }
+    },
   ];
 
   const table = useReactTable({
@@ -361,7 +367,6 @@ export default function DeviceEventsPage() {
                   </DialogHeader>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                    {/* Device ID */}
                     <div className="space-y-2">
                       <Label>Device ID</Label>
                       <div className="relative">
@@ -380,13 +385,15 @@ export default function DeviceEventsPage() {
                       </div>
                     </div>
 
-                    {/* Event Type */}
                     <div className="space-y-2">
                       <Label>Event Type</Label>
                       <Select
                         value={tempFilters.type || "all"}
                         onValueChange={(v) =>
-                          setTempFilters((p) => ({ ...p, type: v === "all" ? "" : v }))
+                          setTempFilters((p) => ({
+                            ...p,
+                            type: v === "all" ? "" : v,
+                          }))
                         }
                         disabled={mappingsLoading}
                       >
@@ -399,58 +406,34 @@ export default function DeviceEventsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All types</SelectItem>
-
-                          {mappingsLoading ? (
-                            <SelectItem value="loading" disabled>
+                          {eventMappings.map((mapping) => (
+                            <SelectItem key={mapping.id} value={String(mapping.type)}>
                               <div className="flex items-center gap-2">
-                                <Spinner className="h-3 w-3" />
-                                Loading event types...
+                                <span>Type {mapping.type}</span>
+                                <span className="text-muted-foreground">– {mapping.name}</span>
+                                {mapping.is_alert && (
+                                  <Badge variant="destructive" className="text-xs ml-2">
+                                    Alert
+                                  </Badge>
+                                )}
                               </div>
                             </SelectItem>
-                          ) : !Array.isArray(eventMappings) || eventMappings.length === 0 ? (
-                            <SelectItem value="none" disabled>
-                              No event types defined
-                            </SelectItem>
-                          ) : (
-                            eventMappings.map((mapping) => (
-                              <SelectItem
-                                key={mapping.id}
-                                value={String(mapping.type)}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span>Type {mapping.type}</span>
-                                  <span className="text-muted-foreground">
-                                    – {mapping.name}
-                                  </span>
-                                  {mapping.is_alert && (
-                                    <Badge
-                                      variant="destructive"
-                                      className="text-xs ml-2"
-                                    >
-                                      Alert
-                                    </Badge>
-                                  )}
-                                </div>
-                              </SelectItem>
-                            ))
-                          )}
+                          ))}
                         </SelectContent>
                       </Select>
-                      {!mappingsLoading && Array.isArray(eventMappings) && (
+                      {!mappingsLoading && (
                         <p className="text-xs text-muted-foreground">
                           {eventMappings.length} event types available
                         </p>
                       )}
                     </div>
 
-                    {/* Start */}
                     <DateTimePicker
                       label="Start Date & Time"
                       value={tempStart}
                       onChange={setTempStart}
                     />
 
-                    {/* End */}
                     <DateTimePicker
                       label="End Date & Time"
                       value={tempEnd}
@@ -459,10 +442,7 @@ export default function DeviceEventsPage() {
                   </div>
 
                   <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setDialogOpen(false)}
-                    >
+                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
                       Cancel
                     </Button>
                     <Button onClick={handleApplyFilters}>Apply Filters</Button>
@@ -471,11 +451,7 @@ export default function DeviceEventsPage() {
               </Dialog>
 
               {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleResetFilters}
-                >
+                <Button variant="outline" size="icon" onClick={handleResetFilters}>
                   <X className="h-4 w-4" />
                 </Button>
               )}
@@ -484,9 +460,7 @@ export default function DeviceEventsPage() {
             <ButtonGroup>
               <Select
                 value={refreshInterval ? String(refreshInterval) : "off"}
-                onValueChange={(v) =>
-                  setRefreshInterval(v === "off" ? null : Number(v))
-                }
+                onValueChange={(v) => setRefreshInterval(v === "off" ? null : Number(v))}
               >
                 <SelectTrigger className="w-fit">
                   <SelectValue placeholder="Refresh: Off" />
@@ -500,15 +474,8 @@ export default function DeviceEventsPage() {
                 </SelectContent>
               </Select>
 
-              <Button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                variant="outline"
-                size="icon"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-                />
+              <Button onClick={handleRefresh} disabled={refreshing} variant="outline" size="icon">
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
               </Button>
             </ButtonGroup>
           </div>
@@ -524,10 +491,7 @@ export default function DeviceEventsPage() {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead key={header.id} className="bg-background">
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                      {flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -554,9 +518,7 @@ export default function DeviceEventsPage() {
                         </EmptyMedia>
                         <EmptyTitle>No events found</EmptyTitle>
                         <EmptyDescription>
-                          {hasActiveFilters
-                            ? "Try adjusting your filters"
-                            : "No events recorded yet"}
+                          {hasActiveFilters ? "Try adjusting your filters" : "No events recorded yet"}
                         </EmptyDescription>
                       </EmptyHeader>
                       <EmptyContent>
@@ -570,16 +532,10 @@ export default function DeviceEventsPage() {
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="hover:bg-muted/50 transition-colors"
-                  >
+                  <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -593,8 +549,7 @@ export default function DeviceEventsPage() {
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
             <p className="text-xs text-muted-foreground">
               Showing {(filters.page - 1) * filters.limit + 1}–
-              {Math.min(filters.page * filters.limit, total)} of{" "}
-              {total.toLocaleString()} events
+              {Math.min(filters.page * filters.limit, total)} of {total.toLocaleString()} events
             </p>
 
             <div className="flex items-center gap-3">
@@ -620,22 +575,18 @@ export default function DeviceEventsPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() =>
-                    setFilters((p) => ({ ...p, page: p.page - 1 }))
-                  }
+                  onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
                   disabled={filters.page === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-xs font-medium p-2 pb-0 border-y">
-                  Page {filters.page} of {Math.ceil(total / filters.limit)}
+                <span className="text-xs font-medium px-3 border-y">
+                  Page {filters.page} of {Math.ceil(total / filters.limit) || 1}
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() =>
-                    setFilters((p) => ({ ...p, page: p.page + 1 }))
-                  }
+                  onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
                   disabled={filters.page >= Math.ceil(total / filters.limit)}
                 >
                   <ChevronRight className="h-4 w-4" />
