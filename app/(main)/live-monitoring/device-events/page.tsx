@@ -269,18 +269,28 @@ export default function DeviceEventsPage() {
   };
 
   const columns: ColumnDef<Event>[] = [
-    {
-      accessorKey: "timestamp",
-      header: "Time",
-      cell: ({ row }) => (
-        <div className="font-mono text-xs">
-          {format(
-            new Date(row.original.timestamp * 1000),
-            "dd MMM yyyy, HH:mm:ss"
-          )}
-        </div>
-      ),
-    },
+{
+  accessorKey: "timestamp",
+  header: "Time",
+  cell: ({ row }) => {
+    const ts = row.original.timestamp;
+    
+    // API returns 13-digit Unix timestamp (milliseconds)
+    // So always treat it as milliseconds
+    const date = new Date(ts); // No need for conditional logic
+
+    // Optional: Add safety check for invalid dates
+    if (isNaN(date.getTime())) {
+      return <span className="text-red-500">Invalid date</span>;
+    }
+
+    return (
+      <div className="font-mono text-xs">
+        {format(date, "dd MMM yyyy, HH:mm:ss")}
+      </div>
+    );
+  },
+},
     {
       accessorKey: "device_id",
       header: "Device ID",
