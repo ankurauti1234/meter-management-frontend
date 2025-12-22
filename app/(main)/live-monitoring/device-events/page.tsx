@@ -139,10 +139,14 @@ const fetchEvents = useCallback(async () => {
     const eventsData = res.data?.events || [];
     const paginationData = res.data?.pagination;
 
-    const events = eventsData.map((e: any) => ({
-      ...e,
-      timestamp: Number(e.timestamp), // convert string to number (ms)
-    }));
+const events = eventsData.map((e: any) => {
+  const ts = Number(e.timestamp);
+
+  return {
+    ...e,
+    timestamp: ts < 1e12 ? ts * 1000 : ts, // ✅ auto-detect
+  };
+});
 
     setData(events);
     setTotal(paginationData?.total || 0);
