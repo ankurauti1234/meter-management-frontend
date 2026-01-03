@@ -86,7 +86,7 @@ const reportSchema = z.object({
 
 type ReportForm = z.infer<typeof reportSchema>;
 
-export default function ReportsPage() {
+export default function GenericReportsPage() {
   const [events, setEvents] = useState<ReportEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -159,8 +159,13 @@ export default function ReportsPage() {
       const res = await ReportService.getReport(filters);
 
       // Clean structure: res.data.events and res.data.pagination
-      setEvents(res.data?.events || []);
-      setTotal(res.data?.pagination?.total || 0);
+      if (res instanceof Blob) {
+        setEvents([]);
+        setTotal(0);
+      } else {
+        setEvents(res.data?.events || []);
+        setTotal(res.data?.pagination?.total || 0);
+      }
     } catch (err: any) {
       toast.error("Failed to load events preview");
       console.error(err);
@@ -197,13 +202,19 @@ export default function ReportsPage() {
         : undefined;
 
     try {
-      const blob = await ReportService.getReport({
+      const response = await ReportService.getReport({
         type: typeString,
         start_time: Math.floor(values.start_time.getTime() / 1000),
         end_time: Math.floor(values.end_time.getTime() / 1000),
         format: values.format,
       });
 
+      if (!(response instanceof Blob)) {
+        toast.error("Invalid response format for download");
+        return;
+      }
+
+      const blob = response;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

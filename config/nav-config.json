@@ -83,9 +83,28 @@
     },
     {
       "title": "Reports",
-      "url": "/reports",
       "icon": "BarChart3",
-      "roles": ["admin", "developer"]
+      "roles": ["admin", "developer"],
+      "items": [
+        {
+          "title": "Generic",
+          "url": "/reports/generic",
+          "icon": "FileText",
+          "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Household Bridged",
+          "url": "/reports/household-bridged",
+          "icon": "Home",
+          "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Household Raw",
+          "url": "/reports/household-raw",
+          "icon": "Database",
+          "roles": ["admin", "developer"]
+        }
+      ]
     },
     {
       "title": "Remote Access",
