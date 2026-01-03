@@ -74,7 +74,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface MemberwiseBridgedReport {
+interface MemberwiseUnbridgedReport {
   id: number;
   generation_time: string;
   report_date: string;
@@ -89,8 +89,8 @@ interface PaginationInfo {
   pages: number;
 }
 
-export default function HHMemberwiseBridgedReportPage() {
-  const [reports, setReports] = useState<MemberwiseBridgedReport[]>([]);
+export default function HHMemberwiseUnbridgedReportPage() {
+  const [reports, setReports] = useState<MemberwiseUnbridgedReport[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -121,16 +121,16 @@ export default function HHMemberwiseBridgedReportPage() {
     };
 
     try {
-      const res: any = await ReportService.getMemberwiseBridgeReports(filters);
+      const res: any = await ReportService.getMemberwiseUnbridgeReports(filters);
 
-      // Backend response structure: { success, msg, data: { reports, pagination } }
+      // Backend response: { success, msg, data: { reports, pagination } }
       const reportData = res?.data?.reports || [];
       const pagination: PaginationInfo = res?.data?.pagination || { total: 0 };
 
       setReports(reportData);
       setTotal(Number(pagination.total) || 0);
     } catch (err) {
-      toast.error("Failed to load memberwise bridged reports");
+      toast.error("Failed to load memberwise unbridged reports");
       console.error(err);
       setReports([]);
       setTotal(0);
@@ -146,13 +146,13 @@ export default function HHMemberwiseBridgedReportPage() {
   const handleDownload = (url: string, date: string) => {
     const a = document.createElement("a");
     a.href = url;
-    a.download = `hh-memberwise-bridged-report-${date}.csv`;
+    a.download = `hh-memberwise-unbridged-report-${date}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
-  const columns: ColumnDef<MemberwiseBridgedReport>[] = [
+  const columns: ColumnDef<MemberwiseUnbridgedReport>[] = [
     {
       accessorKey: "report_date",
       header: "Report Date",
@@ -209,8 +209,8 @@ export default function HHMemberwiseBridgedReportPage() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader
-        title="HH Memberwise Bridged Reports"
-        description="Daily member-wise Half-Hourly Bridged reports available for download"
+        title="HH Memberwise Unbridged Reports"
+        description="Daily member-wise Half-Hourly Unbridged reports available for download"
         badge={<FileText className="h-5 w-5" />}
         size="lg"
         actions={
@@ -325,7 +325,7 @@ export default function HHMemberwiseBridgedReportPage() {
                         <EmptyMedia variant="icon">
                           <FileText className="h-12 w-12 text-muted-foreground" />
                         </EmptyMedia>
-                        <EmptyTitle>No memberwise bridged reports found</EmptyTitle>
+                        <EmptyTitle>No memberwise unbridged reports found</EmptyTitle>
                         <EmptyDescription>
                           No reports available for the selected date range
                         </EmptyDescription>

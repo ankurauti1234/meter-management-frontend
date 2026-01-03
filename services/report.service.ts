@@ -14,7 +14,7 @@ export interface ReportEvent {
 export interface GeneratedHHReport {
   id: number;
   generation_time: string; // ISO string
-  report_date: string;     // ISO date string (YYYY-MM-DD)
+  report_date: string;     // YYYY-MM-DD
   report_url: string;
   session_count: number;
 }
@@ -28,15 +28,19 @@ export interface ReportFilters {
   format?: "json" | "csv" | "xlsx" | "xml";
 }
 
-export interface PaginatedResponse<T> {
-  data: any;
-  reports?: T[]; // for bridge/unbridge
-  events?: ReportEvent[]; // for main events report
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
+// Unified response type that matches your actual backend
+export interface ApiResponse<T = any> {
+  success: boolean;
+  msg: string;
+  data: {
+    reports?: T[];
+    events?: ReportEvent[];
+    pagination: {
+      page: string | number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
   };
 }
 
@@ -44,7 +48,7 @@ class ReportService {
   private baseURL = "/reports";
 
   // === Main Events Report ===
-  async getReport(filters: ReportFilters = {}): Promise<PaginatedResponse<ReportEvent> | Blob> {
+  async getReport(filters: ReportFilters = {}): Promise<ApiResponse<ReportEvent> | Blob> {
     const params = this.buildParams(filters);
     const url = `${this.baseURL}?${params.toString()}`;
     console.log("Requesting events report:", url);
@@ -57,7 +61,9 @@ class ReportService {
   }
 
   // === Bridge Reports ===
-  async getBridgeReports(filters: Omit<ReportFilters, "type"> = {}): Promise<PaginatedResponse<GeneratedHHReport> | Blob> {
+  async getBridgeReports(
+    filters: Omit<ReportFilters, "type"> = {}
+  ): Promise<ApiResponse<GeneratedHHReport> | Blob> {
     const params = this.buildParams(filters);
     const url = `${this.baseURL}/bridge?${params.toString()}`;
     console.log("Requesting bridge reports:", url);
@@ -70,10 +76,42 @@ class ReportService {
   }
 
   // === Unbridge Reports ===
-  async getUnbridgeReports(filters: Omit<ReportFilters, "type"> = {}): Promise<PaginatedResponse<GeneratedHHReport> | Blob> {
+  async getUnbridgeReports(
+    filters: Omit<ReportFilters, "type"> = {}
+  ): Promise<ApiResponse<GeneratedHHReport> | Blob> {
     const params = this.buildParams(filters);
     const url = `${this.baseURL}/unbridge?${params.toString()}`;
     console.log("Requesting unbridge reports:", url);
+
+    const response = await api.get(url, {
+      responseType: filters.format && filters.format !== "json" ? "blob" : "json",
+    });
+
+    return response.data;
+  }
+
+  // === Memberwise Bridge Reports ===
+  async getMemberwiseBridgeReports(
+    filters: Omit<ReportFilters, "type"> = {}
+  ): Promise<ApiResponse<GeneratedHHReport> | Blob> {
+    const params = this.buildParams(filters);
+    const url = `${this.baseURL}/memberwise-bridge?${params.toString()}`;
+    console.log("Requesting memberwise bridge reports:", url);
+
+    const response = await api.get(url, {
+      responseType: filters.format && filters.format !== "json" ? "blob" : "json",
+    });
+
+    return response.data;
+  }
+
+  // === Memberwise Unbridge Reports ===
+  async getMemberwiseUnbridgeReports(
+    filters: Omit<ReportFilters, "type"> = {}
+  ): Promise<ApiResponse<GeneratedHHReport> | Blob> {
+    const params = this.buildParams(filters);
+    const url = `${this.baseURL}/memberwise-unbridge?${params.toString()}`;
+    console.log("Requesting memberwise unbridge reports:", url);
 
     const response = await api.get(url, {
       responseType: filters.format && filters.format !== "json" ? "blob" : "json",
@@ -97,14 +135,32 @@ class ReportService {
   }
 
   // Utility to trigger download for non-JSON formats
-  downloadBlob(blob: Blob, format: "csv" | "xlsx" | "xml", reportType: "events" | "bridge" | "unbridge" = "events") {
+  downloadBlob(
+    blob: Blob,
+    format: "csv" | "xlsx" | "xml",
+    reportType:
+      | "events"
+      | "bridge"
+      | "unbridge"
+      | "memberwise-bridge"
+      | "memberwise-unbridge" = "events"
+  ) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
 
     const ext = format === "xlsx" ? "xlsx" : format;
-    const typePrefix = reportType === "bridge" ? "bridge-report" : reportType === "unbridge" ? "unbridge-report" : "events-report";
-    const timestamp = new Date().toISOString().slice(0, 16).replace("T", "-");
+
+    const typePrefixMap: Record<typeof reportType, string> = {
+      events: "events-report",
+      bridge: "hh-bridge-report",
+      unbridge: "hh-unbridge-report",
+      "memberwise-bridge": "hh-memberwise-bridge-report",
+      "memberwise-unbridge": "hh-memberwise-unbridge-report",
+    };
+
+    const typePrefix = typePrefixMap[reportType];
+    const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
     a.download = `${typePrefix}-${timestamp}.${ext}`;
     document.body.appendChild(a);

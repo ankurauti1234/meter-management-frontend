@@ -103,6 +103,18 @@
           "url": "/reports/household-raw",
           "icon": "Database",
           "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Members Bridged",
+          "url": "/reports/members-bridged",
+          "icon": "Users",
+          "roles": ["admin", "developer"]
+        },
+        {
+          "title": "Members Raw",
+          "url": "/reports/members-raw",
+          "icon": "Users",
+          "roles": ["admin", "developer"]
         }
       ]
     },
