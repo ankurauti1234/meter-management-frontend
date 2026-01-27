@@ -157,6 +157,63 @@ class EventsService {
     const res = await api.get(`/events/meter-channels?${params.toString()}`);
     return res.data.data;
   }
+
+  // 6. Get Live Monitoring
+  async getLiveMonitoring(filters: {
+    device_id?: string;
+    hhid?: string;
+    date?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Array<{
+      device_id: string;
+      hhid: string;
+      last_event_timestamp: number | null;
+    }>;
+    pagination: Pagination;
+  }> {
+    const params = new URLSearchParams();
+    if (filters.device_id) params.append("device_id", filters.device_id);
+    if (filters.hhid) params.append("hhid", filters.hhid);
+    if (filters.date) params.append("date", filters.date);
+    if (filters.page) params.append("page", String(filters.page));
+    if (filters.limit) params.append("limit", String(filters.limit));
+
+    const res = await api.get(`/events/live-monitoring?${params.toString()}`);
+    return res.data.data;
+  }
+
+  // 7. Get Viewership
+  async getViewership(filters: {
+    device_id?: string;
+    hhid?: string;
+    date?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Array<{
+      device_id: string;
+      hhid: string;
+      date: string;
+      type3_count: number;
+      type29_count: number;
+      type36_count: number;
+      type37_count: number;
+      type42_count: number;
+    }>;
+    pagination: Pagination;
+  }> {
+    const params = new URLSearchParams();
+    if (filters.device_id) params.append("device_id", filters.device_id);
+    if (filters.hhid) params.append("hhid", filters.hhid);
+    if (filters.date) params.append("date", filters.date);
+    if (filters.page) params.append("page", String(filters.page));
+    if (filters.limit) params.append("limit", String(filters.limit));
+
+    const res = await api.get(`/events/viewership?${params.toString()}`);
+    return res.data.data;
+  }
 }
 
 export default new EventsService();
