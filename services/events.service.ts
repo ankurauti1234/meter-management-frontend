@@ -195,12 +195,8 @@ class EventsService {
     data: Array<{
       device_id: string;
       hhid: string;
+      viewership: "Yes" | "No";
       date: string;
-      type3_count: number;
-      type29_count: number;
-      type36_count: number;
-      type37_count: number;
-      type42_count: number;
     }>;
     pagination: Pagination;
   }> {
@@ -212,6 +208,60 @@ class EventsService {
     if (filters.limit) params.append("limit", String(filters.limit));
 
     const res = await api.get(`/events/viewership?${params.toString()}`);
+    return res.data.data;
+  }
+
+  // 8. Get Connectivity Report
+  async getConnectivityReport(filters: {
+    device_id?: string;
+    hhid?: string;
+    date?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Array<{
+      device_id: string;
+      hhid: string;
+      connectivity: "Yes" | "No";
+      date: string;
+    }>;
+    pagination: Pagination;
+  }> {
+    const params = new URLSearchParams();
+    if (filters.device_id) params.append("device_id", filters.device_id);
+    if (filters.hhid) params.append("hhid", filters.hhid);
+    if (filters.date) params.append("date", filters.date);
+    if (filters.page) params.append("page", String(filters.page));
+    if (filters.limit) params.append("limit", String(filters.limit));
+
+    const res = await api.get(`/events/connectivity-report?${params.toString()}`);
+    return res.data.data;
+  }
+
+  // 9. Get Button Pressed Report
+  async getButtonPressedReport(filters: {
+    device_id?: string;
+    hhid?: string;
+    date?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Array<{
+      device_id: string;
+      hhid: string;
+      button_pressed: "Yes" | "No";
+      date: string;
+    }>;
+    pagination: Pagination;
+  }> {
+    const params = new URLSearchParams();
+    if (filters.device_id) params.append("device_id", filters.device_id);
+    if (filters.hhid) params.append("hhid", filters.hhid);
+    if (filters.date) params.append("date", filters.date);
+    if (filters.page) params.append("page", String(filters.page));
+    if (filters.limit) params.append("limit", String(filters.limit));
+
+    const res = await api.get(`/events/button-pressed-report?${params.toString()}`);
     return res.data.data;
   }
 }

@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { format } from "date-fns";
 import {
   ColumnDef,
   flexRender,
@@ -58,42 +57,46 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ButtonGroup } from "@/components/ui/button-group";
 
 import eventsService from "@/services/events.service";
 
-interface LiveMonitoringItem {
+interface ConnectivityItem {
   device_id: string;
   hhid: string;
-  last_event_timestamp: number | null;
+  date: string;
+  connectivity: "Yes" | "No";
 }
 
-export default function LiveMonitoringPage() {
+export default function ConnectivityReportPage() {
   const [filters, setFilters] = useState({
     device_id: "",
     hhid: "",
+    date: new Date().toISOString().split("T")[0], // Default to today
     page: 1,
     limit: 25,
   });
 
   const [tempFilters, setTempFilters] = useState(filters);
-  const [data, setData] = useState<LiveMonitoringItem[]>([]);
+  const [data, setData] = useState<ConnectivityItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const hasActiveFilters = Boolean(filters.device_id || filters.hhid);
+  const hasActiveFilters = Boolean(
+    filters.device_id || filters.hhid || filters.date !== new Date().toISOString().split("T")[0]
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await eventsService.getLiveMonitoring({
+      const res = await eventsService.getConnectivityReport({
         device_id: filters.device_id || undefined,
         hhid: filters.hhid || undefined,
+        date: filters.date,
         page: filters.page,
         limit: filters.limit,
       });
@@ -101,7 +104,7 @@ export default function LiveMonitoringPage() {
       setData(res.data || []);
       setTotal(res.pagination?.total || 0);
     } catch (err) {
-      toast.error("Failed to load live monitoring data");
+      toast.error("Failed to load connectivity data");
       console.error(err);
       setData([]);
       setTotal(0);
@@ -124,12 +127,12 @@ export default function LiveMonitoringPage() {
   const handleExportCSV = async () => {
     setExporting(true);
     try {
-      // Fetch all data with current filters (no pagination limit)
-      const res = await eventsService.getLiveMonitoring({
+      const res = await eventsService.getConnectivityReport({
         device_id: filters.device_id || undefined,
         hhid: filters.hhid || undefined,
+        date: filters.date,
         page: 1,
-        limit: 999999, // Get all records
+        limit: 999999,
       });
 
       const exportData = res.data || [];
@@ -139,39 +142,20 @@ export default function LiveMonitoringPage() {
         return;
       }
 
-      // Create CSV content
-      const headers = ["Device ID", "HHID", "Last Event Timestamp"];
+      const headers = ["Device ID", "HHID", "Date", "Connectivity"];
 
       const csvRows = [
         headers.join(","),
-        ...exportData.map((item) => {
-          const ts = item.last_event_timestamp;
-          let formattedTimestamp = "No events";
-
-          if (ts) {
-            const timestamp = ts < 1e12 ? ts * 1000 : ts;
-            const date = new Date(timestamp);
-            if (!isNaN(date.getTime())) {
-              formattedTimestamp = format(date, "dd MMM yyyy, HH:mm:ss");
-            } else {
-              formattedTimestamp = "Invalid date";
-            }
-          }
-
-          return [item.device_id, item.hhid, formattedTimestamp].join(",");
-        }),
+        ...exportData.map((item) =>
+          [item.device_id, item.hhid, item.date, item.connectivity].join(",")
+        ),
       ];
 
       const csvContent = csvRows.join("\n");
-
-      // Create and download file
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-
-      const filename = `live_monitoring_${format(new Date(), "yyyy-MM-dd")}${
-        filters.device_id ? `_${filters.device_id}` : ""
-      }${filters.hhid ? `_${filters.hhid}` : ""}.csv`;
+      const filename = `connectivity_${filters.date}.csv`;
 
       link.setAttribute("href", url);
       link.setAttribute("download", filename);
@@ -190,10 +174,7 @@ export default function LiveMonitoringPage() {
   };
 
   const handleApplyFilters = () => {
-    setFilters({
-      ...tempFilters,
-      page: 1,
-    });
+    setFilters({ ...tempFilters, page: 1 });
     setDialogOpen(false);
     toast.success("Filters applied");
   };
@@ -202,6 +183,7 @@ export default function LiveMonitoringPage() {
     const reset = {
       device_id: "",
       hhid: "",
+      date: new Date().toISOString().split("T")[0],
       page: 1,
       limit: 25,
     };
@@ -210,12 +192,7 @@ export default function LiveMonitoringPage() {
     toast("Filters cleared");
   };
 
-  const openDialog = () => {
-    setTempFilters(filters);
-    setDialogOpen(true);
-  };
-
-  const columns: ColumnDef<LiveMonitoringItem>[] = [
+  const columns: ColumnDef<ConnectivityItem>[] = [
     {
       accessorKey: "device_id",
       header: "Device ID",
@@ -235,28 +212,33 @@ export default function LiveMonitoringPage() {
       ),
     },
     {
-      accessorKey: "last_event_timestamp",
-      header: "Last Event Timestamp",
-      cell: ({ row }) => {
-        const ts = row.original.last_event_timestamp;
-        if (!ts) {
-          return <span className="text-muted-foreground text-xs">No events</span>;
-        }
-
-        // Convert to milliseconds if needed
-        const timestamp = ts < 1e12 ? ts * 1000 : ts;
-        const date = new Date(timestamp);
-
-        if (isNaN(date.getTime())) {
-          return <span className="text-red-500 text-xs">Invalid date</span>;
-        }
-
-        return (
-          <div className="font-mono text-xs">
-            {format(date, "dd MMM yyyy, HH:mm:ss")}
-          </div>
-        );
-      },
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => (
+        <span className="text-sm">
+          {new Date(row.original.date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "connectivity",
+      header: "Connectivity",
+      cell: ({ row }) => (
+        <Badge
+          variant={row.original.connectivity === "Yes" ? "default" : "secondary"}
+          className={
+            row.original.connectivity === "Yes"
+              ? "bg-green-100 text-green-700 hover:bg-green-100 border-green-200"
+              : "bg-red-100 text-red-700 hover:bg-red-100 border-red-200"
+          }
+        >
+          {row.original.connectivity}
+        </Badge>
+      ),
     },
   ];
 
@@ -271,8 +253,8 @@ export default function LiveMonitoringPage() {
   return (
     <div className="p-4 space-y-6">
       <PageHeader
-        title="Live Monitoring"
-        description="Monitor assigned meters and their last connectivity timestamp"
+        title="Connectivity Report"
+        description="Daily connectivity status for all meters within range (IM000101-IM000600)"
         badge={<Badge variant="outline">{total.toLocaleString()} meters</Badge>}
         size="sm"
         actions={
@@ -280,12 +262,16 @@ export default function LiveMonitoringPage() {
             <ButtonGroup>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" onClick={openDialog}>
+                  <Button variant="outline" onClick={() => setDialogOpen(true)}>
                     <Filter className="mr-2 h-4 w-4" />
                     Filters
                     {hasActiveFilters && (
                       <Badge variant="secondary" className="ml-2 text-xs">
-                        {[filters.device_id && 1, filters.hhid && 1].filter(Boolean).length}
+                        {[
+                          filters.device_id && 1,
+                          filters.hhid && 1,
+                          filters.date !== new Date().toISOString().split("T")[0] && 1,
+                        ].filter(Boolean).length}
                       </Badge>
                     )}
                   </Button>
@@ -293,77 +279,50 @@ export default function LiveMonitoringPage() {
 
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>Filter Live Monitoring</DialogTitle>
-                    <DialogDescription>
-                      Filter meters by device ID or HHID
-                    </DialogDescription>
+                    <DialogTitle>Filter Connectivity</DialogTitle>
+                    <DialogDescription>Filter by device, HHID, or date</DialogDescription>
                   </DialogHeader>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                     <div className="space-y-2">
                       <Label>Device ID</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search device..."
-                          value={tempFilters.device_id}
-                          onChange={(e) =>
-                            setTempFilters((p) => ({
-                              ...p,
-                              device_id: e.target.value,
-                            }))
-                          }
-                          className="pl-10"
-                        />
-                      </div>
+                      <Input
+                        placeholder="IM000..."
+                        value={tempFilters.device_id}
+                        onChange={(e) => setTempFilters(p => ({ ...p, device_id: e.target.value }))}
+                      />
                     </div>
-
                     <div className="space-y-2">
                       <Label>HHID</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search HHID..."
-                          value={tempFilters.hhid}
-                          onChange={(e) =>
-                            setTempFilters((p) => ({
-                              ...p,
-                              hhid: e.target.value,
-                            }))
-                          }
-                          className="pl-10"
-                        />
-                      </div>
+                      <Input
+                        placeholder="Search HHID..."
+                        value={tempFilters.hhid}
+                        onChange={(e) => setTempFilters(p => ({ ...p, hhid: e.target.value }))}
+                      />
                     </div>
-
+                    <div className="space-y-2">
+                      <Label>Date</Label>
+                      <Input
+                        type="date"
+                        value={tempFilters.date}
+                        onChange={(e) => setTempFilters(p => ({ ...p, date: e.target.value }))}
+                      />
+                    </div>
                   </div>
-
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                      Cancel
-                    </Button>
+                    <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
                     <Button onClick={handleApplyFilters}>Apply Filters</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-
               {hasActiveFilters && (
                 <Button variant="outline" size="icon" onClick={handleResetFilters}>
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </ButtonGroup>
-
-            <Button 
-              onClick={handleExportCSV} 
-              disabled={exporting || loading || data.length === 0} 
-              variant="outline" 
-              size="icon"
-              title="Export to CSV"
-            >
+            <Button onClick={handleExportCSV} disabled={exporting || loading || data.length === 0} variant="outline" size="icon">
               <Download className={`h-4 w-4 ${exporting ? "animate-pulse" : ""}`} />
             </Button>
-
             <Button onClick={handleRefresh} disabled={refreshing} variant="outline" size="icon">
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
@@ -371,57 +330,42 @@ export default function LiveMonitoringPage() {
         }
       />
 
-      {/* Table */}
       <div className="rounded-md border overflow-hidden">
         <div className="max-h-[70vh] overflow-y-auto">
-          <Table className="border-separate border-spacing-0 [&_td]:border-border [&_th]:border-b [&_th]:border-border [&_tr]:border-none [&_tr:not(:last-child)_td]:border-b">
+          <Table className="border-separate border-spacing-0">
             <TableHeader className="sticky top-0 z-20 bg-background shadow-sm">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="bg-background">
+                    <TableHead key={header.id}>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
                 </TableRow>
               ))}
             </TableHeader>
-
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-64">
-                    <div className="flex flex-col items-center justify-center h-full gap-4">
-                      <Spinner className="h-8 w-8" />
-                      <p className="text-muted-foreground">Loading meters...</p>
-                    </div>
+                  <TableCell colSpan={columns.length} className="h-64 text-center">
+                    <Spinner className="mx-auto" />
+                    <p className="mt-2 text-muted-foreground">Loading connectivity data...</p>
                   </TableCell>
                 </TableRow>
               ) : data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-64">
+                  <TableCell colSpan={columns.length} className="h-64 text-center">
                     <Empty>
                       <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                          <Activity className="h-12 w-12 text-muted-foreground" />
-                        </EmptyMedia>
-                        <EmptyTitle>No meters found</EmptyTitle>
-                        <EmptyDescription>
-                          {hasActiveFilters ? "Try adjusting your filters" : "No assigned meters found"}
-                        </EmptyDescription>
+                        <EmptyMedia variant="icon"><Activity className="h-12 w-12 text-muted-foreground" /></EmptyMedia>
+                        <EmptyTitle>No data found</EmptyTitle>
                       </EmptyHeader>
-                      <EmptyContent>
-                        <Button onClick={handleRefresh} variant="outline">
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Refresh
-                        </Button>
-                      </EmptyContent>
                     </Empty>
                   </TableCell>
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
+                  <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -433,53 +377,20 @@ export default function LiveMonitoringPage() {
             </TableBody>
           </Table>
         </div>
-
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-            <p className="text-xs text-muted-foreground">
-              Showing {(filters.page - 1) * filters.limit + 1}–
-              {Math.min(filters.page * filters.limit, total)} of {total.toLocaleString()} meters
-            </p>
-
+            <p className="text-xs text-muted-foreground">Showing {(filters.page - 1) * filters.limit + 1}–{Math.min(filters.page * filters.limit, total)} of {total.toLocaleString()} meters</p>
             <div className="flex items-center gap-3">
-              <Select
-                value={String(filters.limit)}
-                onValueChange={(v) =>
-                  setFilters((p) => ({ ...p, limit: Number(v), page: 1 }))
-                }
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={String(filters.limit)} onValueChange={(v) => setFilters(p => ({ ...p, limit: Number(v), page: 1 }))}>
+                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {[10, 25, 50, 100].map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n} rows
-                    </SelectItem>
-                  ))}
+                  {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n} rows</SelectItem>)}
                 </SelectContent>
               </Select>
-
               <ButtonGroup>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                  disabled={filters.page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-xs font-medium px-3 border-y">
-                  Page {filters.page} of {Math.ceil(total / filters.limit) || 1}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-                  disabled={filters.page >= Math.ceil(total / filters.limit)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                <Button variant="outline" size="icon" onClick={() => setFilters(p => ({ ...p, page: Math.max(1, p.page - 1) }))} disabled={filters.page === 1}><ChevronLeft className="h-4 w-4" /></Button>
+                <span className="text-xs font-medium px-3 border-y flex items-center">Page {filters.page} of {Math.ceil(total / filters.limit)}</span>
+                <Button variant="outline" size="icon" onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))} disabled={filters.page >= Math.ceil(total / filters.limit)}><ChevronRight className="h-4 w-4" /></Button>
               </ButtonGroup>
             </div>
           </div>

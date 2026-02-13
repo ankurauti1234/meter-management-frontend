@@ -57,7 +57,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ButtonGroup } from "@/components/ui/button-group";
 
@@ -67,11 +66,7 @@ interface ViewershipItem {
   device_id: string;
   hhid: string;
   date: string;
-  type3_count: number;
-  type29_count: number;
-  type42_count: number;
-  type36_count: number;
-  type37_count: number;
+  viewership: "Yes" | "No";
 }
 
 export default function ViewershipPage() {
@@ -149,30 +144,12 @@ export default function ViewershipPage() {
       }
 
       // Create CSV content
-      const headers = [
-        "Device ID",
-        "HHID",
-        "Date",
-        "Fingerprints Events",
-        "Recognized Images Events",
-        "Membership Events",
-        "Wifi Connected Events",
-        "Wifi Disconnected Events",
-      ];
+      const headers = ["Device ID", "HHID", "Date", "Viewership"];
 
       const csvRows = [
         headers.join(","),
         ...exportData.map((item) =>
-          [
-            item.device_id,
-            item.hhid,
-            item.date,
-            item.type42_count,
-            item.type29_count,
-            item.type3_count,
-            item.type36_count,
-            item.type37_count,
-          ].join(",")
+          [item.device_id, item.hhid, item.date, item.viewership].join(",")
         ),
       ];
 
@@ -230,26 +207,6 @@ export default function ViewershipPage() {
     setDialogOpen(true);
   };
 
-  const EventCountBadge = ({ count, type }: { count: number; type: number }) => {
-    if (count === 0) {
-      return <span className="text-muted-foreground text-xs">0</span>;
-    }
-
-    const colors = {
-      2: "bg-green-100 text-green-700 border-green-300",
-      29: "bg-blue-100 text-blue-700 border-blue-300",
-      42: "bg-purple-100 text-purple-700 border-purple-300",
-      36: "bg-orange-100 text-orange-700 border-orange-300",
-      37: "bg-pink-100 text-pink-700 border-pink-300",
-    };
-
-    return (
-      <Badge variant="outline" className={`${colors[type as keyof typeof colors]} font-mono`}>
-        {count}
-      </Badge>
-    );
-  };
-
   const columns: ColumnDef<ViewershipItem>[] = [
     {
       accessorKey: "device_id",
@@ -274,47 +231,28 @@ export default function ViewershipPage() {
       header: "Date",
       cell: ({ row }) => (
         <span className="text-sm">
-          {new Date(row.original.date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+          {new Date(row.original.date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
           })}
         </span>
       ),
     },
     {
-      accessorKey: "type42_count",
-      header: "Fingerprints Events",
+      accessorKey: "viewership",
+      header: "Viewership",
       cell: ({ row }) => (
-        <EventCountBadge count={row.original.type42_count} type={42} />
-      ),
-    },
-    {
-      accessorKey: "type29_count",
-      header: "Recognized Images Events",
-      cell: ({ row }) => (
-        <EventCountBadge count={row.original.type29_count} type={29} />
-      ),
-    },
-    {
-      accessorKey: "type3_count",
-      header: "Membership Events",
-      cell: ({ row }) => (
-        <EventCountBadge count={row.original.type3_count} type={2} />
-      ),
-    },
-    {
-      accessorKey: "type36_count",
-      header: "Wifi connected Events",
-      cell: ({ row }) => (
-        <EventCountBadge count={row.original.type36_count} type={36} />
-      ),
-    },
-    {
-      accessorKey: "type37_count",
-      header: "Wifi disconnected Events",
-      cell: ({ row }) => (
-        <EventCountBadge count={row.original.type37_count} type={37} />
+        <Badge
+          variant={row.original.viewership === "Yes" ? "default" : "secondary"}
+          className={
+            row.original.viewership === "Yes"
+              ? "bg-green-100 text-green-700 hover:bg-green-100 border-green-200"
+              : "bg-red-100 text-red-700 hover:bg-red-100 border-red-200"
+          }
+        >
+          {row.original.viewership}
+        </Badge>
       ),
     },
   ];
@@ -330,8 +268,8 @@ export default function ViewershipPage() {
   return (
     <div className="p-4 space-y-6">
       <PageHeader
-        title="Viewership Analytics"
-        description="Track event counts by type for assigned meters"
+        title="Viewership Report"
+        description="Check if meters had viewership activity (Types 3, 29, 30, 42) for selected date"
         badge={<Badge variant="outline">{total.toLocaleString()} meters</Badge>}
         size="sm"
         actions={
@@ -344,13 +282,12 @@ export default function ViewershipPage() {
                     Filters
                     {hasActiveFilters && (
                       <Badge variant="secondary" className="ml-2 text-xs">
-                        {
-                          [
-                            filters.device_id && 1,
-                            filters.hhid && 1,
-                            filters.date !== new Date().toISOString().split("T")[0] && 1,
-                          ].filter(Boolean).length
-                        }
+                        {[
+                          filters.device_id && 1,
+                          filters.hhid && 1,
+                          filters.date !==
+                            new Date().toISOString().split("T")[0] && 1,
+                        ].filter(Boolean).length}
                       </Badge>
                     )}
                   </Button>
@@ -417,7 +354,10 @@ export default function ViewershipPage() {
                   </div>
 
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button onClick={handleApplyFilters}>Apply Filters</Button>
@@ -426,24 +366,37 @@ export default function ViewershipPage() {
               </Dialog>
 
               {hasActiveFilters && (
-                <Button variant="outline" size="icon" onClick={handleResetFilters}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleResetFilters}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </ButtonGroup>
 
-            <Button 
-              onClick={handleExportCSV} 
-              disabled={exporting || loading || data.length === 0} 
-              variant="outline" 
+            <Button
+              onClick={handleExportCSV}
+              disabled={exporting || loading || data.length === 0}
+              variant="outline"
               size="icon"
               title="Export to CSV"
             >
-              <Download className={`h-4 w-4 ${exporting ? "animate-pulse" : ""}`} />
+              <Download
+                className={`h-4 w-4 ${exporting ? "animate-pulse" : ""}`}
+              />
             </Button>
 
-            <Button onClick={handleRefresh} disabled={refreshing} variant="outline" size="icon">
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+              size="icon"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
             </Button>
           </div>
         }
@@ -458,7 +411,10 @@ export default function ViewershipPage() {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead key={header.id} className="bg-background">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -471,7 +427,9 @@ export default function ViewershipPage() {
                   <TableCell colSpan={columns.length} className="h-64">
                     <div className="flex flex-col items-center justify-center h-full gap-4">
                       <Spinner className="h-8 w-8" />
-                      <p className="text-muted-foreground">Loading viewership data...</p>
+                      <p className="text-muted-foreground">
+                        Loading viewership data...
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -485,7 +443,9 @@ export default function ViewershipPage() {
                         </EmptyMedia>
                         <EmptyTitle>No data found</EmptyTitle>
                         <EmptyDescription>
-                          {hasActiveFilters ? "Try adjusting your filters" : "No viewership data available"}
+                          {hasActiveFilters
+                            ? "Try adjusting your filters"
+                            : "No viewership data available"}
                         </EmptyDescription>
                       </EmptyHeader>
                       <EmptyContent>
@@ -499,10 +459,16 @@ export default function ViewershipPage() {
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
+                  <TableRow
+                    key={row.id}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -516,7 +482,8 @@ export default function ViewershipPage() {
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
             <p className="text-xs text-muted-foreground">
               Showing {(filters.page - 1) * filters.limit + 1}–
-              {Math.min(filters.page * filters.limit, total)} of {total.toLocaleString()} meters
+              {Math.min(filters.page * filters.limit, total)} of{" "}
+              {total.toLocaleString()} meters
             </p>
 
             <div className="flex items-center gap-3">
@@ -542,18 +509,23 @@ export default function ViewershipPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                  onClick={() =>
+                    setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))
+                  }
                   disabled={filters.page === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-xs font-medium px-3 border-y">
-                  Page {filters.page} of {Math.ceil(total / filters.limit) || 1}
+                  Page {filters.page} of{" "}
+                  {Math.ceil(total / filters.limit) || 1}
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
+                  onClick={() =>
+                    setFilters((p) => ({ ...p, page: p.page + 1 }))
+                  }
                   disabled={filters.page >= Math.ceil(total / filters.limit)}
                 >
                   <ChevronRight className="h-4 w-4" />

@@ -4,129 +4,208 @@
       "title": "Dashboard",
       "url": "/dashboard",
       "icon": "LayoutGrid",
-      "roles": ["admin", "developer", "user"]
+      "roles": [
+        "admin",
+        "developer",
+        "user"
+      ]
     },
     {
       "title": "Assets Management",
       "icon": "Boxes",
-      "roles": ["admin", "developer"],
+      "roles": [
+        "admin",
+        "developer"
+      ],
       "items": [
         {
           "title": "Inventory",
           "url": "/assets/inventory",
           "icon": "ClipboardList",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
           "title": "Master Data",
           "url": "/assets/master-data",
           "icon": "DatabaseZap",
-          "roles": ["admin"]
+          "roles": [
+            "admin"
+          ]
         },
         {
           "title": "Household Info",
           "url": "/assets/households",
           "icon": "Home",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
           "title": "Upload Assets",
           "url": "/assets/upload",
           "icon": "UploadCloud",
-          "roles": ["admin"]
+          "roles": [
+            "admin"
+          ]
         }
       ]
     },
     {
       "title": "Device Management",
       "icon": "Cpu",
-      "roles": ["admin", "developer"],
+      "roles": [
+        "admin",
+        "developer"
+      ],
       "items": [
         {
           "title": "Event Mapping",
           "url": "/devices/event-mapping",
           "icon": "GitBranch",
-          "roles": ["admin"]
+          "roles": [
+            "admin"
+          ]
         },
         {
           "title": "OTA Updates",
           "url": "/devices/ota",
           "icon": "RefreshCw",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
           "title": "Decommission",
           "url": "/devices/decommission",
           "icon": "PowerOff",
-          "roles": ["admin"]
+          "roles": [
+            "admin"
+          ]
         }
       ]
     },
     {
       "title": "Live Monitoring",
       "icon": "Activity",
-      "roles": ["admin", "developer", "user"],
+      "roles": [
+        "admin",
+        "developer",
+        "user"
+      ],
       "items": [
         {
           "title": "Device Events",
           "url": "/live-monitoring/device-events",
           "icon": "Monitor",
-          "roles": ["admin", "developer"]
-        }, 
+          "roles": [
+            "admin",
+            "developer"
+          ]
+        },
         {
           "title": "Alerts",
           "url": "/live-monitoring/alerts",
           "icon": "BellRing",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
-          "title": "Meter Monitoring",
+          "title": "Monitor",
           "url": "/live-monitoring/monitor",
           "icon": "Monitor",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
-          "title": "Viewership",
+          "title": "Connectivity Report",
+          "url": "/live-monitoring/connectivity-report",
+          "icon": "Activity",
+          "roles": [
+            "admin",
+            "developer"
+          ]
+        },
+        {
+          "title": "Viewership Report",
           "url": "/live-monitoring/viewership",
-          "icon": "Monitor",
-          "roles": ["admin", "developer"]
+          "icon": "Eye",
+          "roles": [
+            "admin",
+            "developer"
+          ]
+        },
+        {
+          "title": "Button Pressed Report",
+          "url": "/live-monitoring/button-pressed-report",
+          "icon": "Fingerprint",
+          "roles": [
+            "admin",
+            "developer"
+          ]
         }
       ]
     },
     {
       "title": "Reports",
       "icon": "BarChart3",
-      "roles": ["admin", "developer"],
+      "roles": [
+        "admin",
+        "developer"
+      ],
       "items": [
         {
           "title": "Generic",
           "url": "/reports/generic",
           "icon": "FileText",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
           "title": "Household Bridged",
           "url": "/reports/household-bridged",
           "icon": "Home",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
           "title": "Household Raw",
           "url": "/reports/household-raw",
           "icon": "Database",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
           "title": "Members Bridged",
           "url": "/reports/members-bridged",
           "icon": "Users",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         },
         {
           "title": "Members Raw",
           "url": "/reports/members-raw",
           "icon": "Users",
-          "roles": ["admin", "developer"]
+          "roles": [
+            "admin",
+            "developer"
+          ]
         }
       ]
     },
@@ -134,13 +213,18 @@
       "title": "Remote Access",
       "url": "/remote-access",
       "icon": "Network",
-      "roles": ["admin", "developer"]
+      "roles": [
+        "admin",
+        "developer"
+      ]
     },
     {
       "title": "User Management",
       "url": "/users",
       "icon": "UserCog",
-      "roles": ["admin"]
+      "roles": [
+        "admin"
+      ]
     }
   ],
   "projects": []

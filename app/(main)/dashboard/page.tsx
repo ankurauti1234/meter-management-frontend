@@ -1,7 +1,6 @@
 import React from "react";
 import { StatCard } from "@/components/cards/stat-card";
 import { Cpu, Activity, Users, Server } from "lucide-react";
-import { TestBarChart } from "@/components/charts/test-bar";
 import { AlertCard } from "@/components/cards/alert-card";
 import {
   Card,
@@ -53,8 +52,7 @@ export default function Dashboard() {
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 w-full ">
         {/* <div className="bg-card rounded-lg border h-96 w-full"></div> */}
-        <TestBarChart />
-        <TestBarChart />
+       
 
         <Card className="w-full lg:col-span-2 gap-0 py-0">
           <CardHeader className="flex flex-col  p-3">
