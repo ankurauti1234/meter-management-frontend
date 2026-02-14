@@ -269,7 +269,7 @@ export default function ViewershipPage() {
     <div className="p-4 space-y-6">
       <PageHeader
         title="Viewership Report"
-        description="Check if meters had viewership activity (Types 3, 29, 30, 42) for selected date"
+        description="Check if meters had viewership activity (Types 29, 42) for selected date"
         badge={<Badge variant="outline">{total.toLocaleString()} meters</Badge>}
         size="sm"
         actions={
