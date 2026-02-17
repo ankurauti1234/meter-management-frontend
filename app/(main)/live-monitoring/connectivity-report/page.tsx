@@ -74,12 +74,14 @@ export default function ConnectivityReportPage() {
     device_id: "",
     hhid: "",
     date: new Date().toISOString().split("T")[0], // Default to today
+    status: "all",
     page: 1,
     limit: 25,
   });
 
   const [tempFilters, setTempFilters] = useState(filters);
   const [data, setData] = useState<ConnectivityItem[]>([]);
+  const [stats, setStats] = useState({ active: 0, total: 0 });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,7 +89,7 @@ export default function ConnectivityReportPage() {
   const [exporting, setExporting] = useState(false);
 
   const hasActiveFilters = Boolean(
-    filters.device_id || filters.hhid || filters.date !== new Date().toISOString().split("T")[0]
+    filters.device_id || filters.hhid || filters.date !== new Date().toISOString().split("T")[0] || filters.status !== "all"
   );
 
   const fetchData = useCallback(async () => {
@@ -97,17 +99,20 @@ export default function ConnectivityReportPage() {
         device_id: filters.device_id || undefined,
         hhid: filters.hhid || undefined,
         date: filters.date,
+        status: filters.status === "all" ? undefined : (filters.status as "Yes" | "No"),
         page: filters.page,
         limit: filters.limit,
       });
 
       setData(res.data || []);
+      setStats(res.stats || { active: 0, total: 0 });
       setTotal(res.pagination?.total || 0);
     } catch (err) {
       toast.error("Failed to load connectivity data");
       console.error(err);
       setData([]);
       setTotal(0);
+      setStats({ active: 0, total: 0 });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -184,6 +189,7 @@ export default function ConnectivityReportPage() {
       device_id: "",
       hhid: "",
       date: new Date().toISOString().split("T")[0],
+      status: "all",
       page: 1,
       limit: 25,
     };
@@ -255,7 +261,14 @@ export default function ConnectivityReportPage() {
       <PageHeader
         title="Connectivity Report"
         description="Daily connectivity status for all meters within range (IM000101-IM000600)"
-        badge={<Badge variant="outline">{total.toLocaleString()} meters</Badge>}
+        badge={
+          <div className="flex gap-2">
+            <Badge variant="outline">Total: {stats.total.toLocaleString()}</Badge>
+            <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+              Active: {stats.active.toLocaleString()}
+            </Badge>
+          </div>
+        }
         size="sm"
         actions={
           <div className="flex flex-wrap items-center gap-3">
@@ -271,6 +284,7 @@ export default function ConnectivityReportPage() {
                           filters.device_id && 1,
                           filters.hhid && 1,
                           filters.date !== new Date().toISOString().split("T")[0] && 1,
+                          filters.status !== "all" && 1,
                         ].filter(Boolean).length}
                       </Badge>
                     )}
@@ -306,6 +320,24 @@ export default function ConnectivityReportPage() {
                         value={tempFilters.date}
                         onChange={(e) => setTempFilters(p => ({ ...p, date: e.target.value }))}
                       />
+                    </div>
+                    <div className="space-y-2">
+                       <Label>Status</Label>
+                       <Select
+                         value={tempFilters.status}
+                         onValueChange={(v) =>
+                           setTempFilters((p) => ({ ...p, status: v }))
+                         }
+                       >
+                         <SelectTrigger>
+                           <SelectValue placeholder="All Status" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="all">All</SelectItem>
+                           <SelectItem value="Yes">Yes (Connected)</SelectItem>
+                           <SelectItem value="No">No (Disconnected)</SelectItem>
+                         </SelectContent>
+                       </Select>
                     </div>
                   </div>
                   <DialogFooter>

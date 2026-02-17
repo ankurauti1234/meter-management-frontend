@@ -189,6 +189,7 @@ class EventsService {
     device_id?: string;
     hhid?: string;
     date?: string;
+    status?: "Yes" | "No";
     page?: number;
     limit?: number;
   }): Promise<{
@@ -198,12 +199,17 @@ class EventsService {
       viewership: "Yes" | "No";
       date: string;
     }>;
+    stats: {
+      active: number;
+      total: number;
+    };
     pagination: Pagination;
   }> {
     const params = new URLSearchParams();
     if (filters.device_id) params.append("device_id", filters.device_id);
     if (filters.hhid) params.append("hhid", filters.hhid);
     if (filters.date) params.append("date", filters.date);
+    if (filters.status) params.append("status", filters.status);
     if (filters.page) params.append("page", String(filters.page));
     if (filters.limit) params.append("limit", String(filters.limit));
 
@@ -216,6 +222,7 @@ class EventsService {
     device_id?: string;
     hhid?: string;
     date?: string;
+    status?: "Yes" | "No";
     page?: number;
     limit?: number;
   }): Promise<{
@@ -225,12 +232,17 @@ class EventsService {
       connectivity: "Yes" | "No";
       date: string;
     }>;
+    stats: {
+      active: number;
+      total: number;
+    };
     pagination: Pagination;
   }> {
     const params = new URLSearchParams();
     if (filters.device_id) params.append("device_id", filters.device_id);
     if (filters.hhid) params.append("hhid", filters.hhid);
     if (filters.date) params.append("date", filters.date);
+    if (filters.status) params.append("status", filters.status);
     if (filters.page) params.append("page", String(filters.page));
     if (filters.limit) params.append("limit", String(filters.limit));
 
@@ -243,6 +255,7 @@ class EventsService {
     device_id?: string;
     hhid?: string;
     date?: string;
+    status?: "Yes" | "No";
     page?: number;
     limit?: number;
   }): Promise<{
@@ -252,12 +265,17 @@ class EventsService {
       button_pressed: "Yes" | "No";
       date: string;
     }>;
+    stats: {
+      active: number;
+      total: number;
+    };
     pagination: Pagination;
   }> {
     const params = new URLSearchParams();
     if (filters.device_id) params.append("device_id", filters.device_id);
     if (filters.hhid) params.append("hhid", filters.hhid);
     if (filters.date) params.append("date", filters.date);
+    if (filters.status) params.append("status", filters.status);
     if (filters.page) params.append("page", String(filters.page));
     if (filters.limit) params.append("limit", String(filters.limit));
 
