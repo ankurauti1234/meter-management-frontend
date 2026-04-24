@@ -24,7 +24,7 @@ export interface CreateOtaJobDTO {
   bucketName?: string;
   thingGroupName?: string;
   thingNames?: string;
-  downloadPath: string;
+  downloadPath?: string;
 }
 
 export interface OtaJobsResponse {
@@ -47,7 +47,7 @@ class OtaService {
     if (data.bucketName) formData.append("bucketName", data.bucketName);
     if (data.thingGroupName) formData.append("thingGroupName", data.thingGroupName);
     if (data.thingNames) formData.append("thingNames", data.thingNames);
-    formData.append("downloadPath", data.downloadPath);
+    if (data.downloadPath) formData.append("downloadPath", data.downloadPath);
 
     const res = await api.post(`${this.baseURL}/create-job`, formData, {
       headers: { "Content-Type": "multipart/form-data" },

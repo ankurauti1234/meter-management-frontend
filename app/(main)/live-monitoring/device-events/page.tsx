@@ -103,7 +103,6 @@ export default function DeviceEventsPage() {
   const [eventMappings, setEventMappings] = useState<EventMapping[]>([]);
   const [mappingsLoading, setMappingsLoading] = useState(true);
 
-  const [debouncedDeviceId] = useDebounce(filters.device_id, 600);
 
   const hasActiveFilters = Boolean(
     filters.device_id ||
@@ -127,7 +126,7 @@ const fetchEvents = useCallback(async () => {
     const end = getUnixSeconds(endDateTime);
 
     const res = await eventsService.getEvents({
-      device_id: debouncedDeviceId || undefined,
+      device_id: filters.device_id || undefined,
       type: filters.type ? Number(filters.type) : undefined,
       start_time: start,
       end_time: end,
@@ -160,7 +159,7 @@ const events = eventsData.map((e: any) => {
     setRefreshing(false);
   }
 }, [
-  debouncedDeviceId,
+  filters.device_id,
   filters.type,
   filters.page,
   filters.limit,

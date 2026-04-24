@@ -86,7 +86,7 @@ const otaJobSchema = z.object({
   bucketName: z.string().optional(),
   thingGroupName: z.string().optional(),
   thingNames: z.string().optional(),
-  downloadPath: z.string().min(1, "Download path is required"),
+  downloadPath: z.string().optional(),
 });
 
 type OtaJobForm = z.infer<typeof otaJobSchema>;
@@ -114,10 +114,9 @@ export default function OtaPage() {
     resolver: zodResolver(otaJobSchema),
     defaultValues: {
       version: "",
-      bucketName: process.env.NEXT_PUBLIC_DEFAULT_S3_BUCKET || "",
       thingGroupName: "",
       thingNames: "",
-      downloadPath: "/tmp/firmware.bin",
+      downloadPath: "",
     },
   });
 
@@ -533,7 +532,7 @@ export default function OtaPage() {
                   id="ota-file"
                   type="file"
                   className="hidden"
-                  accept=".bin,.hex,.zip"
+                  accept=".bin,.hex,.zip,.tar.gz"
                   onChange={(e) =>
                     e.target.files?.[0] && handleFileSelect(e.target.files[0])
                   }
@@ -564,7 +563,7 @@ export default function OtaPage() {
                     <div>
                       <p className="font-medium">Drop firmware file here</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        or click to browse • .bin, .hex, .zip • Max 100MB
+                        or click to browse • .bin, .hex, .zip, .tar.gz • Max 100MB
                       </p>
                     </div>
                   </div>
@@ -595,40 +594,8 @@ export default function OtaPage() {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="downloadPath"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Download Path on Device *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="/tmp/firmware.bin" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
-              <FormField
-                control={form.control}
-                name="bucketName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>S3 Bucket (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={
-                          process.env.NEXT_PUBLIC_DEFAULT_S3_BUCKET ||
-                          "my-firmware-bucket"
-                        }
-                        {...field}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField

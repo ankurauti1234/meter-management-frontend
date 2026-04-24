@@ -151,6 +151,16 @@
             "admin",
             "developer"
           ]
+        },
+        {
+          "title": "Household Visualization",
+          "url": "/live-monitoring/all-household-visualization",
+          "icon": "Home",
+          "roles": [
+            "admin",
+            "developer",
+            "user"
+          ]
         }
       ]
     },

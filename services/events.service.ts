@@ -282,6 +282,35 @@ class EventsService {
     const res = await api.get(`/events/button-pressed-report?${params.toString()}`);
     return res.data.data;
   }
+  // 10. Get Household Visualization
+  async getHouseholdVisualization(filters: {
+    device_id?: string;
+    hhid?: string;
+    status?: "all" | "active" | "inactive";
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Array<{
+      device_id: string;
+      hhid: string;
+      household_id: string;
+      total_members: number;
+      active_users: number;
+      last_type3_timestamp: number | null;
+      last_type3_details: any;
+    }>;
+    pagination: Pagination;
+  }> {
+    const params = new URLSearchParams();
+    if (filters.device_id) params.append("device_id", filters.device_id);
+    if (filters.hhid) params.append("hhid", filters.hhid);
+    if (filters.status && filters.status !== "all") params.append("status", filters.status);
+    if (filters.page) params.append("page", String(filters.page));
+    if (filters.limit) params.append("limit", String(filters.limit));
+
+    const res = await api.get(`/events/household-visualization?${params.toString()}`);
+    return res.data.data;
+  }
 }
 
 export default new EventsService();
