@@ -58,6 +58,35 @@ export interface PaginatedMeterChannels {
   pagination: Pagination;
 }
 
+export interface DayConnectivity {
+  date: string;
+  day: string;
+  connected: boolean;
+}
+
+export interface WeeklyConnectivityItem {
+  device_id: string;
+  hhid: string;
+  days: DayConnectivity[];
+  connected_days: number;
+  total_days: number;
+  connectivity_rate: number;
+}
+
+export interface WeeklyConnectivityResponse {
+  data: WeeklyConnectivityItem[];
+  week_start: string;
+  week_end: string;
+  stats: {
+    total_meters: number;
+    fully_connected: number;
+    partially_connected: number;
+    not_connected: number;
+    avg_connectivity_rate: number;
+  };
+  pagination: Pagination;
+}
+
 class EventsService {
   // 1. Get All Events
   async getEvents(filters: any): Promise<{
@@ -134,7 +163,6 @@ class EventsService {
   ): Promise<PaginatedMeterChannels> {
     const params = new URLSearchParams();
 
-    // Only append device_id if provided
     if (filters.device_id) {
       params.append("device_id", filters.device_id);
     }
@@ -282,6 +310,7 @@ class EventsService {
     const res = await api.get(`/events/button-pressed-report?${params.toString()}`);
     return res.data.data;
   }
+
   // 10. Get Household Visualization
   async getHouseholdVisualization(filters: {
     device_id?: string;
@@ -309,6 +338,27 @@ class EventsService {
     if (filters.limit) params.append("limit", String(filters.limit));
 
     const res = await api.get(`/events/household-visualization?${params.toString()}`);
+    return res.data.data;
+  }
+
+  // 11. Get Weekly Connectivity Report
+  async getWeeklyConnectivityReport(filters: {
+    device_id?: string;
+    hhid?: string;
+    week_start?: string;
+    status?: "connected" | "disconnected" | "partial";
+    page?: number;
+    limit?: number;
+  }): Promise<WeeklyConnectivityResponse> {
+    const params = new URLSearchParams();
+    if (filters.device_id) params.append("device_id", filters.device_id);
+    if (filters.hhid) params.append("hhid", filters.hhid);
+    if (filters.week_start) params.append("week_start", filters.week_start);
+    if (filters.status) params.append("status", filters.status);
+    if (filters.page) params.append("page", String(filters.page));
+    if (filters.limit) params.append("limit", String(filters.limit));
+
+    const res = await api.get(`/events/weekly-connectivity?${params.toString()}`);
     return res.data.data;
   }
 }
