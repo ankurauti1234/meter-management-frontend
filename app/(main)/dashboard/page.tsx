@@ -12,7 +12,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import api from "@/services/api";
+import alertsService, { InactivityAlert } from "@/services/alerts.service";
+import Link from "next/link";
 
 interface DashboardStats {
   totalInstalled: number;
@@ -23,6 +27,8 @@ interface DashboardStats {
 }
 
 const CACHE_KEY = "dashboard_stats_cache";
+const ALERTS_CACHE_KEY = "dashboard_alerts_cache";
+const ALERT_COUNT_CACHE_KEY = "dashboard_alert_count_cache";
 
 function getCachedStats(): DashboardStats | null {
   try {
@@ -42,6 +48,42 @@ function setCachedStats(stats: DashboardStats): void {
   }
 }
 
+function getCachedAlertCount(): number | null {
+  try {
+    const raw = localStorage.getItem(ALERT_COUNT_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as number;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedAlertCount(count: number): void {
+  try {
+    localStorage.setItem(ALERT_COUNT_CACHE_KEY, JSON.stringify(count));
+  } catch {
+    // silently ignore
+  }
+}
+
+function getCachedAlerts(): InactivityAlert[] | null {
+  try {
+    const raw = localStorage.getItem(ALERTS_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as InactivityAlert[];
+  } catch {
+    return null;
+  }
+}
+
+function setCachedAlerts(alerts: InactivityAlert[]): void {
+  try {
+    localStorage.setItem(ALERTS_CACHE_KEY, JSON.stringify(alerts));
+  } catch {
+    // silently ignore
+  }
+}
+
 const EMPTY_STATS: DashboardStats = {
   totalInstalled: 0,
   totalMeters: 0,
@@ -58,6 +100,19 @@ export default function Dashboard() {
   // Only show "..." on the very first load when there is no cache at all
   const [isLoading, setIsLoading] = useState(() => getCachedStats() === null);
 
+  const [alertCount, setAlertCount] = useState<number>(
+    () => getCachedAlertCount() ?? 0
+  );
+  const [alertsLoading, setAlertsLoading] = useState(
+    () => getCachedAlertCount() === null
+  );
+  const [recentAlerts, setRecentAlerts] = useState<InactivityAlert[]>(
+    () => getCachedAlerts() ?? []
+  );
+  const [recentAlertsLoading, setRecentAlertsLoading] = useState(
+    () => getCachedAlerts() === null
+  );
+
   const fetchStats = useCallback(async () => {
     try {
       const { data } = await api.get("/dashboard/stats");
@@ -71,11 +126,44 @@ export default function Dashboard() {
     }
   }, []);
 
+  const fetchAlertCount = useCallback(async () => {
+    try {
+      const count = await alertsService.getInactiveCount();
+      setAlertCount(count);
+      setCachedAlertCount(count);
+    } catch (error) {
+      console.error("Failed to fetch alert count:", error);
+    } finally {
+      setAlertsLoading(false);
+    }
+  }, []);
+
+  const fetchRecentAlerts = useCallback(async () => {
+    try {
+      const result = await alertsService.getInactiveMeters({
+        page: 1,
+        limit: 5,
+      });
+      setRecentAlerts(result.data);
+      setCachedAlerts(result.data);
+    } catch (error) {
+      console.error("Failed to fetch recent alerts:", error);
+    } finally {
+      setRecentAlertsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 30_000);
+    fetchAlertCount();
+    fetchRecentAlerts();
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchAlertCount();
+      fetchRecentAlerts();
+    }, 30_000);
     return () => clearInterval(interval);
-  }, [fetchStats]);
+  }, [fetchStats, fetchAlertCount, fetchRecentAlerts]);
 
   const statCards = [
     {
@@ -101,12 +189,11 @@ export default function Dashboard() {
     },
     {
       icon: Activity,
-      title: "Live Alerts",
-      value: 14,
+      title: "Inactive Alerts",
+      value: alertsLoading ? "..." : alertCount,
       color: "text-chart-2",
       bgColor: "bg-chart-2/15",
     },
-    
   ];
 
   return (
@@ -119,18 +206,39 @@ export default function Dashboard() {
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 w-full">
         <Card className="w-full lg:col-span-2 gap-0 py-0">
-          <CardHeader className="flex flex-col p-3">
-            <CardTitle>Bar Chart - Interactive</CardTitle>
-            <CardDescription>
-              Showing total visitors for the last 3 months
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between p-3">
+            <div>
+              <CardTitle>Inactivity Alerts</CardTitle>
+              <CardDescription>
+                Meters that haven&apos;t sent any events recently
+              </CardDescription>
+            </div>
+            <Link href="/live-monitoring/alerts">
+              <Button variant="outline" size="sm">
+                View All
+              </Button>
+            </Link>
           </CardHeader>
           <Separator />
           <CardContent className="p-2 space-y-2 h-fit">
-            <AlertCard />
-            <AlertCard />
-            <AlertCard />
-            <AlertCard />
+            {recentAlertsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Spinner className="h-6 w-6" />
+              </div>
+            ) : recentAlerts.length === 0 ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+                No inactive meters detected
+              </div>
+            ) : (
+              recentAlerts.map((alert) => (
+                <AlertCard
+                  key={alert.id}
+                  device_id={alert.device_id}
+                  hhid={alert.hhid}
+                  lastEventAt={alert.lastEventAt}
+                />
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
