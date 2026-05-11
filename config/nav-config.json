@@ -28,6 +28,15 @@
           ]
         },
         {
+          "title": "Installed Meters",
+          "url": "/assets/installed-meters",
+          "icon": "BookCheck",
+          "roles": [
+            "admin",
+            "developer"
+          ]
+        },
+        {
           "title": "Master Data",
           "url": "/assets/master-data",
           "icon": "DatabaseZap",
