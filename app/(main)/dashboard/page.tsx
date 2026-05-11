@@ -28,7 +28,6 @@ interface DashboardStats {
 
 const CACHE_KEY = "dashboard_stats_cache";
 const ALERTS_CACHE_KEY = "dashboard_alerts_cache";
-const ALERT_COUNT_CACHE_KEY = "dashboard_alert_count_cache";
 
 function getCachedStats(): DashboardStats | null {
   try {
@@ -45,24 +44,6 @@ function setCachedStats(stats: DashboardStats): void {
     localStorage.setItem(CACHE_KEY, JSON.stringify(stats));
   } catch {
     // storage quota exceeded or unavailable — silently ignore
-  }
-}
-
-function getCachedAlertCount(): number | null {
-  try {
-    const raw = localStorage.getItem(ALERT_COUNT_CACHE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as number;
-  } catch {
-    return null;
-  }
-}
-
-function setCachedAlertCount(count: number): void {
-  try {
-    localStorage.setItem(ALERT_COUNT_CACHE_KEY, JSON.stringify(count));
-  } catch {
-    // silently ignore
   }
 }
 
@@ -100,12 +81,7 @@ export default function Dashboard() {
   // Only show "..." on the very first load when there is no cache at all
   const [isLoading, setIsLoading] = useState(() => getCachedStats() === null);
 
-  const [alertCount, setAlertCount] = useState<number>(
-    () => getCachedAlertCount() ?? 0
-  );
-  const [alertsLoading, setAlertsLoading] = useState(
-    () => getCachedAlertCount() === null
-  );
+
   const [recentAlerts, setRecentAlerts] = useState<InactivityAlert[]>(
     () => getCachedAlerts() ?? []
   );
@@ -126,17 +102,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const fetchAlertCount = useCallback(async () => {
-    try {
-      const count = await alertsService.getInactiveCount();
-      setAlertCount(count);
-      setCachedAlertCount(count);
-    } catch (error) {
-      console.error("Failed to fetch alert count:", error);
-    } finally {
-      setAlertsLoading(false);
-    }
-  }, []);
+
 
   const fetchRecentAlerts = useCallback(async () => {
     try {
@@ -155,15 +121,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchStats();
-    fetchAlertCount();
     fetchRecentAlerts();
     const interval = setInterval(() => {
       fetchStats();
-      fetchAlertCount();
       fetchRecentAlerts();
     }, 30_000);
     return () => clearInterval(interval);
-  }, [fetchStats, fetchAlertCount, fetchRecentAlerts]);
+  }, [fetchStats, fetchRecentAlerts]);
 
   const statCards = [
     {
@@ -189,8 +153,8 @@ export default function Dashboard() {
     },
     {
       icon: Activity,
-      title: "Inactive Alerts",
-      value: alertsLoading ? "..." : alertCount,
+      title: "Inactive Devices",
+      value: isLoading ? "..." : stats.totalInstalled - stats.activeDevicesToday,
       color: "text-chart-2",
       bgColor: "bg-chart-2/15",
     },
