@@ -170,6 +170,15 @@
             "developer",
             "user"
           ]
+        },
+        {
+          "title": "Weekly Connectivity",
+          "url": "/live-monitoring/weekly-connectivity",
+          "icon": "CalendarDays",
+          "roles": [
+            "admin",
+            "developer"
+          ]
         }
       ]
     },

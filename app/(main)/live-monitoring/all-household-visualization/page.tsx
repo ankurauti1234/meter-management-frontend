@@ -13,6 +13,7 @@ import {
   User as UserIcon,
   ChevronLeft,
   ChevronRight,
+  CalendarDays
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
