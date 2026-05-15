@@ -42,6 +42,7 @@ class AlertsService {
     page?: number;
     limit?: number;
     device_id?: string;
+    inactivity_filter?: "lt_3d" | "lt_1w" | "lt_2w" | "lt_1m" | "gt_1m";
   }): Promise<{
     data: InactivityAlert[];
     pagination: AlertPagination;
@@ -50,6 +51,7 @@ class AlertsService {
     if (filters.page) params.append("page", String(filters.page));
     if (filters.limit) params.append("limit", String(filters.limit));
     if (filters.device_id) params.append("device_id", filters.device_id);
+    if (filters.inactivity_filter) params.append("inactivity_filter", filters.inactivity_filter);
 
     const res = await api.get(`/alerts/inactivity?${params.toString()}`);
     return {

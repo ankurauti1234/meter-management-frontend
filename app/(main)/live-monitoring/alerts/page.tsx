@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-table";
 import {
   ChevronLeft, ChevronRight, Filter, RefreshCw, Search, X,
-  Bell, AlertTriangle, WifiOff, Download, Mail, Play,
+  Bell, AlertTriangle, WifiOff, Download, Mail, Play, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { Spinner } from "@/components/ui/spinner";
 import {
-  Empty, EmptyContent, EmptyDescription, EmptyHeader,
+  Empty, EmptyDescription, EmptyHeader,
   EmptyMedia, EmptyTitle,
 } from "@/components/ui/empty";
 import {
@@ -40,18 +40,63 @@ import alertsService, { InactivityAlert } from "@/services/alerts.service";
 import { RecipientsDialog } from "@/components/cards/recipients-dialog";
 import { SettingsDialog } from "@/components/cards/settings-dialog";
 
-/* ─── Event Alerts types ──────────────────────────────── */
+/* ─── Types ───────────────────────────────────────────── */
 interface EventFilters { device_id?: string; page: number; limit: number; }
 interface AlertEvent extends Event { details?: Record<string, any>; }
 
-/* ─── Inactivity filters ──────────────────────────────── */
-interface InactivityFilters { device_id: string; page: number; limit: number; }
+type InactivityFilterValue = "all" | "lt_3d" | "lt_1w" | "lt_2w" | "lt_1m" | "gt_1m";
 
+interface InactivityFilters {
+  device_id: string;
+  inactivity_filter: InactivityFilterValue;
+  page: number;
+  limit: number;
+}
+
+/* ─── Inactivity filter options ───────────────────────── */
+const INACTIVITY_FILTER_OPTIONS: Array<{
+  value: InactivityFilterValue;
+  label: string;
+  description: string;
+  dot: string;
+}> = [
+  { value: "all",   label: "All meters",          description: "Show all inactive meters",               dot: "bg-muted-foreground" },
+  { value: "lt_3d", label: "< 3 days",             description: "Inactive for less than 3 days",          dot: "bg-amber-500" },
+  { value: "lt_1w", label: "3 days – 1 week",      description: "Inactive between 3 days and 1 week",     dot: "bg-orange-500" },
+  { value: "lt_2w", label: "1 week – 2 weeks",     description: "Inactive between 1 and 2 weeks",         dot: "bg-red-400" },
+  { value: "lt_1m", label: "2 weeks – 1 month",    description: "Inactive between 2 weeks and 1 month",   dot: "bg-red-600" },
+  { value: "gt_1m", label: "> 1 month",             description: "Inactive for over a month (critical)",   dot: "bg-red-900" },
+];
+
+function getFilterPillClass(val: InactivityFilterValue) {
+  if (val === "lt_3d") return "bg-amber-100 text-amber-700 border-amber-300";
+  if (val === "lt_1w") return "bg-orange-100 text-orange-700 border-orange-300";
+  if (val === "lt_2w") return "bg-red-100 text-red-600 border-red-300";
+  if (val === "lt_1m") return "bg-red-100 text-red-700 border-red-400";
+  if (val === "gt_1m") return "bg-red-200 text-red-900 border-red-500";
+  return "bg-muted text-muted-foreground border-border";
+}
+
+function getInactivityBadgeClass(lastEventAt: string | null): string {
+  if (!lastEventAt) return "bg-red-200 text-red-900 border-red-500";
+  const days = (Date.now() - new Date(lastEventAt).getTime()) / 86400000;
+  if (days < 3)  return "bg-amber-100 text-amber-700 border-amber-300";
+  if (days < 7)  return "bg-orange-100 text-orange-700 border-orange-300";
+  if (days < 14) return "bg-red-100 text-red-600 border-red-300";
+  if (days < 30) return "bg-red-100 text-red-700 border-red-400";
+  return "bg-red-200 text-red-900 border-red-500";
+}
+
+/* ─── Page ────────────────────────────────────────────── */
 export default function AlertsPage() {
   const [activeTab, setActiveTab] = useState("inactivity");
 
   /* ═══ INACTIVITY TAB STATE ═══ */
-  const [iFilters, setIFilters] = useState<InactivityFilters>({ device_id: "", page: 1, limit: 25 });
+  const [iFilters, setIFilters] = useState<InactivityFilters>({
+    device_id: "", inactivity_filter: "all", page: 1, limit: 25,
+  });
+  const [iTempFilters, setITempFilters] = useState(iFilters);
+  const [iFilterDialogOpen, setIFilterDialogOpen] = useState(false);
   const [iData, setIData] = useState<InactivityAlert[]>([]);
   const [iTotal, setITotal] = useState(0);
   const [iLoading, setILoading] = useState(false);
@@ -60,19 +105,38 @@ export default function AlertsPage() {
   const [iExporting, setIExporting] = useState(false);
   const [debouncedIDevice] = useDebounce(iFilters.device_id, 600);
 
+  const iHasFilters = iFilters.inactivity_filter !== "all" || Boolean(iFilters.device_id);
+  const activeFilterOpt = INACTIVITY_FILTER_OPTIONS.find(o => o.value === iFilters.inactivity_filter);
+
   const fetchInactivity = useCallback(async () => {
     setILoading(true);
     try {
       const res = await alertsService.getInactiveMeters({
-        page: iFilters.page, limit: iFilters.limit,
+        page: iFilters.page,
+        limit: iFilters.limit,
         device_id: debouncedIDevice || undefined,
+        inactivity_filter: iFilters.inactivity_filter !== "all"
+          ? iFilters.inactivity_filter as any
+          : undefined,
       });
       setIData(res.data); setITotal(res.pagination.total);
-    } catch { toast.error("Failed to load inactivity alerts"); setIData([]); setITotal(0); }
-    finally { setILoading(false); }
-  }, [debouncedIDevice, iFilters.page, iFilters.limit]);
+    } catch {
+      toast.error("Failed to load inactivity alerts"); setIData([]); setITotal(0);
+    } finally { setILoading(false); }
+  }, [debouncedIDevice, iFilters.page, iFilters.limit, iFilters.inactivity_filter]);
 
   useEffect(() => { if (activeTab === "inactivity") fetchInactivity(); }, [fetchInactivity, activeTab]);
+
+  const handleApplyIFilters = () => {
+    setIFilters({ ...iTempFilters, page: 1 });
+    setIFilterDialogOpen(false);
+    toast.success("Filters applied");
+  };
+
+  const handleClearIFilters = () => {
+    const reset: InactivityFilters = { device_id: "", inactivity_filter: "all", page: 1, limit: iFilters.limit };
+    setIFilters(reset); setITempFilters(reset); toast("Filters cleared");
+  };
 
   const handleRunCheck = async () => {
     setIChecking(true);
@@ -80,8 +144,7 @@ export default function AlertsPage() {
       const r = await alertsService.triggerCheck();
       toast.success(`Check done. New: ${r.newInactive}, Resolved: ${r.resolved}, Total: ${r.totalInactive}`);
       fetchInactivity();
-    } catch { toast.error("Check failed"); }
-    finally { setIChecking(false); }
+    } catch { toast.error("Check failed"); } finally { setIChecking(false); }
   };
 
   const handleSendEmail = async () => {
@@ -89,16 +152,14 @@ export default function AlertsPage() {
     try {
       const r = await alertsService.sendEmail();
       toast.success(`Email sent to ${r.recipientCount} recipient(s)`);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.msg || "Failed to send email");
-    } finally { setIEmailing(false); }
+    } catch (e: any) { toast.error(e?.response?.data?.msg || "Failed to send email"); }
+    finally { setIEmailing(false); }
   };
 
   const handleExport = async () => {
     setIExporting(true);
     try { await alertsService.exportInactiveMeters(); toast.success("Excel downloaded"); }
-    catch { toast.error("Export failed"); }
-    finally { setIExporting(false); }
+    catch { toast.error("Export failed"); } finally { setIExporting(false); }
   };
 
   const iColumns: ColumnDef<InactivityAlert>[] = [
@@ -115,12 +176,18 @@ export default function AlertsPage() {
       ),
     },
     {
-      accessorKey: "lastEventAt", header: "Last Event Sent",
+      accessorKey: "lastEventAt",
+      header: () => (
+        <div className="flex items-center gap-1.5">
+          Last Event Sent
+          <span className="text-[10px] text-muted-foreground font-normal">(sorted ↑ by inactivity)</span>
+        </div>
+      ),
       cell: ({ row }) => (
         <div className="font-mono text-xs">
           {row.original.lastEventAt
             ? format(new Date(row.original.lastEventAt), "dd MMM yyyy, HH:mm:ss")
-            : <span className="text-muted-foreground">Never</span>}
+            : <span className="text-muted-foreground italic">Never</span>}
         </div>
       ),
     },
@@ -129,12 +196,20 @@ export default function AlertsPage() {
       cell: ({ row }) => {
         const last = row.original.lastEventAt;
         return (
-          <Badge variant="destructive" className="gap-1">
-            <WifiOff className="h-3 w-3" />
-            {last ? formatDistanceToNow(new Date(last)) : "Always"}
+          <Badge variant="outline" className={`gap-1.5 font-medium border ${getInactivityBadgeClass(last)}`}>
+            <Clock className="h-3 w-3" />
+            {last ? formatDistanceToNow(new Date(last), { addSuffix: false }) : "Never seen"}
           </Badge>
         );
       },
+    },
+    {
+      accessorKey: "detectedAt", header: "Detected At",
+      cell: ({ row }) => (
+        <div className="text-xs text-muted-foreground font-mono">
+          {format(new Date(row.original.detectedAt), "dd MMM yyyy, HH:mm")}
+        </div>
+      ),
     },
   ];
 
@@ -164,8 +239,7 @@ export default function AlertsPage() {
   const getUnix = (dt: DateTime): number | undefined => {
     if (!dt.date) return undefined;
     const [h = 0, m = 0] = (dt.time || "00:00").split(":").map(Number);
-    const date = new Date(dt.date);
-    date.setHours(h, m, 0, 0);
+    const date = new Date(dt.date); date.setHours(h, m, 0, 0);
     return Math.floor(date.getTime() / 1000);
   };
 
@@ -249,22 +323,99 @@ export default function AlertsPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="inactivity">
-            <WifiOff className="h-4 w-4 mr-1.5" /> Inactivity Alerts
-          </TabsTrigger>
-          <TabsTrigger value="events">
-            <Bell className="h-4 w-4 mr-1.5" /> Event Alerts
-          </TabsTrigger>
+          <TabsTrigger value="inactivity"><WifiOff className="h-4 w-4 mr-1.5" /> Inactivity Alerts</TabsTrigger>
+          <TabsTrigger value="events"><Bell className="h-4 w-4 mr-1.5" /> Event Alerts</TabsTrigger>
         </TabsList>
 
         {/* ═══ INACTIVITY TAB ═══ */}
         <TabsContent value="inactivity" className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
+
+            {/* Search */}
             <div className="relative flex-1 min-w-[200px] max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search device ID..." className="pl-10" value={iFilters.device_id}
+              <Input placeholder="Search device ID..." className="pl-10"
+                value={iFilters.device_id}
                 onChange={(e) => setIFilters((p) => ({ ...p, device_id: e.target.value, page: 1 }))} />
             </div>
+
+            {/* Inactivity filter */}
+            <ButtonGroup>
+              <Dialog open={iFilterDialogOpen} onOpenChange={setIFilterDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm"
+                    onClick={() => { setITempFilters(iFilters); setIFilterDialogOpen(true); }}>
+                    <Filter className="mr-2 h-4 w-4" /> Filter
+                    {iHasFilters && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        {[iFilters.inactivity_filter !== "all", Boolean(iFilters.device_id)].filter(Boolean).length}
+                      </Badge>
+                    )}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Filter Inactivity Alerts</DialogTitle>
+                    <DialogDescription>
+                      Filter by inactivity duration. Results always sorted shortest inactivity first.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-5 py-4">
+                    <div className="space-y-2">
+                      <Label>Device ID</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="IM000..." className="pl-10"
+                          value={iTempFilters.device_id}
+                          onChange={(e) => setITempFilters((p) => ({ ...p, device_id: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Inactivity Duration</Label>
+                      <div className="grid gap-2">
+                        {INACTIVITY_FILTER_OPTIONS.map((opt) => (
+                          <button key={opt.value} type="button"
+                            onClick={() => setITempFilters((p) => ({ ...p, inactivity_filter: opt.value }))}
+                            className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-all hover:bg-muted/50
+                              ${iTempFilters.inactivity_filter === opt.value
+                                ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                : "border-border"}`}>
+                            <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${opt.dot}`} />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{opt.label}</p>
+                              <p className="text-xs text-muted-foreground">{opt.description}</p>
+                            </div>
+                            {iTempFilters.inactivity_filter === opt.value && (
+                              <span className="text-primary font-bold text-sm">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIFilterDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleApplyIFilters}>Apply</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              {iHasFilters && (
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleClearIFilters}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </ButtonGroup>
+
+            {/* Active filter pill */}
+            {iFilters.inactivity_filter !== "all" && (
+              <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${getFilterPillClass(iFilters.inactivity_filter)}`}>
+                <Clock className="h-3 w-3" />
+                {activeFilterOpt?.label}
+              </div>
+            )}
+
+            <div className="flex-1" />
+
             <Button variant="outline" size="sm" onClick={handleRunCheck} disabled={iChecking}>
               <Play className={`mr-2 h-4 w-4 ${iChecking ? "animate-spin" : ""}`} /> Run Check
             </Button>
@@ -287,7 +438,10 @@ export default function AlertsPage() {
             <ButtonGroup>
               <Dialog open={eDialogOpen} onOpenChange={setEDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" onClick={() => { setETempFilters(eFilters); setETempStart(eStartDT); setETempEnd(eEndDT); setEDialogOpen(true); }}>
+                  <Button variant="outline" onClick={() => {
+                    setETempFilters(eFilters); setETempStart(eStartDT);
+                    setETempEnd(eEndDT); setEDialogOpen(true);
+                  }}>
                     <Filter className="mr-2 h-4 w-4" /> Filters
                     {eHasFilters && <Badge variant="secondary" className="ml-2 text-xs">
                       {[eFilters.device_id && 1, eStartDT.date && 1, eEndDT.date && 1].filter(Boolean).length}
@@ -314,8 +468,8 @@ export default function AlertsPage() {
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setEDialogOpen(false)}>Cancel</Button>
                     <Button onClick={() => {
-                      setEFilters({ ...eTempFilters, page: 1 }); setEStartDT(eTempStart); setEEndDT(eTempEnd);
-                      setEDialogOpen(false); toast.success("Filters applied");
+                      setEFilters({ ...eTempFilters, page: 1 }); setEStartDT(eTempStart);
+                      setEEndDT(eTempEnd); setEDialogOpen(false); toast.success("Filters applied");
                     }}>Apply Filters</Button>
                   </DialogFooter>
                 </DialogContent>
@@ -345,7 +499,6 @@ export default function AlertsPage() {
               </Button>
             </ButtonGroup>
           </div>
-
           {renderTable(eTable, eColumns, eLoading, eData, eTotal, eFilters, setEFilters, "events")}
         </TabsContent>
       </Tabs>
@@ -394,9 +547,11 @@ function renderTable<T>(
                           ? <WifiOff className="h-12 w-12 text-green-500" />
                           : <AlertTriangle className="h-12 w-12 text-destructive" />}
                       </EmptyMedia>
-                      <EmptyTitle>{type === "inactivity" ? "All meters active" : "No alerts found"}</EmptyTitle>
+                      <EmptyTitle>{type === "inactivity" ? "No meters found" : "No alerts found"}</EmptyTitle>
                       <EmptyDescription>
-                        {type === "inactivity" ? "No inactive meters detected" : "No active alerts at the moment"}
+                        {type === "inactivity"
+                          ? "No inactive meters match the current filter"
+                          : "No active alerts at the moment"}
                       </EmptyDescription>
                     </EmptyHeader>
                   </Empty>
@@ -437,7 +592,8 @@ function renderTable<T>(
               <span className="text-xs font-medium p-2 pb-0 border-y">
                 Page {filters.page} of {Math.ceil(total / filters.limit)}
               </span>
-              <Button variant="outline" size="icon" disabled={filters.page >= Math.ceil(total / filters.limit)}
+              <Button variant="outline" size="icon"
+                disabled={filters.page >= Math.ceil(total / filters.limit)}
                 onClick={() => setFilters((p: any) => ({ ...p, page: p.page + 1 }))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
