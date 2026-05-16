@@ -234,6 +234,15 @@
             "admin",
             "developer"
           ]
+        },
+        {
+          "title": "Viewership CSV",
+          "url": "/reports/viewership-csv",
+          "icon": "FileSpreadsheet",
+          "roles": [
+            "admin",
+            "developer"
+          ]
         }
       ]
     },
