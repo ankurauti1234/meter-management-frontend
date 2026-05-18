@@ -28,6 +28,15 @@
           ]
         },
         {
+          "title": "Installed Meters",
+          "url": "/assets/installed-meters",
+          "icon": "BookCheck",
+          "roles": [
+            "admin",
+            "developer"
+          ]
+        },
+        {
           "title": "Master Data",
           "url": "/assets/master-data",
           "icon": "DatabaseZap",
@@ -50,6 +59,15 @@
           "icon": "UploadCloud",
           "roles": [
             "admin"
+          ]
+        },
+        {
+          "title": "Meter-HHID history",
+          "url": "/assets/meter-history",
+          "icon": "ClipboardClock",
+          "roles": [
+            "admin",
+            "developer"
           ]
         }
       ]
@@ -161,6 +179,15 @@
             "developer",
             "user"
           ]
+        },
+        {
+          "title": "Weekly Connectivity",
+          "url": "/live-monitoring/weekly-connectivity",
+          "icon": "CalendarDays",
+          "roles": [
+            "admin",
+            "developer"
+          ]
         }
       ]
     },
@@ -212,6 +239,15 @@
           "title": "Members Raw",
           "url": "/reports/members-raw",
           "icon": "Users",
+          "roles": [
+            "admin",
+            "developer"
+          ]
+        },
+        {
+          "title": "Viewership CSV",
+          "url": "/reports/viewership-csv",
+          "icon": "FileSpreadsheet",
           "roles": [
             "admin",
             "developer"

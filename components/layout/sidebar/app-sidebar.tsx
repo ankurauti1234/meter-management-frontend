@@ -41,6 +41,9 @@ import {
   Router,
   Eye,
   Fingerprint,
+  BookCheck,
+  CalendarDays,
+  ClipboardClock
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/sidebar/nav-main";
@@ -107,7 +110,10 @@ const iconMap: { [key: string]: LucideIcon } = {
   SlidersHorizontal,
   Router,
   Eye,
-  Fingerprint
+  Fingerprint,
+  BookCheck,
+  CalendarDays,
+  ClipboardClock
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
