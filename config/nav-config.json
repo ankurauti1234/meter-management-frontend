@@ -69,6 +69,14 @@
             "admin",
             "developer"
           ]
+        },
+        {
+          "title": "Assign Members",
+          "url": "/assets/assign-members",
+          "icon": "UserPlus",
+          "roles": [
+            "admin"
+          ]
         }
       ]
     },
@@ -247,7 +255,7 @@
         {
           "title": "Viewership CSV",
           "url": "/reports/viewership-csv",
-          "icon": "FileSpreadsheet",
+          "icon": "FileUser",
           "roles": [
             "admin",
             "developer"

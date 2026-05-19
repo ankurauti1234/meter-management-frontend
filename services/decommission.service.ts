@@ -70,12 +70,20 @@ export interface MeterHistoryRecord {
   id: string;
   meterId: string;
   hhid: string;
+  householdId?: string;
   assignedAt: string;
   decommissionedAt: string | null;
+  activeMeterId: string | null;
 }
 
 class DecommissionService {
   private basePath = "/decommission";
+
+  // Flat list of all active hhid->meterId pairs from meter_assignments
+  async getActiveAssignments(): Promise<Array<{ hhid: string; meterId: string }>> {
+    const res = await api.get(`${this.basePath}/active-assignments`);
+    return res.data.data;
+  }
 
   /**
    * Get list of currently assigned meters (for selection in UI)
