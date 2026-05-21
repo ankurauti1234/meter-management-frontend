@@ -80,6 +80,29 @@ class HouseholdService {
   async deleteMember(memberId: string): Promise<void> {
     await api.delete(`/households/members/${memberId}`);
   }
+
+  // New: Manually assign members to a household via the form UI
+  async assignMembersManually(
+    hhid: string,
+    contactEmail: string,
+    members: Array<{
+      memberCode: string;
+      age: number;
+      gender: string;
+      dob?: string;
+    }>
+  ): Promise<{ saved: number; email: string }> {
+    const res = await api.post("/households/members/assign", { hhid, contactEmail, members });
+    return res.data.data;
+  }
+
+  // New: Autocomplete — get preregistered contact emails (optionally filtered)
+  async getPreregisteredEmails(search?: string): Promise<string[]> {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    const res = await api.get(`/households/contacts/emails?${params.toString()}`);
+    return res.data.data as string[];
+  }
 }
 
 export default new HouseholdService();

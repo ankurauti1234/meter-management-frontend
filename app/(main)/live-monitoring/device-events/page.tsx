@@ -99,6 +99,7 @@ export default function DeviceEventsPage() {
 
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchEventsRef = useRef<() => void>(() => {});
 
   const [eventMappings, setEventMappings] = useState<EventMapping[]>([]);
   const [mappingsLoading, setMappingsLoading] = useState(true);
@@ -167,6 +168,11 @@ const events = eventsData.map((e: any) => {
   endDateTime,
 ]);
 
+  // Always keep ref pointing to latest fetchEvents so interval never goes stale
+  useEffect(() => {
+    fetchEventsRef.current = fetchEvents;
+  }, [fetchEvents]);
+
   // Load event mappings once
   useEffect(() => {
     const loadMappings = async () => {
@@ -190,16 +196,16 @@ const events = eventsData.map((e: any) => {
     loadMappings();
   }, []);
 
-  // Auto-refresh interval
+  // Auto-refresh interval — uses ref so filter changes never recreate the interval
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (refreshInterval) {
-      intervalRef.current = setInterval(fetchEvents, refreshInterval);
+      intervalRef.current = setInterval(() => fetchEventsRef.current(), refreshInterval);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [refreshInterval, fetchEvents]);
+  }, [refreshInterval]); // ← fetchEvents intentionally excluded
 
   // Initial load + dependency changes
   useEffect(() => {
