@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-table";
 import {
   ChevronLeft, ChevronRight, Filter, RefreshCw, Search, X,
-  Bell, AlertTriangle, WifiOff, Download, Mail, Play, Clock,
+  Bell, AlertTriangle, WifiOff, Download, Play, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,6 @@ import { DateTimePicker, DateTime } from "@/components/ui/date-time-picker";
 import eventsService, { Event } from "@/services/events.service";
 import alertsService, { InactivityAlert } from "@/services/alerts.service";
 import { RecipientsDialog } from "@/components/cards/recipients-dialog";
-import { SettingsDialog } from "@/components/cards/settings-dialog";
 
 /* ─── Types ───────────────────────────────────────────── */
 interface EventFilters { device_id?: string; page: number; limit: number; }
@@ -101,11 +100,10 @@ export default function AlertsPage() {
   const [iTotal, setITotal] = useState(0);
   const [iLoading, setILoading] = useState(false);
   const [iChecking, setIChecking] = useState(false);
-  const [iEmailing, setIEmailing] = useState(false);
   const [iExporting, setIExporting] = useState(false);
   const [debouncedIDevice] = useDebounce(iFilters.device_id, 600);
 
-  const iHasFilters = iFilters.inactivity_filter !== "all" || Boolean(iFilters.device_id);
+  const iHasFilters = iFilters.inactivity_filter !== "all";
   const activeFilterOpt = INACTIVITY_FILTER_OPTIONS.find(o => o.value === iFilters.inactivity_filter);
 
   const fetchInactivity = useCallback(async () => {
@@ -145,15 +143,6 @@ export default function AlertsPage() {
       toast.success(`Check done. New: ${r.newInactive}, Resolved: ${r.resolved}, Total: ${r.totalInactive}`);
       fetchInactivity();
     } catch { toast.error("Check failed"); } finally { setIChecking(false); }
-  };
-
-  const handleSendEmail = async () => {
-    setIEmailing(true);
-    try {
-      const r = await alertsService.sendEmail();
-      toast.success(`Email sent to ${r.recipientCount} recipient(s)`);
-    } catch (e: any) { toast.error(e?.response?.data?.msg || "Failed to send email"); }
-    finally { setIEmailing(false); }
   };
 
   const handleExport = async () => {
@@ -203,14 +192,6 @@ export default function AlertsPage() {
         );
       },
     },
-    {
-      accessorKey: "detectedAt", header: "Detected At",
-      cell: ({ row }) => (
-        <div className="text-xs text-muted-foreground font-mono">
-          {format(new Date(row.original.detectedAt), "dd MMM yyyy, HH:mm")}
-        </div>
-      ),
-    },
   ];
 
   const iTable = useReactTable({
@@ -232,6 +213,7 @@ export default function AlertsPage() {
   const [eDialogOpen, setEDialogOpen] = useState(false);
   const [eRefreshInterval, setERefreshInterval] = useState<number | null>(null);
   const eIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchEventAlertsRef = useRef<() => void>(() => {});
   const [debouncedEDevice] = useDebounce(eFilters.device_id, 600);
 
   const eHasFilters = Boolean(eFilters.device_id || eStartDT.date || eEndDT.date);
@@ -258,11 +240,15 @@ export default function AlertsPage() {
     finally { setELoading(false); setERefreshing(false); }
   }, [debouncedEDevice, eFilters.page, eFilters.limit, eStartDT, eEndDT]);
 
+  useEffect(() => { fetchEventAlertsRef.current = fetchEventAlerts; }, [fetchEventAlerts]);
+
   useEffect(() => {
     if (eIntervalRef.current) clearInterval(eIntervalRef.current);
-    if (eRefreshInterval) eIntervalRef.current = setInterval(fetchEventAlerts, eRefreshInterval);
+    if (eRefreshInterval) {
+      eIntervalRef.current = setInterval(() => fetchEventAlertsRef.current(), eRefreshInterval);
+    }
     return () => { if (eIntervalRef.current) clearInterval(eIntervalRef.current); };
-  }, [eRefreshInterval, fetchEventAlerts]);
+  }, [eRefreshInterval]);
 
   useEffect(() => { if (activeTab === "events") fetchEventAlerts(); }, [fetchEventAlerts, activeTab]);
 
@@ -331,7 +317,7 @@ export default function AlertsPage() {
         <TabsContent value="inactivity" className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
 
-            {/* Search */}
+            {/* Search — standalone, separate from filter dialog */}
             <div className="relative flex-1 min-w-[200px] max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search device ID..." className="pl-10"
@@ -339,7 +325,7 @@ export default function AlertsPage() {
                 onChange={(e) => setIFilters((p) => ({ ...p, device_id: e.target.value, page: 1 }))} />
             </div>
 
-            {/* Inactivity filter */}
+            {/* Inactivity duration filter */}
             <ButtonGroup>
               <Dialog open={iFilterDialogOpen} onOpenChange={setIFilterDialogOpen}>
                 <DialogTrigger asChild>
@@ -347,9 +333,7 @@ export default function AlertsPage() {
                     onClick={() => { setITempFilters(iFilters); setIFilterDialogOpen(true); }}>
                     <Filter className="mr-2 h-4 w-4" /> Filter
                     {iHasFilters && (
-                      <Badge variant="secondary" className="ml-2 text-xs">
-                        {[iFilters.inactivity_filter !== "all", Boolean(iFilters.device_id)].filter(Boolean).length}
-                      </Badge>
+                      <Badge variant="secondary" className="ml-2 text-xs">1</Badge>
                     )}
                   </Button>
                 </DialogTrigger>
@@ -361,15 +345,6 @@ export default function AlertsPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-5 py-4">
-                    <div className="space-y-2">
-                      <Label>Device ID</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="IM000..." className="pl-10"
-                          value={iTempFilters.device_id}
-                          onChange={(e) => setITempFilters((p) => ({ ...p, device_id: e.target.value }))} />
-                      </div>
-                    </div>
                     <div className="space-y-2">
                       <Label>Inactivity Duration</Label>
                       <div className="grid gap-2">
@@ -419,14 +394,9 @@ export default function AlertsPage() {
             <Button variant="outline" size="sm" onClick={handleRunCheck} disabled={iChecking}>
               <Play className={`mr-2 h-4 w-4 ${iChecking ? "animate-spin" : ""}`} /> Run Check
             </Button>
-            <Button variant="outline" size="sm" onClick={handleSendEmail} disabled={iEmailing}>
-              <Mail className={`mr-2 h-4 w-4 ${iEmailing ? "animate-spin" : ""}`} /> Send Email
-            </Button>
             <Button variant="outline" size="sm" onClick={handleExport} disabled={iExporting || iTotal === 0}>
               <Download className="mr-2 h-4 w-4" /> Export Excel
             </Button>
-            <RecipientsDialog />
-            <SettingsDialog onUpdate={fetchInactivity} />
           </div>
 
           {renderTable(iTable, iColumns, iLoading, iData, iTotal, iFilters, setIFilters, "inactivity")}
@@ -514,19 +484,23 @@ function renderTable<T>(
 ) {
   return (
     <div className="rounded-md border overflow-hidden">
-      <div className="max-h-[70vh] overflow-y-auto">
+      <div className="overflow-x-auto">
         <Table className="border-separate border-spacing-0 [&_td]:border-border [&_th]:border-b [&_th]:border-border [&_tr]:border-none [&_tr:not(:last-child)_td]:border-b">
-          <TableHeader className="sticky top-0 z-20 bg-background shadow-sm">
+          <TableHeader>
             {table.getHeaderGroups().map((hg: any) => (
               <TableRow key={hg.id}>
                 {hg.headers.map((h: any) => (
-                  <TableHead key={h.id} className="bg-background">
+                  <TableHead key={h.id} className="bg-muted/60 whitespace-nowrap">
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
+        </Table>
+      </div>
+      <div className="max-h-[65vh] overflow-y-auto overflow-x-auto">
+        <Table className="border-separate border-spacing-0 [&_td]:border-border [&_tr]:border-none [&_tr:not(:last-child)_td]:border-b">
           <TableBody>
             {loading ? (
               <TableRow>
