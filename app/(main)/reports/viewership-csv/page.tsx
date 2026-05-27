@@ -227,9 +227,7 @@ export default function ViewershipCSVPage() {
             </ButtonGroup>
 
             {/* Refresh */}
-            <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-            </Button>
+            {/*  */}
           </div>
         }
       />
@@ -308,9 +306,6 @@ export default function ViewershipCSVPage() {
                           <div>
                             <p className="text-sm font-semibold">
                               {formatDateLabel(report.date_label)}
-                            </p>
-                            <p className="text-xs text-muted-foreground font-mono">
-                              {report.date_label}
                             </p>
                           </div>
                         </div>

@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-table";
 import {
   Search, RefreshCw, ChevronLeft, ChevronRight,
-  CheckCircle2, X, Calendar, CalendarRange,
+  CheckCircle2, X, Calendar, CalendarRange, Download,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,48 @@ export default function InstalledMetersPage() {
 
   const [debouncedSearch] = useDebounce(search, 500);
 
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append("export", "true");
+      if (debouncedSearch) params.append("search", debouncedSearch);
+      if (dateFrom) params.append("dateFrom", dateFrom);
+      if (dateTo)   params.append("dateTo",   dateTo);
+
+      const { data: res } = await api.get<{ data: { meters: InstalledMeter[] } }>(
+        `/meters/installed?${params.toString()}`
+      );
+      const meters = res.data.meters;
+      if (!meters.length) { toast.error("No data to download"); return; }
+
+      const headers = ["Sr No.", "Meter ID", "HHID", "Installed At"];
+      const rows = meters.map((m, i) => [
+        i + 1,
+        m.meterId,
+        m.assignedHouseholdId,
+        format(new Date(m.installedAt), "dd MMM yyyy HH:mm:ss"),
+      ]);
+      const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement("a"), {
+        href: url,
+        download: `installed-meters-${format(new Date(), "dd-MM-yyyy")}.csv`,
+      });
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${meters.length} records`);
+    } catch {
+      toast.error("Download failed");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const hasDateFilter = Boolean(dateFrom || dateTo);
 
   /* ─── Fetch ─────────────────────────────────────────────────── */
@@ -146,7 +188,7 @@ export default function InstalledMetersPage() {
     ? activePreset
     : hasDateFilter
       ? `${dateFrom || "…"} → ${dateTo || "…"}`
-      : "Installation Date";
+      : "Filters";
 
   /* ─── Columns ───────────────────────────────────────────────── */
   const columns: ColumnDef<InstalledMeter>[] = [
@@ -328,22 +370,25 @@ export default function InstalledMetersPage() {
               )}
             </ButtonGroup>
 
+            {/* Download */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2 text-sm"
+              onClick={handleDownload}
+              disabled={downloading || total === 0}
+            >
+              <Download className={`h-3.5 w-3.5 ${downloading ? "animate-pulse" : ""}`} />
+              {downloading ? "Downloading..." : "Download CSV"}
+            </Button>
+
             {/* Auto-refresh */}
             <ButtonGroup>
               <Select
                 value={refreshInterval ? String(refreshInterval) : "off"}
                 onValueChange={(v) => setRefreshInterval(v === "off" ? null : Number(v))}
               >
-                <SelectTrigger className="w-fit h-9">
-                  <SelectValue placeholder="Refresh: Off" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="off">Refresh: Off</SelectItem>
-                  <SelectItem value="10000">Every 10s</SelectItem>
-                  <SelectItem value="30000">Every 30s</SelectItem>
-                  <SelectItem value="60000">Every 1 min</SelectItem>
-                  <SelectItem value="300000">Every 5 min</SelectItem>
-                </SelectContent>
+                
               </Select>
               <Button onClick={() => { setRefreshing(true); fetchInstalledMeters(); }}
                 disabled={refreshing} variant="outline" size="icon" className="h-9 w-9">
