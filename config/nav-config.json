@@ -260,6 +260,15 @@
             "admin",
             "developer"
           ]
+        },
+        {
+          "title": "Device Reports",
+          "url": "/reports/device-reports",
+          "icon": "MonitorCheck",
+          "roles": [
+            "admin",
+            "developer"
+          ]
         }
       ]
     },
