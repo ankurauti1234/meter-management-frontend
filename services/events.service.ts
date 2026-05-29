@@ -361,6 +361,35 @@ class EventsService {
     const res = await api.get(`/events/weekly-connectivity?${params.toString()}`);
     return res.data.data;
   }
+
+  async getDailyReport(filters: {
+    device_id?: string;
+    hhid?: string;
+    date?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Array<{
+      device_id: string;
+      hhid: string;
+      date: string;
+      region: string;
+      connectivity: "Yes" | "No";
+      viewership: "Yes" | "No";
+      member_dec: "Yes" | "No";
+    }>;
+    stats: { total: number; connectivity: number; viewership: number; member_dec: number };
+    pagination: Pagination;
+  }> {
+    const params = new URLSearchParams();
+    if (filters.device_id) params.append("device_id", filters.device_id);
+    if (filters.hhid)      params.append("hhid",      filters.hhid);
+    if (filters.date)      params.append("date",      filters.date);
+    if (filters.page)      params.append("page",      String(filters.page));
+    if (filters.limit)     params.append("limit",     String(filters.limit));
+    const res = await api.get(`/events/daily-report?${params.toString()}`);
+    return res.data.data;
+  }
 }
 
 export default new EventsService();
