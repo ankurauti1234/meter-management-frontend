@@ -269,6 +269,15 @@
             "admin",
             "developer"
           ]
+        },
+        {
+          "title": "Daily Report",
+          "url": "/reports/daily-report",
+          "icon": "LayoutGrid",
+          "roles": [
+            "admin",
+            "developer"
+          ]
         }
       ]
     },
