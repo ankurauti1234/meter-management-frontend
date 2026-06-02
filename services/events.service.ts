@@ -361,7 +361,6 @@ class EventsService {
     const res = await api.get(`/events/weekly-connectivity?${params.toString()}`);
     return res.data.data;
   }
-
   async getDailyReport(filters: {
     device_id?: string;
     hhid?: string;
@@ -370,6 +369,7 @@ class EventsService {
     limit?: number;
   }): Promise<{
     data: Array<{
+      recognized_image: any;
       device_id: string;
       hhid: string;
       date: string;
@@ -377,8 +377,10 @@ class EventsService {
       connectivity: "Yes" | "No";
       viewership: "Yes" | "No";
       member_dec: "Yes" | "No";
+      image_rec: "Yes" | "No";
+      audio_fingerprint: string;
     }>;
-    stats: { total: number; connectivity: number; viewership: number; member_dec: number };
+    stats: { total: number; connectivity: number; viewership: number; member_dec: number; image_rec: number };
     pagination: Pagination;
   }> {
     const params = new URLSearchParams();
@@ -390,6 +392,7 @@ class EventsService {
     const res = await api.get(`/events/daily-report?${params.toString()}`);
     return res.data.data;
   }
+
 }
 
 export default new EventsService();
