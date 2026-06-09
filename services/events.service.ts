@@ -375,10 +375,10 @@ class EventsService {
       date: string;
       region: string;
       connectivity: "Yes" | "No";
-      viewership: "Yes" | "No";
+      viewership: "Yes" | "No" | "No Data";
       member_dec: "Yes" | "No";
       image_rec: "Yes" | "No";
-      audio_fingerprint: string;
+      audio_fingerprint: "Yes" | "No" | "No Data";
     }>;
     stats: { total: number; connectivity: number; viewership: number; member_dec: number; image_rec: number };
     pagination: Pagination;

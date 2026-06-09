@@ -38,10 +38,10 @@ interface DailyRow {
   date:              string;
   region:            string;
   connectivity:      "Yes" | "No";
-  viewership:        "Yes" | "No";
+  viewership:        "Yes" | "No" | "No Data";
   member_dec:        "Yes" | "No";
   image_rec:         "Yes" | "No";   // backend field name
-  audio_fingerprint: string;
+  audio_fingerprint: "Yes" | "No" | "No Data";
 }
 
 interface Filters {
@@ -72,9 +72,9 @@ const DEFAULT_FILTERS: Filters = {
 
 // ── Yes/No/— Badge ────────────────────────────────────────────────────────────
 
-function YNBadge({ value }: { value: "Yes" | "No" | string }) {
-  if (value === "--" || value === "") {
-    return <span className="text-muted-foreground font-medium">—</span>;
+function YNBadge({ value }: { value: "Yes" | "No" | "No Data" | string }) {
+  if (value === "--" || value === "" || value === "No Data") {
+    return <span className="text-muted-foreground font-medium text-xs">No Data</span>;
   }
   return (
     <Badge
