@@ -38,9 +38,9 @@ interface DailyRow {
   date:              string;
   region:            string;
   connectivity:      "Yes" | "No";
-  viewership:        "Yes" | "No" | "No Data";
+  viewership:        "Yes" | "No";
   member_dec:        "Yes" | "No";
-  image_rec:         "Yes" | "No";   // backend field name
+  image_rec:         "Yes" | "No" | "No Data";   // backend field name
   audio_fingerprint: "Yes" | "No" | "No Data";
 }
 
