@@ -191,6 +191,7 @@ class EventsService {
     device_id?: string;
     hhid?: string;
     date?: string;
+    region?: string;
     page?: number;
     limit?: number;
   }): Promise<{
@@ -365,6 +366,7 @@ class EventsService {
     device_id?: string;
     hhid?: string;
     date?: string;
+    region?: string;
     page?: number;
     limit?: number;
   }): Promise<{
@@ -387,6 +389,7 @@ class EventsService {
     if (filters.device_id) params.append("device_id", filters.device_id);
     if (filters.hhid)      params.append("hhid",      filters.hhid);
     if (filters.date)      params.append("date",      filters.date);
+    if (filters.region)    params.append("region",    filters.region);
     if (filters.page)      params.append("page",      String(filters.page));
     if (filters.limit)     params.append("limit",     String(filters.limit));
     const res = await api.get(`/events/daily-report?${params.toString()}`);
