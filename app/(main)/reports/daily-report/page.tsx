@@ -6,6 +6,7 @@ import { useDebounce } from "use-debounce";
 import {
   Filter, RefreshCw, X, Download,
   ChevronLeft, ChevronRight, LayoutGrid,
+  Table2, MapPin,
 } from "lucide-react";
 
 import { Button }   from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader }  from "@/components/ui/page-header";
 import { Spinner }     from "@/components/ui/spinner";
 import {
@@ -29,6 +31,7 @@ import { ButtonGroup } from "@/components/ui/button-group";
 import { toast }       from "sonner";
 
 import eventsService from "@/services/events.service";
+import api           from "@/services/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -40,7 +43,7 @@ interface DailyRow {
   connectivity:      "Yes" | "No";
   viewership:        "Yes" | "No";
   member_dec:        "Yes" | "No";
-  image_rec:         "Yes" | "No" | "No Data";   // backend field name
+  image_rec:         "Yes" | "No" | "No Data";
   audio_fingerprint: "Yes" | "No" | "No Data";
 }
 
@@ -48,10 +51,11 @@ interface Filters {
   device_id:    string;
   hhid:         string;
   date:         string;
+  region:       string;
   connectivity: "Yes" | "No" | "all";
   viewership:   "Yes" | "No" | "all";
   member_dec:   "Yes" | "No" | "all";
-  image_rec:    "Yes" | "No" | "all"; // backend field name
+  image_rec:    "Yes" | "No" | "all";
   page:         number;
   limit:        number;
 }
@@ -62,6 +66,7 @@ const DEFAULT_FILTERS: Filters = {
   device_id:    "",
   hhid:         "",
   date:         TODAY,
+  region:       "",
   connectivity: "all",
   viewership:   "all",
   member_dec:   "all",
@@ -103,6 +108,13 @@ export default function DailyReportPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting]   = useState(false);
 
+  const [regionOptions, setRegionOptions] = useState<string[]>([]);
+
+  // Page-level view toggle: report table vs device-region view
+  const [view, setView] = useState<"table" | "region">("table");
+  // Region selected within the Region View
+  const [activeRegion, setActiveRegion] = useState("all");
+
   const [debouncedDevice] = useDebounce(filters.device_id, 500);
   const [debouncedHhid]   = useDebounce(filters.hhid,      500);
 
@@ -110,6 +122,7 @@ export default function DailyReportPage() {
     filters.device_id ||
     filters.hhid ||
     filters.date !== TODAY ||
+    filters.region        ||
     filters.connectivity !== "all" ||
     filters.viewership    !== "all" ||
     filters.member_dec    !== "all" ||
@@ -119,14 +132,15 @@ export default function DailyReportPage() {
   const activeFilterCount = [
     filters.device_id,
     filters.hhid,
-    filters.date !== TODAY        ? filters.date         : "",
+    filters.date !== TODAY         ? filters.date         : "",
+    filters.region,
     filters.connectivity !== "all" ? filters.connectivity : "",
     filters.viewership   !== "all" ? filters.viewership   : "",
     filters.member_dec   !== "all" ? filters.member_dec   : "",
     filters.image_rec    !== "all" ? filters.image_rec    : "",
   ].filter(Boolean).length;
 
-  // ── Fetch (all meters for date, client-side Yes/No filter) ──────────────────
+  // ── Fetch ────────────────────────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -135,6 +149,7 @@ export default function DailyReportPage() {
         device_id: debouncedDevice || undefined,
         hhid:      debouncedHhid   || undefined,
         date:      filters.date,
+        region:    filters.region  || undefined,
         page:      1,
         limit:     500, // fetch all meters for the date; client-side Yes/No filtering applied below
       });
@@ -146,11 +161,18 @@ export default function DailyReportPage() {
     } finally {
       setLoading(false); setRefreshing(false);
     }
-  }, [debouncedDevice, debouncedHhid, filters.date]);
+  }, [debouncedDevice, debouncedHhid, filters.date, filters.region]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── Client-side Yes/No filtering ─────────────────────────────────────────────
+  // Fetch region options once on mount
+  useEffect(() => {
+    api.get<{ data: { regions: string[] } }>("/events/daily-report/regions")
+      .then(({ data: res }) => setRegionOptions(res.data.regions ?? []))
+      .catch(() => {});
+  }, []);
+
+  // ── Client-side Yes/No filtering (Report Table view) ─────────────────────────
 
   const filteredData = useMemo(() => rawData.filter(row => {
     if (filters.connectivity !== "all" && row.connectivity !== filters.connectivity) return false;
@@ -173,7 +195,56 @@ export default function DailyReportPage() {
     if (filters.page > totalPages) setFilters(p => ({ ...p, page: 1 }));
   }, [totalPages, filters.page]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────────
+  // ── Device ↔ Region grouping (Region View) ───────────────────────────────────
+
+  // Apply the same Yes/No filters to the region view's underlying data
+  const regionFilteredData = filteredData;
+
+  // Group devices by region
+  const devicesByRegion = useMemo(() => {
+    const map = new Map<string, DailyRow[]>();
+    for (const row of regionFilteredData) {
+      const list = map.get(row.region) ?? [];
+      list.push(row);
+      map.set(row.region, list);
+    }
+    return map;
+  }, [regionFilteredData]);
+
+  // Region counts for tabs (based on dataset, not Yes/No filters, so counts stay stable)
+  const regionCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rawData.length };
+    for (const row of rawData) {
+      counts[row.region] = (counts[row.region] ?? 0) + 1;
+    }
+    return counts;
+  }, [rawData]);
+
+  // Regions visible as tabs (respects the region dropdown filter)
+  const visibleRegions = useMemo(
+    () => filters.region ? regionOptions.filter(r => r === filters.region) : regionOptions,
+    [regionOptions, filters.region]
+  );
+
+  // Reset activeRegion if the region filter narrows the list and current selection is gone
+  useEffect(() => {
+    if (activeRegion !== "all" && !visibleRegions.includes(activeRegion)) {
+      setActiveRegion("all");
+    }
+  }, [visibleRegions, activeRegion]);
+
+  // Devices to display in Region View based on activeRegion
+  const regionViewGroups = useMemo(() => {
+    if (activeRegion === "all") {
+      return Array.from(devicesByRegion.entries())
+        .map(([region, devices]) => ({ region, devices }))
+        .sort((a, b) => a.region.localeCompare(b.region));
+    }
+    const devices = devicesByRegion.get(activeRegion) ?? [];
+    return [{ region: activeRegion, devices }];
+  }, [devicesByRegion, activeRegion]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleApply = () => {
     setFilters({ ...tempFilters, page: 1 });
@@ -184,6 +255,7 @@ export default function DailyReportPage() {
   const handleClear = () => {
     setFilters(DEFAULT_FILTERS);
     setTempFilters(DEFAULT_FILTERS);
+    setActiveRegion("all");
     toast("Filters cleared");
   };
 
@@ -196,11 +268,13 @@ export default function DailyReportPage() {
         device_id: filters.device_id || undefined,
         hhid:      filters.hhid      || undefined,
         date:      filters.date,
+        region:    filters.region    || undefined,
         page:      1,
         limit:     999999,
       });
 
       const rows = (res.data || []).filter(row => {
+        if (view === "region" && activeRegion !== "all" && row.region !== activeRegion) return false;
         if (filters.connectivity !== "all" && row.connectivity !== filters.connectivity) return false;
         if (filters.viewership   !== "all" && row.viewership   !== filters.viewership)   return false;
         if (filters.member_dec   !== "all" && row.member_dec   !== filters.member_dec)   return false;
@@ -221,8 +295,9 @@ export default function DailyReportPage() {
 
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url  = URL.createObjectURL(blob);
+      const suffix = view === "region" && activeRegion !== "all" ? `_${activeRegion}` : "";
       const a    = Object.assign(document.createElement("a"), {
-        href: url, download: `daily_report_${filters.date}.csv`,
+        href: url, download: `daily_report_${filters.date}${suffix}.csv`,
       });
       document.body.appendChild(a); a.click();
       document.body.removeChild(a);
@@ -237,7 +312,7 @@ export default function DailyReportPage() {
 
   const srStart = (filters.page - 1) * filters.limit + 1;
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <div className="p-4 space-y-5">
@@ -298,6 +373,21 @@ export default function DailyReportPage() {
                       <Input type="date" value={tempFilters.date}
                         onChange={(e) => setTempFilters(p => ({ ...p, date: e.target.value }))} />
                     </div>
+                    <div className="space-y-1.5">
+                      <Label>Region</Label>
+                      <Select
+                        value={tempFilters.region || "all"}
+                        onValueChange={(v) => setTempFilters(p => ({ ...p, region: v === "all" ? "" : v }))}
+                      >
+                        <SelectTrigger className="text-xs"><SelectValue placeholder="All regions" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-xs">All regions</SelectItem>
+                          {regionOptions.map((r) => (
+                            <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       {(
@@ -355,7 +445,24 @@ export default function DailyReportPage() {
         }
       />
 
-      {/* ── Table ── */}
+      {/* ── Page View Toggle ── */}
+      <Tabs value={view} onValueChange={(v) => setView(v as "table" | "region")}>
+        <TabsList>
+          <TabsTrigger value="table" className="text-xs gap-1.5">
+            <Table2 className="h-3.5 w-3.5" />
+            Report Table
+          </TabsTrigger>
+          <TabsTrigger value="region" className="text-xs gap-1.5">
+            <MapPin className="h-3.5 w-3.5" />
+            Device &amp; Region View
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          REPORT TABLE VIEW
+      ════════════════════════════════════════════════════════════════════ */}
+      {view === "table" && (
       <div className="rounded-md border shadow-sm overflow-hidden">
         <div className="max-h-[65vh] overflow-auto">
           <table className="w-full text-xs border-collapse">
@@ -456,6 +563,110 @@ export default function DailyReportPage() {
           </div>
         )}
       </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          DEVICE & REGION VIEW
+      ════════════════════════════════════════════════════════════════════ */}
+      {view === "region" && (
+        <div className="space-y-4">
+          {/* Region tabs */}
+          {visibleRegions.length > 0 && (
+            <Tabs value={activeRegion} onValueChange={setActiveRegion}>
+              <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1.5 rounded-xl">
+                <TabsTrigger value="all" className="text-xs gap-1.5 rounded-lg">
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  All Regions
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4 min-w-[1.25rem] tabular-nums">
+                    {regionCounts["all"] ?? 0}
+                  </Badge>
+                </TabsTrigger>
+                {visibleRegions.map((region) => (
+                  <TabsTrigger key={region} value={region} className="text-xs gap-1.5 rounded-lg">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {region}
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4 min-w-[1.25rem] tabular-nums">
+                      {regionCounts[region] ?? 0}
+                    </Badge>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-64 gap-3 border rounded-md">
+              <Spinner className="h-8 w-8" />
+              <p className="text-sm text-muted-foreground">Loading daily report...</p>
+            </div>
+          ) : regionViewGroups.every(g => g.devices.length === 0) ? (
+            <div className="border rounded-md">
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <MapPin className="h-12 w-12 text-muted-foreground/40" />
+                  </EmptyMedia>
+                  <EmptyTitle>No data found</EmptyTitle>
+                  <EmptyDescription>
+                    No meters match your filters for {format(new Date(filters.date + "T12:00:00"), "dd MMM yyyy")}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {regionViewGroups.map(({ region, devices }) => (
+                <div key={region} className="rounded-md border shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-muted/50 border-b">
+                    <span className="flex items-center gap-2 font-medium text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      {region}
+                    </span>
+                    <Badge variant="outline" className="text-xs tabular-nums">
+                      {devices.length} device{devices.length !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead className="bg-muted/30">
+                        <tr>
+                          <th className="px-3 py-2.5 text-center font-medium text-muted-foreground w-14">Sr.</th>
+                          <th className="px-3 py-2.5 text-left   font-medium text-muted-foreground">HHID</th>
+                          <th className="px-3 py-2.5 text-left   font-medium text-muted-foreground">Device ID</th>
+                          <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">Connectivity</th>
+                          <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">Viewership</th>
+                          <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">Member Dec</th>
+                          <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">Recognized Image</th>
+                          <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">Audio Fingerprint</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {devices.map((row, idx) => (
+                          <tr key={`${row.device_id}-${idx}`}
+                            className={`border-b last:border-0 hover:bg-muted/40 transition-colors ${idx % 2 !== 0 ? "bg-muted/20" : ""}`}>
+                            <td className="px-3 py-2.5 text-center tabular-nums text-muted-foreground">{idx + 1}</td>
+                            <td className="px-3 py-2.5">
+                              <code className="font-mono bg-muted px-1.5 py-0.5 rounded">{row.hhid}</code>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <code className="font-mono bg-muted px-1.5 py-0.5 rounded">{row.device_id}</code>
+                            </td>
+                            <td className="px-3 py-2.5 text-center"><YNBadge value={row.connectivity} /></td>
+                            <td className="px-3 py-2.5 text-center"><YNBadge value={row.viewership}   /></td>
+                            <td className="px-3 py-2.5 text-center"><YNBadge value={row.member_dec}   /></td>
+                            <td className="px-3 py-2.5 text-center"><YNBadge value={row.image_rec}    /></td>
+                            <td className="px-3 py-2.5 text-center"><YNBadge value={row.audio_fingerprint} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

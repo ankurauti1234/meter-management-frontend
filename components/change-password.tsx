@@ -91,21 +91,21 @@ const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps)
 };
 
 
-  const handleSkip = () => {
-    onOpenChange(false);
-    router.push("/dashboard");
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      resetForm();
-    }
-    onOpenChange(newOpen);
+  // This dialog must not be dismissible until the password is changed.
+  // Ignore any attempt to close it via overlay click, Escape key, or the X button.
+  const handleOpenChange = (_newOpen: boolean) => {
+    // no-op: closing is only allowed programmatically after a successful
+    // password change (see handleSubmit)
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        showCloseButton={false}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold">
             Change Password
@@ -171,21 +171,11 @@ const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps)
               {isLoading ? "Updating..." : "Change Password"}
             </Button>
 
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              size="lg"
-              onClick={handleSkip}
-              disabled={isLoading}
-            >
-              Skip for now
-            </Button>
           </div>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          You can always change your password later from account settings
+          You must set a new password before continuing.
         </p>
       </DialogContent>
     </Dialog>
