@@ -46,7 +46,8 @@ import {
   ClipboardClock,
   UserPlus,
   FileUser,
-  MonitorCheck
+  MonitorCheck,
+  Unlink
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/sidebar/nav-main";
@@ -119,7 +120,8 @@ const iconMap: { [key: string]: LucideIcon } = {
   ClipboardClock,
   UserPlus,
   FileUser,
-  MonitorCheck
+  MonitorCheck,
+  Unlink
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
