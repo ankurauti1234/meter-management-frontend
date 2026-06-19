@@ -181,12 +181,12 @@ export function LoginForm({
             <div className="flex items-center justify-between mb-2">
               <FieldLabel>Password</FieldLabel>
 
-              <p
+              {/* <p
                 onClick={() => {setPasswordReset(true);setError("");}}
                 className="text-xs text-primary hover:underline cursor-pointer"
               >
                 Forgot password?
-              </p>
+              </p> */}
             </div>
 
             <InputGroup>

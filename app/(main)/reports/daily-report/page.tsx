@@ -33,8 +33,6 @@ import { toast }       from "sonner";
 import eventsService from "@/services/events.service";
 import api           from "@/services/api";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface DailyRow {
   device_id:         string;
   hhid:              string;
@@ -50,7 +48,8 @@ interface DailyRow {
 interface Filters {
   device_id:    string;
   hhid:         string;
-  date:         string;
+  dateFrom:     string;
+  dateTo:       string;
   region:       string;
   connectivity: "Yes" | "No" | "all";
   viewership:   "Yes" | "No" | "all";
@@ -65,7 +64,8 @@ const TODAY = new Date().toISOString().split("T")[0];
 const DEFAULT_FILTERS: Filters = {
   device_id:    "",
   hhid:         "",
-  date:         TODAY,
+  dateFrom:     TODAY,
+  dateTo:       TODAY,
   region:       "",
   connectivity: "all",
   viewership:   "all",
@@ -74,8 +74,6 @@ const DEFAULT_FILTERS: Filters = {
   page:         1,
   limit:        25,
 };
-
-// ── Yes/No/— Badge ────────────────────────────────────────────────────────────
 
 function YNBadge({ value }: { value: "Yes" | "No" | "No Data" | string }) {
   if (value === "--" || value === "" || value === "No Data") {
@@ -95,7 +93,14 @@ function YNBadge({ value }: { value: "Yes" | "No" | "No Data" | string }) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+function parseYMD(s: string): Date {
+  return new Date(s + "T12:00:00");
+}
+
+function formatRangeLabel(from: string, to: string) {
+  if (from === to) return format(parseYMD(from), "dd MMM yyyy");
+  return `${format(parseYMD(from), "dd MMM yyyy")} – ${format(parseYMD(to), "dd MMM yyyy")}`;
+}
 
 export default function DailyReportPage() {
   const [filters, setFilters]         = useState<Filters>(DEFAULT_FILTERS);
@@ -110,18 +115,18 @@ export default function DailyReportPage() {
 
   const [regionOptions, setRegionOptions] = useState<string[]>([]);
 
-  // Page-level view toggle: report table vs device-region view
   const [view, setView] = useState<"table" | "region">("table");
-  // Region selected within the Region View
   const [activeRegion, setActiveRegion] = useState("all");
 
   const [debouncedDevice] = useDebounce(filters.device_id, 500);
   const [debouncedHhid]   = useDebounce(filters.hhid,      500);
 
+  const isDefaultDateRange = filters.dateFrom === TODAY && filters.dateTo === TODAY;
+
   const hasFilters = Boolean(
     filters.device_id ||
     filters.hhid ||
-    filters.date !== TODAY ||
+    !isDefaultDateRange ||
     filters.region        ||
     filters.connectivity !== "all" ||
     filters.viewership    !== "all" ||
@@ -132,7 +137,7 @@ export default function DailyReportPage() {
   const activeFilterCount = [
     filters.device_id,
     filters.hhid,
-    filters.date !== TODAY         ? filters.date         : "",
+    !isDefaultDateRange ? `${filters.dateFrom}_${filters.dateTo}` : "",
     filters.region,
     filters.connectivity !== "all" ? filters.connectivity : "",
     filters.viewership   !== "all" ? filters.viewership   : "",
@@ -140,18 +145,17 @@ export default function DailyReportPage() {
     filters.image_rec    !== "all" ? filters.image_rec    : "",
   ].filter(Boolean).length;
 
-  // ── Fetch ────────────────────────────────────────────────────────────────────
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await eventsService.getDailyReport({
         device_id: debouncedDevice || undefined,
         hhid:      debouncedHhid   || undefined,
-        date:      filters.date,
+        dateFrom:  filters.dateFrom,
+        dateTo:    filters.dateTo,
         region:    filters.region  || undefined,
         page:      1,
-        limit:     500, // fetch all meters for the date; client-side Yes/No filtering applied below
+        limit:     999999,
       });
       setRawData(res.data || []);
       setStats(res.stats || { total: 0, connectivity: 0, viewership: 0, member_dec: 0, image_rec: 0 });
@@ -161,18 +165,15 @@ export default function DailyReportPage() {
     } finally {
       setLoading(false); setRefreshing(false);
     }
-  }, [debouncedDevice, debouncedHhid, filters.date, filters.region]);
+  }, [debouncedDevice, debouncedHhid, filters.dateFrom, filters.dateTo, filters.region]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Fetch region options once on mount
   useEffect(() => {
     api.get<{ data: { regions: string[] } }>("/events/daily-report/regions")
       .then(({ data: res }) => setRegionOptions(res.data.regions ?? []))
       .catch(() => {});
   }, []);
-
-  // ── Client-side Yes/No filtering (Report Table view) ─────────────────────────
 
   const filteredData = useMemo(() => rawData.filter(row => {
     if (filters.connectivity !== "all" && row.connectivity !== filters.connectivity) return false;
@@ -190,28 +191,20 @@ export default function DailyReportPage() {
     return filteredData.slice(start, start + filters.limit);
   }, [filteredData, filters.page, filters.limit]);
 
-  // Reset page if it goes out of range after filter change
   useEffect(() => {
     if (filters.page > totalPages) setFilters(p => ({ ...p, page: 1 }));
   }, [totalPages, filters.page]);
 
-  // ── Device ↔ Region grouping (Region View) ───────────────────────────────────
-
-  // Apply the same Yes/No filters to the region view's underlying data
-  const regionFilteredData = filteredData;
-
-  // Group devices by region
   const devicesByRegion = useMemo(() => {
     const map = new Map<string, DailyRow[]>();
-    for (const row of regionFilteredData) {
+    for (const row of filteredData) {
       const list = map.get(row.region) ?? [];
       list.push(row);
       map.set(row.region, list);
     }
     return map;
-  }, [regionFilteredData]);
+  }, [filteredData]);
 
-  // Region counts for tabs (based on dataset, not Yes/No filters, so counts stay stable)
   const regionCounts = useMemo(() => {
     const counts: Record<string, number> = { all: rawData.length };
     for (const row of rawData) {
@@ -220,20 +213,17 @@ export default function DailyReportPage() {
     return counts;
   }, [rawData]);
 
-  // Regions visible as tabs (respects the region dropdown filter)
   const visibleRegions = useMemo(
     () => filters.region ? regionOptions.filter(r => r === filters.region) : regionOptions,
     [regionOptions, filters.region]
   );
 
-  // Reset activeRegion if the region filter narrows the list and current selection is gone
   useEffect(() => {
     if (activeRegion !== "all" && !visibleRegions.includes(activeRegion)) {
       setActiveRegion("all");
     }
   }, [visibleRegions, activeRegion]);
 
-  // Devices to display in Region View based on activeRegion
   const regionViewGroups = useMemo(() => {
     if (activeRegion === "all") {
       return Array.from(devicesByRegion.entries())
@@ -244,10 +234,10 @@ export default function DailyReportPage() {
     return [{ region: activeRegion, devices }];
   }, [devicesByRegion, activeRegion]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────────
-
   const handleApply = () => {
-    setFilters({ ...tempFilters, page: 1 });
+    const dateFrom = tempFilters.dateFrom <= tempFilters.dateTo ? tempFilters.dateFrom : tempFilters.dateTo;
+    const dateTo   = tempFilters.dateFrom <= tempFilters.dateTo ? tempFilters.dateTo   : tempFilters.dateFrom;
+    setFilters({ ...tempFilters, dateFrom, dateTo, page: 1 });
     setDialogOpen(false);
     toast.success("Filters applied");
   };
@@ -267,7 +257,8 @@ export default function DailyReportPage() {
       const res = await eventsService.getDailyReport({
         device_id: filters.device_id || undefined,
         hhid:      filters.hhid      || undefined,
-        date:      filters.date,
+        dateFrom:  filters.dateFrom,
+        dateTo:    filters.dateTo,
         region:    filters.region    || undefined,
         page:      1,
         limit:     999999,
@@ -295,9 +286,12 @@ export default function DailyReportPage() {
 
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url  = URL.createObjectURL(blob);
+      const filenameDate = filters.dateFrom === filters.dateTo
+        ? filters.dateFrom
+        : `${filters.dateFrom}_to_${filters.dateTo}`;
       const suffix = view === "region" && activeRegion !== "all" ? `_${activeRegion}` : "";
       const a    = Object.assign(document.createElement("a"), {
-        href: url, download: `daily_report_${filters.date}${suffix}.csv`,
+        href: url, download: `daily_report_${filenameDate}${suffix}.csv`,
       });
       document.body.appendChild(a); a.click();
       document.body.removeChild(a);
@@ -312,18 +306,16 @@ export default function DailyReportPage() {
 
   const srStart = (filters.page - 1) * filters.limit + 1;
 
-  // ── Render ───────────────────────────────────────────────────────────────────
-
   return (
     <div className="p-4 space-y-5">
       <PageHeader
         title="Daily Report"
-        description={`Combined connectivity, viewership and status · ${format(new Date(filters.date + "T12:00:00"), "dd MMM yyyy")}`}
+        description={`Combined connectivity, viewership and status · ${formatRangeLabel(filters.dateFrom, filters.dateTo)}`}
         size="sm"
         badge={
           rawData.length > 0 ? (
             <div className="flex gap-2 flex-wrap">
-              <Badge variant="outline">{rawData.length.toLocaleString()} meters</Badge>
+              <Badge variant="outline">{rawData.length.toLocaleString()} records</Badge>
               <Badge className="bg-green-600 hover:bg-green-700 text-white">Conn: {stats.connectivity}</Badge>
               <Badge className="bg-blue-600  hover:bg-blue-700  text-white">View: {stats.viewership}</Badge>
               <Badge className="bg-purple-600 hover:bg-purple-700 text-white">Mem: {stats.member_dec}</Badge>
@@ -368,10 +360,17 @@ export default function DailyReportPage() {
                       <Input placeholder="HH1001..." value={tempFilters.hhid}
                         onChange={(e) => setTempFilters(p => ({ ...p, hhid: e.target.value }))} />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label>Date</Label>
-                      <Input type="date" value={tempFilters.date}
-                        onChange={(e) => setTempFilters(p => ({ ...p, date: e.target.value }))} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label>From</Label>
+                        <Input type="date" value={tempFilters.dateFrom} max={TODAY}
+                          onChange={(e) => setTempFilters(p => ({ ...p, dateFrom: e.target.value }))} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>To</Label>
+                        <Input type="date" value={tempFilters.dateTo} max={TODAY}
+                          onChange={(e) => setTempFilters(p => ({ ...p, dateTo: e.target.value }))} />
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label>Region</Label>
@@ -445,7 +444,6 @@ export default function DailyReportPage() {
         }
       />
 
-      {/* ── Page View Toggle ── */}
       <Tabs value={view} onValueChange={(v) => setView(v as "table" | "region")}>
         <TabsList>
           <TabsTrigger value="table" className="text-xs gap-1.5">
@@ -459,9 +457,6 @@ export default function DailyReportPage() {
         </TabsList>
       </Tabs>
 
-      {/* ════════════════════════════════════════════════════════════════════
-          REPORT TABLE VIEW
-      ════════════════════════════════════════════════════════════════════ */}
       {view === "table" && (
       <div className="rounded-md border shadow-sm overflow-hidden">
         <div className="max-h-[65vh] overflow-auto">
@@ -497,14 +492,14 @@ export default function DailyReportPage() {
                       </EmptyMedia>
                       <EmptyTitle>No data found</EmptyTitle>
                       <EmptyDescription>
-                        No meters match your filters for {format(new Date(filters.date + "T12:00:00"), "dd MMM yyyy")}
+                        No meters match your filters for {formatRangeLabel(filters.dateFrom, filters.dateTo)}
                       </EmptyDescription>
                     </EmptyHeader>
                   </Empty>
                 </td></tr>
               ) : (
                 displayData.map((row, idx) => (
-                  <tr key={`${row.device_id}-${idx}`}
+                  <tr key={`${row.device_id}-${row.date}-${idx}`}
                     className={`border-b last:border-0 hover:bg-muted/40 transition-colors ${idx % 2 !== 0 ? "bg-muted/20" : ""}`}>
                     <td className="px-3 py-2.5 text-center tabular-nums text-muted-foreground">{srStart + idx}</td>
                     <td className="px-3 py-2.5">
@@ -514,7 +509,7 @@ export default function DailyReportPage() {
                       <code className="font-mono bg-muted px-1.5 py-0.5 rounded">{row.device_id}</code>
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground">
-                      {format(new Date(row.date + "T12:00:00"), "dd MMM yyyy")}
+                      {format(parseYMD(row.date), "dd MMM yyyy")}
                     </td>
                     <td className="px-3 py-2.5 text-muted-foreground">{row.region}</td>
                     <td className="px-3 py-2.5 text-center"><YNBadge value={row.connectivity} /></td>
@@ -565,12 +560,8 @@ export default function DailyReportPage() {
       </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-          DEVICE & REGION VIEW
-      ════════════════════════════════════════════════════════════════════ */}
       {view === "region" && (
         <div className="space-y-4">
-          {/* Region tabs */}
           {visibleRegions.length > 0 && (
             <Tabs value={activeRegion} onValueChange={setActiveRegion}>
               <TabsList className="flex-wrap h-auto gap-1 bg-muted/50 p-1.5 rounded-xl">
@@ -608,7 +599,7 @@ export default function DailyReportPage() {
                   </EmptyMedia>
                   <EmptyTitle>No data found</EmptyTitle>
                   <EmptyDescription>
-                    No meters match your filters for {format(new Date(filters.date + "T12:00:00"), "dd MMM yyyy")}
+                    No meters match your filters for {formatRangeLabel(filters.dateFrom, filters.dateTo)}
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
@@ -623,7 +614,7 @@ export default function DailyReportPage() {
                       {region}
                     </span>
                     <Badge variant="outline" className="text-xs tabular-nums">
-                      {devices.length} device{devices.length !== 1 ? "s" : ""}
+                      {devices.length} record{devices.length !== 1 ? "s" : ""}
                     </Badge>
                   </div>
                   <div className="overflow-x-auto">
@@ -633,6 +624,7 @@ export default function DailyReportPage() {
                           <th className="px-3 py-2.5 text-center font-medium text-muted-foreground w-14">Sr.</th>
                           <th className="px-3 py-2.5 text-left   font-medium text-muted-foreground">HHID</th>
                           <th className="px-3 py-2.5 text-left   font-medium text-muted-foreground">Device ID</th>
+                          <th className="px-3 py-2.5 text-left   font-medium text-muted-foreground">Date</th>
                           <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">Connectivity</th>
                           <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">Viewership</th>
                           <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">Member Dec</th>
@@ -642,7 +634,7 @@ export default function DailyReportPage() {
                       </thead>
                       <tbody>
                         {devices.map((row, idx) => (
-                          <tr key={`${row.device_id}-${idx}`}
+                          <tr key={`${row.device_id}-${row.date}-${idx}`}
                             className={`border-b last:border-0 hover:bg-muted/40 transition-colors ${idx % 2 !== 0 ? "bg-muted/20" : ""}`}>
                             <td className="px-3 py-2.5 text-center tabular-nums text-muted-foreground">{idx + 1}</td>
                             <td className="px-3 py-2.5">
@@ -650,6 +642,9 @@ export default function DailyReportPage() {
                             </td>
                             <td className="px-3 py-2.5">
                               <code className="font-mono bg-muted px-1.5 py-0.5 rounded">{row.device_id}</code>
+                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground">
+                              {format(parseYMD(row.date), "dd MMM yyyy")}
                             </td>
                             <td className="px-3 py-2.5 text-center"><YNBadge value={row.connectivity} /></td>
                             <td className="px-3 py-2.5 text-center"><YNBadge value={row.viewership}   /></td>

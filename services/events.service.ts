@@ -366,12 +366,13 @@ class EventsService {
     device_id?: string;
     hhid?: string;
     date?: string;
+    dateFrom?: string;
+    dateTo?: string;
     region?: string;
     page?: number;
     limit?: number;
   }): Promise<{
     data: Array<{
-      recognized_image: any;
       device_id: string;
       hhid: string;
       date: string;
@@ -389,6 +390,8 @@ class EventsService {
     if (filters.device_id) params.append("device_id", filters.device_id);
     if (filters.hhid)      params.append("hhid",      filters.hhid);
     if (filters.date)      params.append("date",      filters.date);
+    if (filters.dateFrom)  params.append("dateFrom",  filters.dateFrom);
+    if (filters.dateTo)    params.append("dateTo",    filters.dateTo);
     if (filters.region)    params.append("region",    filters.region);
     if (filters.page)      params.append("page",      String(filters.page));
     if (filters.limit)     params.append("limit",     String(filters.limit));
