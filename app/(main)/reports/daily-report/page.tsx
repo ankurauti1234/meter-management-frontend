@@ -1,5 +1,6 @@
 "use client";
 
+import ExcelJS from "exceljs"
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { format } from "date-fns";
 import { useDebounce } from "use-debounce";
@@ -263,40 +264,104 @@ export default function DailyReportPage() {
         page:      1,
         limit:     999999,
       });
-
-      const rows = (res.data || []).filter(row => {
-        if (view === "region" && activeRegion !== "all" && row.region !== activeRegion) return false;
-        if (filters.connectivity !== "all" && row.connectivity !== filters.connectivity) return false;
-        if (filters.viewership   !== "all" && row.viewership   !== filters.viewership)   return false;
-        if (filters.member_dec   !== "all" && row.member_dec   !== filters.member_dec)   return false;
-        if (filters.image_rec    !== "all" && row.image_rec    !== filters.image_rec)    return false;
-        return true;
+  
+      let rows = res.data || [];
+      if (view === "region" && activeRegion !== "all") {
+        rows = rows.filter(r => r.region === activeRegion);
+      }
+      if (!rows.length) { toast.error("No data to export"); return; }
+  
+      const dates = Array.from(new Set(rows.map(r => r.date))).sort(); // oldest first
+  
+      type DeviceInfo = { hhid: string; region: string; byDate: Record<string, DailyRow> };
+      const byDevice = new Map<string, DeviceInfo>();
+      for (const r of rows) {
+        const entry = byDevice.get(r.device_id) ?? { hhid: r.hhid, region: r.region, byDate: {} };
+        entry.byDate[r.date] = r;
+        byDevice.set(r.device_id, entry);
+      }
+      const sortedDevices = Array.from(byDevice.entries())
+        .sort((a, b) => a[1].hhid.localeCompare(b[1].hhid));
+  
+      const FIXED_COLS    = ["HHID", "Device ID", "Replacement", "Region"];
+      const METRIC_LABELS = ["Connectivity", "Viewership", "Member Dec", "Recognized Image", "Audio Fingerprint"];
+      const BLOCK_FILLS    = ["FFD9E2F3", "FFF2F2F2"]; // alternating light blue / light grey
+  
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Daily Report");
+  
+      const dateHeaderRow  = sheet.getRow(1);
+      const fieldHeaderRow = sheet.getRow(2);
+  
+      FIXED_COLS.forEach((label, idx) => {
+        fieldHeaderRow.getCell(idx + 1).value = label;
       });
-
-      if (!rows.length) { toast.error("No data matching filters to export"); return; }
-
-      const headers = ["HHID", "Device ID", "Date", "Region", "Connectivity", "Viewership", "Member Dec", "Recognized Image", "Audio Fingerprint"];
-      const csv = [
-        headers.join(","),
-        ...rows.map(r => [
-          `"${r.hhid}"`, `"${r.device_id}"`, `"${r.date}"`, `"${r.region}"`,
-          r.connectivity, r.viewership, r.member_dec, r.image_rec, r.audio_fingerprint,
-        ].join(",")),
-      ].join("\n");
-
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url  = URL.createObjectURL(blob);
+  
+      dates.forEach((date, i) => {
+        const startCol = FIXED_COLS.length + i * METRIC_LABELS.length + 1;
+        const endCol   = startCol + METRIC_LABELS.length - 1;
+  
+        sheet.mergeCells(1, startCol, 1, endCol);
+        const dateCell = dateHeaderRow.getCell(startCol);
+        dateCell.value = format(parseYMD(date), "dd-MM-yyyy");
+        dateCell.alignment = { horizontal: "center", vertical: "middle" };
+  
+        const fill = BLOCK_FILLS[i % 2];
+        for (let c = startCol; c <= endCol; c++) {
+          dateHeaderRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
+        }
+  
+        METRIC_LABELS.forEach((label, j) => {
+          fieldHeaderRow.getCell(startCol + j).value = label;
+        });
+      });
+  
+      fieldHeaderRow.eachCell(cell => { cell.font = { bold: true }; });
+  
+      let rowIdx = 3;
+      for (const [deviceId, info] of sortedDevices) {
+        const row = sheet.getRow(rowIdx++);
+        row.getCell(1).value = info.hhid;
+        row.getCell(2).value = deviceId;
+        row.getCell(3).value = ""; // Replacement left blank
+        row.getCell(4).value = info.region;
+  
+        dates.forEach((date, i) => {
+          const startCol = FIXED_COLS.length + i * METRIC_LABELS.length + 1;
+          const d = info.byDate[date];
+          row.getCell(startCol).value     = d?.connectivity      ?? "No Data";
+          row.getCell(startCol + 1).value = d?.viewership        ?? "No Data";
+          row.getCell(startCol + 2).value = d?.member_dec        ?? "No Data";
+          row.getCell(startCol + 3).value = d?.image_rec         ?? "No Data";
+          row.getCell(startCol + 4).value = d?.audio_fingerprint ?? "No Data";
+        });
+      }
+  
+      sheet.getColumn(1).width = 12;
+      sheet.getColumn(2).width = 14;
+      sheet.getColumn(3).width = 14;
+      sheet.getColumn(4).width = 12;
+      for (let c = 5; c <= FIXED_COLS.length + dates.length * METRIC_LABELS.length; c++) {
+        sheet.getColumn(c).width = 16;
+      }
+  
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+  
       const filenameDate = filters.dateFrom === filters.dateTo
         ? filters.dateFrom
         : `${filters.dateFrom}_to_${filters.dateTo}`;
       const suffix = view === "region" && activeRegion !== "all" ? `_${activeRegion}` : "";
-      const a    = Object.assign(document.createElement("a"), {
-        href: url, download: `daily_report_${filenameDate}${suffix}.csv`,
+  
+      const a = Object.assign(document.createElement("a"), {
+        href: url, download: `daily_report_${filenameDate}${suffix}.xlsx`,
       });
       document.body.appendChild(a); a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success(`Exported ${rows.length} records`);
+  
+      toast.success(`Exported ${sortedDevices.length} meter${sortedDevices.length !== 1 ? "s" : ""} × ${dates.length} day${dates.length !== 1 ? "s" : ""}`);
     } catch {
       toast.error("Export failed");
     } finally {
