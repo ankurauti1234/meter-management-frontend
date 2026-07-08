@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import ExcelJS from "exceljs";
 import {
   ChevronLeft, ChevronRight, Filter, RefreshCw, Download,
-  X, Wifi, WifiOff, CalendarDays, TrendingUp, Activity,
+  X, MousePointerClick, CircleOff, CalendarDays, TrendingUp, Activity,
   CheckCircle2, XCircle, MinusCircle, Search, FileSpreadsheet,
   FileText, ChevronDown,
 } from "lucide-react";
@@ -37,11 +37,11 @@ import eventsService from "@/services/events.service";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface DayConnectivity { date: string; day: string; connected: boolean; }
+interface DayButtonPressed { date: string; day: string; connected: boolean; }
 
 interface WeeklyMeterItem {
   device_id: string; hhid: string; region: string;
-  days: DayConnectivity[];
+  days: DayButtonPressed[];
   connected_days: number; total_days: number; connectivity_rate: number;
 }
 
@@ -50,7 +50,7 @@ interface WeeklyStats {
   partially_connected: number; not_connected: number; avg_connectivity_rate: number;
 }
 
-interface WeeklyConnectivityResponse {
+interface WeeklyButtonPressedResponse {
   data: WeeklyMeterItem[]; week_start: string; week_end: string;
   stats: WeeklyStats;
   pagination: { page: number; limit: number; total: number; pages: number; };
@@ -106,10 +106,10 @@ function getRateBg(r: number) { return r === 100 ? "bg-emerald-500" : r >= 71 ? 
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 
-async function fetchWeeklyConnectivity(f: {
+async function fetchWeeklyButtonPressed(f: {
   device_id?: string; hhid?: string; region?: string;
   week_start?: string; status?: string; page: number; limit: number;
-}): Promise<WeeklyConnectivityResponse> {
+}): Promise<WeeklyButtonPressedResponse> {
   const p = new URLSearchParams();
   if (f.device_id) p.append("device_id", f.device_id);
   if (f.hhid) p.append("hhid", f.hhid);
@@ -117,7 +117,7 @@ async function fetchWeeklyConnectivity(f: {
   if (f.week_start) p.append("week_start", f.week_start);
   if (f.status && f.status !== "all") p.append("status", f.status);
   p.append("page", String(f.page)); p.append("limit", String(f.limit));
-  const res = await api.get(`/events/weekly-connectivity?${p.toString()}`);
+  const res = await api.get(`/events/weekly-button-pressed?${p.toString()}`);
   return res.data.data;
 }
 
@@ -136,7 +136,7 @@ function StatCard({ icon, label, value, sub, color }: { icon: React.ReactNode; l
   );
 }
 
-function ConnectivityBar({ rate }: { rate: number }) {
+function PressRateBar({ rate }: { rate: number }) {
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
       <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -154,14 +154,14 @@ function DayDot({ day, connected, date }: { day: string; connected: boolean; dat
         <TooltipTrigger asChild>
           <div className="flex flex-col items-center gap-0.5 cursor-default">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${connected ? "bg-emerald-500 shadow-[0_0_6px_0_rgba(16,185,129,0.5)]" : "bg-red-200 border-2 border-red-400"}`}>
-              {connected ? <Wifi className="h-3 w-3 text-white" /> : <WifiOff className="h-3 w-3 text-red-500" />}
+              {connected ? <MousePointerClick className="h-3 w-3 text-white" /> : <CircleOff className="h-3 w-3 text-red-500" />}
             </div>
             <span className="text-[9px] font-medium text-muted-foreground">{day}</span>
           </div>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
           <p className="font-semibold">{formatDateShort(date)}</p>
-          <p className={connected ? "text-emerald-600" : "text-red-500"}>{connected ? "Connected" : "No data"}</p>
+          <p className={connected ? "text-emerald-600" : "text-red-500"}>{connected ? "Pressed" : "Not pressed"}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -207,22 +207,20 @@ function TableSkeleton({ rows = 10 }: { rows?: number }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-export default function WeeklyConnectivityPage() {
+export default function WeeklyButtonPressedPage() {
   const [weekMonday, setWeekMonday] = useState(getLastWeekMonday());
   const [filters, setFilters] = useState({ device_id: "", hhid: "", region: "", status: "all", page: 1, limit: 25 });
   const [tempFilters, setTempFilters] = useState(filters);
   const [regionOptions, setRegionOptions] = useState<string[]>([]);
-  const [responseData, setResponseData] = useState<WeeklyConnectivityResponse | null>(null);
+  const [responseData, setResponseData] = useState<WeeklyButtonPressedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const hasActiveFilters = Boolean(filters.device_id || filters.hhid || filters.region || filters.status !== "all");
 
-  // Fetch region options
   useEffect(() => {
     api.get<{ data: { regions: string[] } }>("/events/daily-report/regions")
       .then(({ data: r }) => setRegionOptions(r.data.regions ?? []))
@@ -232,16 +230,14 @@ export default function WeeklyConnectivityPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchWeeklyConnectivity({
-        device_id: filters.device_id || undefined,
-        hhid: filters.hhid || undefined,
-        region: filters.region || undefined,
-        week_start: weekMonday,
+      const res = await fetchWeeklyButtonPressed({
+        device_id: filters.device_id || undefined, hhid: filters.hhid || undefined,
+        region: filters.region || undefined, week_start: weekMonday,
         status: filters.status !== "all" ? filters.status : undefined,
         page: filters.page, limit: filters.limit,
       });
       setResponseData(res);
-    } catch { toast.error("Failed to load weekly connectivity data"); setResponseData(null); }
+    } catch { toast.error("Failed to load weekly button pressed data"); setResponseData(null); }
     finally { setLoading(false); setRefreshing(false); }
   }, [filters, weekMonday]);
 
@@ -259,7 +255,7 @@ export default function WeeklyConnectivityPage() {
   const handleExportWeekCSV = async () => {
     setExporting(true);
     try {
-      const res = await fetchWeeklyConnectivity({
+      const res = await fetchWeeklyButtonPressed({
         device_id: filters.device_id || undefined, hhid: filters.hhid || undefined,
         region: filters.region || undefined, week_start: weekMonday,
         status: filters.status !== "all" ? filters.status : undefined,
@@ -268,19 +264,19 @@ export default function WeeklyConnectivityPage() {
       const rows = res.data;
       if (!rows.length) { toast.error("No data to export"); return; }
       const dayHeaders = rows[0].days.map(d => `${d.day} (${d.date})`).join(",");
-      const headers = `Device ID,HHID,Region,${dayHeaders},Connected Days,Connectivity Rate`;
+      const headers = `Device ID,HHID,Region,${dayHeaders},Days Pressed,Button Press Rate`;
       const csvRows = rows.map(item =>
         `${item.device_id},${item.hhid},${item.region},${item.days.map(d => d.connected ? "Yes" : "No").join(",")},${item.connected_days}/7,${item.connectivity_rate}%`
       );
       const blob = new Blob([[headers, ...csvRows].join("\n")], { type: "text/csv;charset=utf-8;" });
-      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `weekly_connectivity_${weekMonday}.csv`, style: "visibility:hidden" });
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `weekly_button_pressed_${weekMonday}.csv`, style: "visibility:hidden" });
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       toast.success(`Exported ${rows.length} records`);
     } catch { toast.error("Export failed"); }
     finally { setExporting(false); }
   };
 
-  // ── Export: single day Excel (matches daily report format) ──
+  // ── Export: single day Excel ──
   const handleExportSingleDay = async (date: string) => {
     setExporting(true);
     try {
@@ -309,7 +305,6 @@ export default function WeeklyConnectivityPage() {
       const dateCell = dateHeaderRow.getCell(startCol);
       dateCell.value = fmtDDMMYYYY(date);
       dateCell.alignment = { horizontal: "center", vertical: "middle" };
-      dateCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E2F3" } };
       for (let c = startCol; c <= endCol; c++) dateHeaderRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E2F3" } };
       METRIC_LABELS.forEach((label, j) => { fieldHeaderRow.getCell(startCol + j).value = label; });
       fieldHeaderRow.eachCell(cell => { cell.font = { bold: true }; });
@@ -332,7 +327,7 @@ export default function WeeklyConnectivityPage() {
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `daily_connectivity_${date}.xlsx` });
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `daily_button_pressed_${date}.xlsx` });
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       toast.success(`Exported ${rows.length} meters for ${fmtDDMMYYYY(date)}`);
     } catch { toast.error("Export failed"); }
@@ -353,8 +348,8 @@ export default function WeeklyConnectivityPage() {
     <div className="space-y-6">
       {/* ── Header ── */}
       <PageHeader
-        title="Weekly Connectivity Report"
-        description={responseData ? `Week of ${formatDateRange(responseData.week_start, responseData.week_end)} · Meters IM000101–IM000600` : "Loading week..."}
+        title="Weekly Button Pressed Report"
+        description={responseData ? `Week of ${formatDateRange(responseData.week_start, responseData.week_end)} · Meters IM000101–IM000600 · Type 3 & 4 events` : "Loading week..."}
         badge={stats ? (
           <div className="flex gap-2 flex-wrap">
             <Badge variant="outline">Total: {stats.total_meters.toLocaleString()}</Badge>
@@ -378,8 +373,8 @@ export default function WeeklyConnectivityPage() {
                 </DialogTrigger>
                 <DialogContent className="max-w-lg">
                   <DialogHeader>
-                    <DialogTitle>Filter Weekly Connectivity</DialogTitle>
-                    <DialogDescription>Narrow down meters by device ID, HHID, region, or connectivity status</DialogDescription>
+                    <DialogTitle>Filter Weekly Button Pressed</DialogTitle>
+                    <DialogDescription>Narrow down meters by device ID, HHID, region, or button-pressed status</DialogDescription>
                   </DialogHeader>
                   <div className="grid grid-cols-1 gap-4 py-4">
                     <div className="space-y-2">
@@ -406,9 +401,9 @@ export default function WeeklyConnectivityPage() {
                         <SelectTrigger><SelectValue placeholder="All meters" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All meters</SelectItem>
-                          <SelectItem value="connected">Fully connected (7/7)</SelectItem>
-                          <SelectItem value="partial">Partially connected (1–6/7)</SelectItem>
-                          <SelectItem value="disconnected">Not connected (0/7)</SelectItem>
+                          <SelectItem value="connected">Pressed every day (7/7)</SelectItem>
+                          <SelectItem value="partial">Partially pressed (1–6/7)</SelectItem>
+                          <SelectItem value="disconnected">Never pressed (0/7)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -461,17 +456,17 @@ export default function WeeklyConnectivityPage() {
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={<Activity className="h-4 w-4 text-blue-600" />} label="Avg Connectivity" value={stats ? `${stats.avg_connectivity_rate}%` : "—"} sub="across all meters" color="bg-blue-50" />
-        <StatCard icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />} label="Fully Connected" value={stats ? stats.fully_connected.toLocaleString() : "—"} sub="7/7 days" color="bg-emerald-50" />
-        <StatCard icon={<MinusCircle className="h-4 w-4 text-amber-600" />} label="Partially Connected" value={stats ? stats.partially_connected.toLocaleString() : "—"} sub="1–6 days" color="bg-amber-50" />
-        <StatCard icon={<XCircle className="h-4 w-4 text-red-600" />} label="Not Connected" value={stats ? stats.not_connected.toLocaleString() : "—"} sub="0/7 days" color="bg-red-50" />
+        <StatCard icon={<Activity className="h-4 w-4 text-blue-600" />} label="Avg Press Rate" value={stats ? `${stats.avg_connectivity_rate}%` : "—"} sub="across all meters" color="bg-blue-50" />
+        <StatCard icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />} label="Pressed Every Day" value={stats ? stats.fully_connected.toLocaleString() : "—"} sub="7/7 days" color="bg-emerald-50" />
+        <StatCard icon={<MinusCircle className="h-4 w-4 text-amber-600" />} label="Partially Pressed" value={stats ? stats.partially_connected.toLocaleString() : "—"} sub="1–6 days" color="bg-amber-50" />
+        <StatCard icon={<XCircle className="h-4 w-4 text-red-600" />} label="Never Pressed" value={stats ? stats.not_connected.toLocaleString() : "—"} sub="0/7 days" color="bg-red-50" />
       </div>
 
       {/* ── Fleet bar ── */}
       {stats && stats.total_meters > 0 && (
         <div className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><TrendingUp className="h-4 w-4 text-muted-foreground" />Fleet Connectivity Overview</h3>
+            <h3 className="text-sm font-semibold flex items-center gap-2"><TrendingUp className="h-4 w-4 text-muted-foreground" />Fleet Button Press Overview</h3>
             <span className="text-xs text-muted-foreground">{stats.total_meters} meters total</span>
           </div>
           <div className="flex h-6 rounded-full overflow-hidden gap-0.5">
@@ -480,7 +475,7 @@ export default function WeeklyConnectivityPage() {
             {stats.not_connected > 0 && <div className="bg-red-400 flex items-center justify-center" style={{ width: `${(stats.not_connected / stats.total_meters) * 100}%` }} title={`None: ${stats.not_connected}`}>{stats.not_connected / stats.total_meters > 0.08 && <span className="text-[10px] text-white font-bold">{Math.round((stats.not_connected / stats.total_meters) * 100)}%</span>}</div>}
           </div>
           <div className="flex gap-4 mt-2">
-            {[["bg-emerald-500", "Fully connected"], ["bg-amber-400", "Partial"], ["bg-red-400", "Not connected"]].map(([bg, lbl]) => (
+            {[["bg-emerald-500", "Pressed every day"], ["bg-amber-400", "Partial"], ["bg-red-400", "Never pressed"]].map(([bg, lbl]) => (
               <div key={lbl} className="flex items-center gap-1.5"><div className={`w-2.5 h-2.5 rounded-full ${bg}`} /><span className="text-xs text-muted-foreground">{lbl}</span></div>
             ))}
           </div>
@@ -512,7 +507,7 @@ export default function WeeklyConnectivityPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap w-24">Region</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">Mon – Sun (7 days)</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap w-20">Days</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap w-36">Connectivity</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap w-36">Button Press Rate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -521,7 +516,7 @@ export default function WeeklyConnectivityPage() {
                 ) : displayedData.length === 0 ? (
                   <tr><td colSpan={6}>
                     <div className="flex flex-col items-center justify-center py-20 gap-3">
-                      <WifiOff className="h-10 w-10 text-muted-foreground/40" />
+                      <CircleOff className="h-10 w-10 text-muted-foreground/40" />
                       <p className="text-sm text-muted-foreground">No meters found</p>
                       {hasActiveFilters && <Button variant="ghost" size="sm" onClick={handleResetFilters}>Clear filters</Button>}
                     </div>
@@ -538,7 +533,7 @@ export default function WeeklyConnectivityPage() {
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-center"><span className={`text-xs font-bold tabular-nums ${getRateColor(item.connectivity_rate)}`}>{item.connected_days}/7</span></td>
-                      <td className="px-4 py-2.5"><ConnectivityBar rate={item.connectivity_rate} /></td>
+                      <td className="px-4 py-2.5"><PressRateBar rate={item.connectivity_rate} /></td>
                     </tr>
                   ))
                 )}
@@ -570,9 +565,9 @@ export default function WeeklyConnectivityPage() {
       {/* ── Legend ── */}
       <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pb-2">
         <span className="font-medium">Legend:</span>
-        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center"><Wifi className="h-2.5 w-2.5 text-white" /></div>Connected (events received)</div>
-        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-red-200 border-2 border-red-400 flex items-center justify-center"><WifiOff className="h-2.5 w-2.5 text-red-500" /></div>No data received</div>
-        <div className="flex items-center gap-1.5"><div className="w-16 h-1.5 rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-400" />Connectivity rate bar</div>
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center"><MousePointerClick className="h-2.5 w-2.5 text-white" /></div>Pressed (Type 3/4 event received)</div>
+        <div className="flex items-center gap-1.5"><div className="w-5 h-5 rounded-full bg-red-200 border-2 border-red-400 flex items-center justify-center"><CircleOff className="h-2.5 w-2.5 text-red-500" /></div>Not pressed</div>
+        <div className="flex items-center gap-1.5"><div className="w-16 h-1.5 rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-red-400" />Button press rate bar</div>
       </div>
     </div>
   );
