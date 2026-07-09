@@ -47,7 +47,9 @@ import {
   UserPlus,
   FileUser,
   MonitorCheck,
-  Unlink
+  Unlink,
+  MousePointerClick,
+  ScanEye
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/sidebar/nav-main";
@@ -121,7 +123,9 @@ const iconMap: { [key: string]: LucideIcon } = {
   UserPlus,
   FileUser,
   MonitorCheck,
-  Unlink
+  Unlink,
+  MousePointerClick,
+  ScanEye
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
