@@ -148,34 +148,50 @@ function fmtDDMMYYYY(d: string) {
   const [y, m, dd] = d.split("-"); return `${dd}-${m}-${y}`;
 }
 
-function getYesterday(): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - 1);
+function getMondayOfWeek(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  const diff = d.getUTCDay() === 0 ? -6 : 1 - d.getUTCDay();
+  d.setUTCDate(d.getUTCDate() + diff);
   return d.toISOString().split("T")[0];
 }
 
 function getWeekOptions(count = 12): Array<{ start: string; end: string; label: string; days: string[] }> {
-  const yesterday = getYesterday();
+  const todayD = new Date(); todayD.setUTCHours(0,0,0,0);
+  const today  = todayD.toISOString().split("T")[0];
+  const thisMonday = getMondayOfWeek(today);
+
   return Array.from({ length: count }, (_, i) => {
-    const endD = new Date(`${yesterday}T00:00:00Z`);
-    endD.setUTCDate(endD.getUTCDate() - i * 7);
-    const startD = new Date(endD);
-    startD.setUTCDate(endD.getUTCDate() - 6);
-    const start = startD.toISOString().split("T")[0];
-    const end   = endD.toISOString().split("T")[0];
+    if (i === 0) {
+      // Current week: Mon → today
+      const startD = new Date(`${thisMonday}T00:00:00Z`);
+      const days = Array.from({ length: 7 }, (__, j) => {
+        const d = new Date(startD); d.setUTCDate(startD.getUTCDate() + j);
+        return d.toISOString().split("T")[0];
+      }).filter(d => d <= today);
+      const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+      const endD = new Date(`${today}T00:00:00Z`);
+      return {
+        start: thisMonday, end: today, days,
+        label: `${startD.toLocaleDateString("en-US", opts)} – ${endD.toLocaleDateString("en-US", { ...opts, year: "numeric" })} (this week)`,
+      };
+    }
+    // Previous weeks: Mon → Sun
+    const mondayD = new Date(`${thisMonday}T00:00:00Z`);
+    mondayD.setUTCDate(mondayD.getUTCDate() - i * 7);
+    const sundayD = new Date(mondayD); sundayD.setUTCDate(mondayD.getUTCDate() + 6);
+    const start = mondayD.toISOString().split("T")[0];
+    const end   = sundayD.toISOString().split("T")[0];
     const days  = Array.from({ length: 7 }, (__, j) => {
-      const d = new Date(startD); d.setUTCDate(startD.getUTCDate() + j);
+      const d = new Date(mondayD); d.setUTCDate(mondayD.getUTCDate() + j);
       return d.toISOString().split("T")[0];
     });
     const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
     return {
       start, end, days,
-      label: `${startD.toLocaleDateString("en-US", opts)} – ${endD.toLocaleDateString("en-US", { ...opts, year: "numeric" })}`,
+      label: `${mondayD.toLocaleDateString("en-US", opts)} – ${sundayD.toLocaleDateString("en-US", { ...opts, year: "numeric" })}`,
     };
   });
 }
-
-/** Generate last N weeks as dropdown options with individual day dates */
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(`${start}T00:00:00Z`);
@@ -375,7 +391,7 @@ function TableSkeleton({ rows = 10 }: { rows?: number }) {
 
 export default function WeeklyViewershipPage() {
   const [metric, setMetric] = useState<Metric>("image");
-  const [weekStart, setWeekStart] = useState(() => getWeekOptions(1)[0].start);
+  const [weekStart, setWeekStart] = useState(() => getMondayOfWeek(new Date().toISOString().split("T")[0]));
 
   const [filters, setFilters] = useState({
     device_id: "",
@@ -743,7 +759,8 @@ export default function WeeklyViewershipPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Custom range (Excel)</DropdownMenuLabel>
                 <DateRangeExportDialog
-                  filters={{ device_id: filters.device_id, hhid: filters.hhid, region: filters.region }}
+                  pageType="viewership"
+                  filters={{ device_id: filters.device_id, hhid: filters.hhid, region: filters.region, status: filters.status as any, metric }}
                   disabled={!responseData?.data.length}
                 />
               </DropdownMenuContent>

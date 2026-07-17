@@ -3,8 +3,8 @@
 /**
  * DateRangeExportDialog
  * ---------------------
- * Picks any date range and exports a multi-column Excel (one block per day),
- * scoped to whatever meters are currently visible on the page.
+ * Picks any date range and exports a multi-column Excel (one block per day).
+ * Respects ALL active page filters including status and metric.
  */
 
 import { useState } from "react";
@@ -24,12 +24,19 @@ import eventsService from "@/services/events.service";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+type PageType = "connectivity" | "button_pressed" | "viewership";
+type StatusFilter = "all" | "connected" | "partial" | "disconnected" | "no_data";
+type MetricFilter = "image" | "audio";
+
 interface Props {
-  /** Carry the active page filters into the fetch so only filtered meters export */
+  /** Which page is using this dialog — determines how status filtering works */
+  pageType: PageType;
   filters?: {
     device_id?: string;
     hhid?: string;
     region?: string;
+    status?: StatusFilter;
+    metric?: MetricFilter; // viewership only
   };
   disabled?: boolean;
 }
@@ -42,9 +49,72 @@ function fmtYMD(d: Date) {
 function fmtDisplay(d: Date) { return format(d, "dd MMM yyyy"); }
 function fmtCell(d: Date)    { return format(d, "dd-MM-yyyy"); }
 
+/**
+ * Given a daily-report row and the page context, return whether that day
+ * counts as "active" (connected / pressed / matched).
+ */
+function isDayActive(
+  row: Record<string, string>,
+  pageType: PageType,
+  metric: MetricFilter
+): "yes" | "no" | "nodata" {
+  if (pageType === "connectivity") {
+    if (row.connectivity === "Yes") return "yes";
+    if (row.connectivity === "No")  return "no";
+    return "nodata";
+  }
+  if (pageType === "button_pressed") {
+    if (row.member_dec === "Yes") return "yes";
+    if (row.member_dec === "No")  return "no";
+    return "nodata";
+  }
+  // viewership
+  const field = metric === "audio" ? "audio_fingerprint" : "image_rec";
+  const val = row[field];
+  if (val === "Yes")     return "yes";
+  if (val === "No")      return "no";
+  return "nodata";
+}
+
+/**
+ * Given a meter's day results, decide if it passes the status filter.
+ */
+function meetsStatusFilter(
+  dayCounts: { yes: number; no: number; nodata: number },
+  totalDays: number,
+  status: StatusFilter,
+  pageType: PageType,
+  metric: MetricFilter
+): boolean {
+  if (status === "all") return true;
+  const { yes, nodata } = dayCounts;
+
+  if (status === "connected") return yes === totalDays;
+  if (status === "partial")   return yes > 0 && yes < totalDays;
+
+  if (status === "disconnected") {
+    // For audio viewership: had events but none matched (not all nodata)
+    if (pageType === "viewership" && metric === "audio") {
+      return yes === 0 && nodata < totalDays;
+    }
+    return yes === 0;
+  }
+
+  if (status === "no_data") {
+    // Audio viewership only: all days had no Type 42 event
+    return nodata === totalDays;
+  }
+
+  return true;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function DateRangeExportDialog({ filters = {}, disabled = false }: Props) {
+export function DateRangeExportDialog({
+  pageType,
+  filters = {},
+  disabled = false,
+}: Props) {
   const [open, setOpen]           = useState(false);
   const [range, setRange]         = useState<DateRange | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
@@ -52,6 +122,8 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const status = filters.status ?? "all";
+  const metric = filters.metric ?? "image";
   const canExport = Boolean(range?.from);
 
   const handleClose = () => { setOpen(false); setRange(undefined); };
@@ -77,26 +149,42 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
       const rows = res.data ?? [];
       if (!rows.length) { toast.error("No data for this date range"); return; }
 
-      // Unique dates sorted oldest → newest; pivot by device
+      // Unique dates sorted oldest → newest
       const dates = Array.from(new Set(rows.map(r => r.date))).sort();
+      const totalDays = dates.length;
 
+      // Pivot rows by device and compute day-activity counts
       type DeviceInfo = {
         hhid: string;
         region: string;
         byDate: Record<string, typeof rows[number]>;
+        dayCounts: { yes: number; no: number; nodata: number };
       };
 
       const byDevice = new Map<string, DeviceInfo>();
       for (const r of rows) {
-        const entry = byDevice.get(r.device_id) ?? { hhid: r.hhid, region: r.region, byDate: {} };
+        const entry = byDevice.get(r.device_id) ?? {
+          hhid: r.hhid, region: r.region,
+          byDate: {},
+          dayCounts: { yes: 0, no: 0, nodata: 0 },
+        };
         entry.byDate[r.date] = r;
+        const active = isDayActive(r as any, pageType, metric);
+        entry.dayCounts[active]++;
         byDevice.set(r.device_id, entry);
       }
-      const sortedDevices = Array.from(byDevice.entries()).sort((a, b) =>
-        a[1].hhid.localeCompare(b[1].hhid)
-      );
 
-      // Build Excel — same layout as the daily-report page
+      // Apply status filter
+      const sortedDevices = Array.from(byDevice.entries())
+        .filter(([, info]) => meetsStatusFilter(info.dayCounts, totalDays, status, pageType, metric))
+        .sort((a, b) => a[1].hhid.localeCompare(b[1].hhid));
+
+      if (!sortedDevices.length) {
+        toast.error("No meters match the current filters for this date range");
+        return;
+      }
+
+      // Build Excel
       const FIXED_COLS    = ["HHID", "Device ID", "Replacement", "Region"];
       const METRIC_LABELS = ["Connectivity", "Viewership", "Member Dec", "Recognised Image", "Audio Fingerprint"];
       const BLOCK_FILLS   = ["FFD9E2F3", "FFF2F2F2"];
@@ -112,12 +200,10 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
       dates.forEach((date, i) => {
         const startCol = FIXED_COLS.length + i * METRIC_LABELS.length + 1;
         const endCol   = startCol + METRIC_LABELS.length - 1;
-
         sheet.mergeCells(1, startCol, 1, endCol);
         const dateCell = dateHeaderRow.getCell(startCol);
         dateCell.value     = fmtCell(new Date(`${date}T00:00:00`));
         dateCell.alignment = { horizontal: "center", vertical: "middle" };
-
         const fill = BLOCK_FILLS[i % 2];
         for (let c = startCol; c <= endCol; c++) {
           dateHeaderRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
@@ -134,7 +220,6 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
         row.getCell(2).value = deviceId;
         row.getCell(3).value = "";
         row.getCell(4).value = info.region;
-
         dates.forEach((date, i) => {
           const startCol = FIXED_COLS.length + i * METRIC_LABELS.length + 1;
           const d = info.byDate[date];
@@ -153,7 +238,6 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob   = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-
       const filename = dateFrom === dateTo
         ? `daily_report_${dateFrom}.xlsx`
         : `daily_report_${dateFrom}_to_${dateTo}.xlsx`;
@@ -171,6 +255,16 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
       setExporting(false);
     }
   };
+
+  // Build a human-readable summary of active filters for the dialog description
+  const activeFilterLabels: string[] = [];
+  if (filters.region)    activeFilterLabels.push(`Region: ${filters.region}`);
+  if (filters.device_id) activeFilterLabels.push(`Device: ${filters.device_id}`);
+  if (filters.hhid)      activeFilterLabels.push(`HHID: ${filters.hhid}`);
+  if (status !== "all")  activeFilterLabels.push(`Status: ${status.replace("_", " ")}`);
+  if (pageType === "viewership" && filters.metric) {
+    activeFilterLabels.push(`Metric: ${filters.metric === "image" ? "Image Recognition" : "Audio Fingerprint"}`);
+  }
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose(); else setOpen(true); }}>
@@ -190,14 +284,16 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
             <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
             Download Date Range
           </DialogTitle>
-          <DialogDescription>
-            Pick any start and end date — not limited to the current week.
-            Downloads an Excel file with one column block per day.
-            {(filters.device_id || filters.hhid || filters.region) && (
-              <span className="mt-1 block font-medium text-foreground">
-                Active filters will be applied to the export.
-              </span>
-            )}
+          <DialogDescription asChild>
+            <div className="space-y-1.5">
+              <p>Pick any start and end date. Downloads an Excel file with one column block per day.</p>
+              {activeFilterLabels.length > 0 && (
+                <div className="rounded-md bg-muted px-3 py-2 text-xs">
+                  <span className="font-medium text-foreground">Active filters applied: </span>
+                  {activeFilterLabels.join(" · ")}
+                </div>
+              )}
+            </div>
           </DialogDescription>
         </DialogHeader>
 
@@ -211,7 +307,6 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
             numberOfMonths={1}
             className="rounded-lg border shadow-sm"
           />
-
           {range?.from ? (
             <div className="rounded-full bg-muted px-3 py-1.5 text-xs text-muted-foreground">
               {range.to && range.from.toDateString() !== range.to.toDateString()
@@ -219,9 +314,7 @@ export function DateRangeExportDialog({ filters = {}, disabled = false }: Props)
                 : fmtDisplay(range.from)}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
-              Click a start date, then click an end date
-            </p>
+            <p className="text-xs text-muted-foreground">Click a start date, then click an end date</p>
           )}
         </div>
 
