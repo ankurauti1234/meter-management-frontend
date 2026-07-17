@@ -34,6 +34,7 @@ import {
 
 import api from "@/services/api";
 import eventsService from "@/services/events.service";
+import { DateRangeExportDialog } from "@/components/reports/date-range-export-dialog";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -58,35 +59,29 @@ interface WeeklyButtonPressedResponse {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getMondayOfWeek(dateStr: string): string {
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  const diff = d.getUTCDay() === 0 ? -6 : 1 - d.getUTCDay();
-  d.setUTCDate(d.getUTCDate() + diff);
-  return d.toISOString().split("T")[0];
-}
-function getCurrentWeekMonday() { return getMondayOfWeek(new Date().toISOString().split("T")[0]); }
-function getLastWeekMonday() {
-  const d = new Date(`${getCurrentWeekMonday()}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 7);
+function getYesterday(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().split("T")[0];
 }
 
-function getWeekOptions(count = 12): Array<{ monday: string; label: string; days: string[] }> {
-  const lastMonday = new Date(`${getLastWeekMonday()}T00:00:00Z`);
+function getWeekOptions(count = 12): Array<{ start: string; end: string; label: string; days: string[] }> {
+  const yesterday = getYesterday();
   return Array.from({ length: count }, (_, i) => {
-    const monday = new Date(lastMonday);
-    monday.setUTCDate(lastMonday.getUTCDate() - i * 7);
-    const sunday = new Date(monday); sunday.setUTCDate(monday.getUTCDate() + 6);
-    const mondayStr = monday.toISOString().split("T")[0];
-    const days = Array.from({ length: 7 }, (__, j) => {
-      const d = new Date(monday); d.setUTCDate(monday.getUTCDate() + j);
+    const endD = new Date(`${yesterday}T00:00:00Z`);
+    endD.setUTCDate(endD.getUTCDate() - i * 7);
+    const startD = new Date(endD);
+    startD.setUTCDate(endD.getUTCDate() - 6);
+    const start = startD.toISOString().split("T")[0];
+    const end   = endD.toISOString().split("T")[0];
+    const days  = Array.from({ length: 7 }, (__, j) => {
+      const d = new Date(startD); d.setUTCDate(startD.getUTCDate() + j);
       return d.toISOString().split("T")[0];
     });
     const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
     return {
-      monday: mondayStr,
-      label: `${monday.toLocaleDateString("en-US", opts)} – ${sunday.toLocaleDateString("en-US", { ...opts, year: "numeric" })}`,
-      days,
+      start, end, days,
+      label: `${startD.toLocaleDateString("en-US", opts)} – ${endD.toLocaleDateString("en-US", { ...opts, year: "numeric" })}`,
     };
   });
 }
@@ -168,24 +163,23 @@ function DayDot({ day, connected, date }: { day: string; connected: boolean; dat
   );
 }
 
-function WeekNavigator({ currentMonday, onChange }: { currentMonday: string; onChange: (m: string) => void; }) {
+function WeekNavigator({ current, onChange }: { current: string; onChange: (start: string) => void }) {
   const opts = getWeekOptions(12);
-  const isFirst = currentMonday === opts[0].monday;
-  const isLast = currentMonday === opts[opts.length - 1].monday;
-  const goBack = () => { const idx = opts.findIndex(o => o.monday === currentMonday); if (idx < opts.length - 1) onChange(opts[idx + 1].monday); };
-  const goFwd = () => { const idx = opts.findIndex(o => o.monday === currentMonday); if (idx > 0) onChange(opts[idx - 1].monday); };
+  const idx = opts.findIndex(o => o.start === current);
+  const goBack = () => { if (idx < opts.length - 1) onChange(opts[idx + 1].start); };
+  const goFwd  = () => { if (idx > 0)               onChange(opts[idx - 1].start); };
   return (
     <div className="flex items-center gap-1">
-      <Button variant="outline" size="icon" onClick={goBack} disabled={isLast} className="h-8 w-8"><ChevronLeft className="h-4 w-4" /></Button>
-      <Select value={currentMonday} onValueChange={onChange}>
+      <Button variant="outline" size="icon" onClick={goBack} disabled={idx >= opts.length - 1} className="h-8 w-8"><ChevronLeft className="h-4 w-4" /></Button>
+      <Select value={current} onValueChange={onChange}>
         <SelectTrigger className="h-8 w-52 text-xs">
           <CalendarDays className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" /><SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {opts.map((o, i) => <SelectItem key={o.monday} value={o.monday} className="text-xs">{o.label}{i === 0 ? "  (last week)" : ""}</SelectItem>)}
+          {opts.map((o, i) => <SelectItem key={o.start} value={o.start} className="text-xs">{o.label}{i === 0 ? "  (last 7 days)" : ""}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Button variant="outline" size="icon" onClick={goFwd} disabled={isFirst} className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
+      <Button variant="outline" size="icon" onClick={goFwd} disabled={idx <= 0} className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
     </div>
   );
 }
@@ -208,7 +202,7 @@ function TableSkeleton({ rows = 10 }: { rows?: number }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function WeeklyButtonPressedPage() {
-  const [weekMonday, setWeekMonday] = useState(getLastWeekMonday());
+  const [weekStart, setWeekStart] = useState(() => getWeekOptions(1)[0].start);
   const [filters, setFilters] = useState({ device_id: "", hhid: "", region: "", status: "all", page: 1, limit: 25 });
   const [tempFilters, setTempFilters] = useState(filters);
   const [regionOptions, setRegionOptions] = useState<string[]>([]);
@@ -232,18 +226,18 @@ export default function WeeklyButtonPressedPage() {
     try {
       const res = await fetchWeeklyButtonPressed({
         device_id: filters.device_id || undefined, hhid: filters.hhid || undefined,
-        region: filters.region || undefined, week_start: weekMonday,
+        region: filters.region || undefined, week_start: weekStart,
         status: filters.status !== "all" ? filters.status : undefined,
         page: filters.page, limit: filters.limit,
       });
       setResponseData(res);
     } catch { toast.error("Failed to load weekly button pressed data"); setResponseData(null); }
     finally { setLoading(false); setRefreshing(false); }
-  }, [filters, weekMonday]);
+  }, [filters, weekStart]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleWeekChange = (monday: string) => { setWeekMonday(monday); setFilters(p => ({ ...p, page: 1 })); };
+  const handleWeekChange = (start: string) => { setWeekStart(start); setFilters(p => ({ ...p, page: 1 })); };
   const handleRefresh = () => { setRefreshing(true); fetchData(); };
   const handleApplyFilters = () => { setFilters({ ...tempFilters, page: 1 }); setDialogOpen(false); toast.success("Filters applied"); };
   const handleResetFilters = () => {
@@ -257,7 +251,7 @@ export default function WeeklyButtonPressedPage() {
     try {
       const res = await fetchWeeklyButtonPressed({
         device_id: filters.device_id || undefined, hhid: filters.hhid || undefined,
-        region: filters.region || undefined, week_start: weekMonday,
+        region: filters.region || undefined, week_start: weekStart,
         status: filters.status !== "all" ? filters.status : undefined,
         page: 1, limit: 999999,
       });
@@ -269,7 +263,7 @@ export default function WeeklyButtonPressedPage() {
         `${item.device_id},${item.hhid},${item.region},${item.days.map(d => d.connected ? "Yes" : "No").join(",")},${item.connected_days}/7,${item.connectivity_rate}%`
       );
       const blob = new Blob([[headers, ...csvRows].join("\n")], { type: "text/csv;charset=utf-8;" });
-      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `weekly_button_pressed_${weekMonday}.csv`, style: "visibility:hidden" });
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `weekly_button_pressed_${weekStart}.csv`, style: "visibility:hidden" });
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       toast.success(`Exported ${rows.length} records`);
     } catch { toast.error("Export failed"); }
@@ -334,7 +328,7 @@ export default function WeeklyButtonPressedPage() {
     finally { setExporting(false); }
   };
 
-  const weekDays = getWeekOptions(12).find(o => o.monday === weekMonday)?.days ?? [];
+  const weekDays = getWeekOptions(12).find(o => o.start === weekStart)?.days ?? [];
   const displayedData = responseData?.data.filter(item => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
@@ -361,7 +355,7 @@ export default function WeeklyButtonPressedPage() {
         size="sm"
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <WeekNavigator currentMonday={weekMonday} onChange={handleWeekChange} />
+            <WeekNavigator current={weekStart} onChange={handleWeekChange} />
 
             <ButtonGroup>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -444,6 +438,12 @@ export default function WeeklyButtonPressedPage() {
                     <span className="text-sm">{new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
                   </DropdownMenuItem>
                 ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Custom range (Excel)</DropdownMenuLabel>
+                <DateRangeExportDialog
+                  filters={{ device_id: filters.device_id, hhid: filters.hhid, region: filters.region }}
+                  disabled={!responseData?.data.length}
+                />
               </DropdownMenuContent>
             </DropdownMenu>
 
