@@ -65,6 +65,7 @@ import {
 
 import api from "@/services/api";
 import eventsService from "@/services/events.service";
+import { DateRangeExportDialog } from "@/components/reports/date-range-export-dialog";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -143,50 +144,38 @@ const METRIC_CONFIG: Record<
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getMondayOfWeek(dateStr: string): string {
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  const day = d.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setUTCDate(d.getUTCDate() + diff);
-  return d.toISOString().split("T")[0];
-}
-
-/** Monday of the current (ongoing) week */
-function getCurrentWeekMonday(): string {
-  return getMondayOfWeek(new Date().toISOString().split("T")[0]);
-}
-
-/** Monday of last week — the most recent completed Mon–Sun */
-function getLastWeekMonday(): string {
-  const currentMonday = new Date(`${getCurrentWeekMonday()}T00:00:00Z`);
-  currentMonday.setUTCDate(currentMonday.getUTCDate() - 7);
-  return currentMonday.toISOString().split("T")[0];
-}
-
 function fmtDDMMYYYY(d: string) {
   const [y, m, dd] = d.split("-"); return `${dd}-${m}-${y}`;
 }
 
-/** Generate last N weeks as dropdown options with individual day dates */
-function getWeekOptions(count: number = 12): Array<{ monday: string; label: string; days: string[] }> {
-  const lastMonday = new Date(`${getLastWeekMonday()}T00:00:00Z`);
+function getYesterday(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().split("T")[0];
+}
+
+function getWeekOptions(count = 12): Array<{ start: string; end: string; label: string; days: string[] }> {
+  const yesterday = getYesterday();
   return Array.from({ length: count }, (_, i) => {
-    const monday = new Date(lastMonday);
-    monday.setUTCDate(lastMonday.getUTCDate() - i * 7);
-    const sunday = new Date(monday); sunday.setUTCDate(monday.getUTCDate() + 6);
-    const mondayStr = monday.toISOString().split("T")[0];
-    const days = Array.from({ length: 7 }, (__, j) => {
-      const d = new Date(monday); d.setUTCDate(monday.getUTCDate() + j);
+    const endD = new Date(`${yesterday}T00:00:00Z`);
+    endD.setUTCDate(endD.getUTCDate() - i * 7);
+    const startD = new Date(endD);
+    startD.setUTCDate(endD.getUTCDate() - 6);
+    const start = startD.toISOString().split("T")[0];
+    const end   = endD.toISOString().split("T")[0];
+    const days  = Array.from({ length: 7 }, (__, j) => {
+      const d = new Date(startD); d.setUTCDate(startD.getUTCDate() + j);
       return d.toISOString().split("T")[0];
     });
     const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
     return {
-      monday: mondayStr,
-      label: `${monday.toLocaleDateString("en-US", opts)} – ${sunday.toLocaleDateString("en-US", { ...opts, year: "numeric" })}`,
-      days,
+      start, end, days,
+      label: `${startD.toLocaleDateString("en-US", opts)} – ${endD.toLocaleDateString("en-US", { ...opts, year: "numeric" })}`,
     };
   });
 }
+
+/** Generate last N weeks as dropdown options with individual day dates */
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(`${start}T00:00:00Z`);
@@ -338,73 +327,26 @@ function DayDot({
   );
 }
 
-function WeekNavigator({
-  currentMonday,
-  onChange,
-}: {
-  currentMonday: string;
-  onChange: (monday: string) => void;
-}) {
-  const weekOptions = getWeekOptions(12);
-  const lastWeekMonday = getLastWeekMonday();
-
-  const goBack = () => {
-    const d = new Date(`${currentMonday}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() - 7);
-    const prev = d.toISOString().split("T")[0];
-    if (weekOptions.some((o) => o.monday === prev)) onChange(prev);
-  };
-
-  const goForward = () => {
-    const d = new Date(`${currentMonday}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + 7);
-    const next = d.toISOString().split("T")[0];
-    if (weekOptions.some((o) => o.monday === next)) onChange(next);
-  };
-
-  const isLastWeek = currentMonday === lastWeekMonday;
-  const isOldest = currentMonday === weekOptions[weekOptions.length - 1]?.monday;
-
+function WeekNavigator({ current, onChange }: { current: string; onChange: (start: string) => void }) {
+  const opts = getWeekOptions(12);
+  const idx = opts.findIndex(o => o.start === current);
+  const goBack = () => { if (idx < opts.length - 1) onChange(opts[idx + 1].start); };
+  const goFwd  = () => { if (idx > 0)               onChange(opts[idx - 1].start); };
   return (
     <div className="flex items-center gap-1">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={goBack}
-        disabled={isOldest}
-        className="h-8 w-8"
-        title="Previous week"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <Select value={currentMonday} onValueChange={onChange}>
+      <Button variant="outline" size="icon" onClick={goBack} disabled={idx >= opts.length - 1} className="h-8 w-8"><ChevronLeft className="h-4 w-4" /></Button>
+      <Select value={current} onValueChange={onChange}>
         <SelectTrigger className="h-8 w-52 text-xs">
-          <CalendarDays className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" />
-          <SelectValue />
+          <CalendarDays className="h-3.5 w-3.5 mr-1.5 text-muted-foreground shrink-0" /><SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {weekOptions.map((opt, idx) => (
-            <SelectItem key={opt.monday} value={opt.monday} className="text-xs">
-              {opt.label}{idx === 0 ? "  (last week)" : ""}
-            </SelectItem>
-          ))}
+          {opts.map((o, i) => <SelectItem key={o.start} value={o.start} className="text-xs">{o.label}{i === 0 ? "  (last 7 days)" : ""}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={goForward}
-        disabled={isLastWeek}
-        className="h-8 w-8"
-        title="Next week"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </Button>
+      <Button variant="outline" size="icon" onClick={goFwd} disabled={idx <= 0} className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
     </div>
   );
 }
-
-// ─── Skeleton Loader ─────────────────────────────────────────────────────────
 
 function TableSkeleton({ rows = 10 }: { rows?: number }) {
   return (
@@ -433,7 +375,7 @@ function TableSkeleton({ rows = 10 }: { rows?: number }) {
 
 export default function WeeklyViewershipPage() {
   const [metric, setMetric] = useState<Metric>("image");
-  const [weekMonday, setWeekMonday] = useState<string>(getLastWeekMonday());
+  const [weekStart, setWeekStart] = useState(() => getWeekOptions(1)[0].start);
 
   const [filters, setFilters] = useState({
     device_id: "",
@@ -473,7 +415,7 @@ export default function WeeklyViewershipPage() {
         device_id: filters.device_id || undefined,
         hhid: filters.hhid || undefined,
         region: filters.region || undefined,
-        week_start: weekMonday,
+        week_start: weekStart,
         metric,
         status: filters.status !== "all" ? filters.status : undefined,
         page: filters.page,
@@ -488,7 +430,7 @@ export default function WeeklyViewershipPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filters, weekMonday, metric]);
+  }, [filters, weekStart, metric]);
 
   useEffect(() => {
     fetchData();
@@ -502,8 +444,8 @@ export default function WeeklyViewershipPage() {
   };
 
   // Reset to page 1 when week changes
-  const handleWeekChange = (monday: string) => {
-    setWeekMonday(monday);
+  const handleWeekChange = (start: string) => {
+    setWeekStart(start);
     setFilters((p) => ({ ...p, page: 1 }));
   };
 
@@ -534,7 +476,7 @@ export default function WeeklyViewershipPage() {
         device_id: filters.device_id || undefined,
         hhid: filters.hhid || undefined,
         region: filters.region || undefined,
-        week_start: weekMonday,
+        week_start: weekStart,
         metric,
         status: filters.status !== "all" ? filters.status : undefined,
         page: 1,
@@ -557,7 +499,7 @@ export default function WeeklyViewershipPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `weekly_viewership_${metric}_${weekMonday}.csv`);
+      link.setAttribute("download", `weekly_viewership_${metric}_${weekStart}.csv`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -621,7 +563,7 @@ export default function WeeklyViewershipPage() {
     finally { setExporting(false); }
   };
 
-  const weekDays = getWeekOptions(12).find(o => o.monday === weekMonday)?.days ?? [];
+  const weekDays = getWeekOptions(12).find(o => o.start === weekStart)?.days ?? [];
 
   // Local search filter (client-side for quick lookup)
   const displayedData = responseData?.data.filter((item) => {
@@ -664,7 +606,7 @@ export default function WeeklyViewershipPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {/* Week navigator */}
-            <WeekNavigator currentMonday={weekMonday} onChange={handleWeekChange} />
+            <WeekNavigator current={weekStart} onChange={handleWeekChange} />
 
             {/* Filters */}
             <ButtonGroup>
@@ -798,6 +740,12 @@ export default function WeeklyViewershipPage() {
                     <span className="text-sm">{new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
                   </DropdownMenuItem>
                 ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Custom range (Excel)</DropdownMenuLabel>
+                <DateRangeExportDialog
+                  filters={{ device_id: filters.device_id, hhid: filters.hhid, region: filters.region }}
+                  disabled={!responseData?.data.length}
+                />
               </DropdownMenuContent>
             </DropdownMenu>
             <Button
