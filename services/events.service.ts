@@ -383,7 +383,7 @@ class EventsService {
       image_rec: "Yes" | "No" | "No Data";
       audio_fingerprint: "Yes" | "No" | "No Data";
     }>;
-    stats: { total: number; connectivity: number; viewership: number; member_dec: number; image_rec: number };
+    stats: { total: number; connectivity: number; viewership: number; member_dec: number; image_rec: number, audio: number };
     pagination: Pagination;
   }> {
     const params = new URLSearchParams();

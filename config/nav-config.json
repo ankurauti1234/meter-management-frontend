@@ -85,6 +85,14 @@
           "roles": [
             "admin"
           ]
+        },
+        {
+          "title": "Unassign Logs",
+          "url": "/devices/unassign-logs",
+          "icon": "ClipboardList",
+          "roles": [
+            "admin"
+          ]
         }
       ]
     },

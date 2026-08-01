@@ -56,6 +56,7 @@ interface Filters {
   viewership:   "Yes" | "No" | "all";
   member_dec:   "Yes" | "No" | "all";
   image_rec:    "Yes" | "No" | "all";
+  audio_fingerprint: "Yes" | "No" | "No Data" | "all";
   page:         number;
   limit:        number;
 }
@@ -72,6 +73,7 @@ const DEFAULT_FILTERS: Filters = {
   viewership:   "all",
   member_dec:   "all",
   image_rec:    "all",
+  audio_fingerprint: "all", 
   page:         1,
   limit:        25,
 };
@@ -109,7 +111,7 @@ export default function DailyReportPage() {
   const [dialogOpen, setDialogOpen]   = useState(false);
 
   const [rawData, setRawData]   = useState<DailyRow[]>([]);
-  const [stats, setStats]       = useState({ total: 0, connectivity: 0, viewership: 0, member_dec: 0, image_rec: 0 });
+  const [stats, setStats]       = useState({ total: 0, connectivity: 0, viewership: 0, member_dec: 0, image_rec: 0, audio: 0 });
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting]   = useState(false);
@@ -132,7 +134,8 @@ export default function DailyReportPage() {
     filters.connectivity !== "all" ||
     filters.viewership    !== "all" ||
     filters.member_dec    !== "all" ||
-    filters.image_rec     !== "all"
+    filters.image_rec     !== "all" ||
+    filters.audio_fingerprint !== "all"
   );
 
   const activeFilterCount = [
@@ -144,6 +147,7 @@ export default function DailyReportPage() {
     filters.viewership   !== "all" ? filters.viewership   : "",
     filters.member_dec   !== "all" ? filters.member_dec   : "",
     filters.image_rec    !== "all" ? filters.image_rec    : "",
+    filters.audio_fingerprint !== "all" ? filters.audio_fingerprint : "",
   ].filter(Boolean).length;
 
   const fetchData = useCallback(async () => {
@@ -159,7 +163,7 @@ export default function DailyReportPage() {
         limit:     999999,
       });
       setRawData(res.data || []);
-      setStats(res.stats || { total: 0, connectivity: 0, viewership: 0, member_dec: 0, image_rec: 0 });
+      setStats(res.stats || { total: 0, connectivity: 0, viewership: 0, member_dec: 0, image_rec: 0, audio: 0 });
     } catch {
       toast.error("Failed to load daily report");
       setRawData([]);
@@ -181,8 +185,9 @@ export default function DailyReportPage() {
     if (filters.viewership   !== "all" && row.viewership   !== filters.viewership)   return false;
     if (filters.member_dec   !== "all" && row.member_dec   !== filters.member_dec)   return false;
     if (filters.image_rec    !== "all" && row.image_rec    !== filters.image_rec)    return false;
+    if (filters.audio_fingerprint !== "all" && row.audio_fingerprint !== filters.audio_fingerprint) return false;
     return true;
-  }), [rawData, filters.connectivity, filters.viewership, filters.member_dec, filters.image_rec]);
+  }), [rawData, filters.connectivity, filters.viewership, filters.member_dec, filters.image_rec, filters.audio_fingerprint]);
 
   const total      = filteredData.length;
   const totalPages = Math.max(1, Math.ceil(total / filters.limit));
@@ -385,6 +390,7 @@ export default function DailyReportPage() {
               <Badge className="bg-blue-600  hover:bg-blue-700  text-white">View: {stats.viewership}</Badge>
               <Badge className="bg-purple-600 hover:bg-purple-700 text-white">Mem: {stats.member_dec}</Badge>
               <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white">Img: {stats.image_rec}</Badge>
+              <Badge className="bg-pink-600 hover:bg-pink-700 text-white">Audio: {stats.audio}</Badge>
             </div>
           ) : null
         }
@@ -479,6 +485,23 @@ export default function DailyReportPage() {
                           </Select>
                         </div>
                       ))}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Audio Fingerprint</Label>
+                      <Select
+                        value={tempFilters.audio_fingerprint}
+                        onValueChange={(v: "Yes" | "No" | "No Data" | "all") =>
+                          setTempFilters(p => ({ ...p, audio_fingerprint: v }))
+                        }
+                      >
+                        <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all"     className="text-xs">All</SelectItem>
+                          <SelectItem value="Yes"     className="text-xs">Yes</SelectItem>
+                          <SelectItem value="No"      className="text-xs">No</SelectItem>
+                          <SelectItem value="No Data" className="text-xs">No Data</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <DialogFooter className="mt-2">
