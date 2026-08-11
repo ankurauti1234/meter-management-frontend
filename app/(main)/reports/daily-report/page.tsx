@@ -44,6 +44,7 @@ interface DailyRow {
   member_dec:        "Yes" | "No";
   image_rec:         "Yes" | "No" | "No Data";
   audio_fingerprint: "Yes" | "No" | "No Data";
+  positive_viewership: "Yes" | "No";
 }
 
 interface Filters {
@@ -57,6 +58,7 @@ interface Filters {
   member_dec:   "Yes" | "No" | "all";
   image_rec:    "Yes" | "No" | "all";
   audio_fingerprint: "Yes" | "No" | "No Data" | "all";
+  positive_viewership: "Yes" | "No" | "all";
   page:         number;
   limit:        number;
 }
@@ -74,6 +76,7 @@ const DEFAULT_FILTERS: Filters = {
   member_dec:   "all",
   image_rec:    "all",
   audio_fingerprint: "all", 
+  positive_viewership: "all",
   page:         1,
   limit:        25,
 };
@@ -111,7 +114,7 @@ export default function DailyReportPage() {
   const [dialogOpen, setDialogOpen]   = useState(false);
 
   const [rawData, setRawData]   = useState<DailyRow[]>([]);
-  const [stats, setStats]       = useState({ total: 0, connectivity: 0, viewership: 0, member_dec: 0, image_rec: 0, audio: 0 });
+  const [stats, setStats]       = useState({ total: 0, connectivity: 0, viewership: 0, member_dec: 0, image_rec: 0, audio: 0, positive_viewership: 0});
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting]   = useState(false);
@@ -135,7 +138,8 @@ export default function DailyReportPage() {
     filters.viewership    !== "all" ||
     filters.member_dec    !== "all" ||
     filters.image_rec     !== "all" ||
-    filters.audio_fingerprint !== "all"
+    filters.audio_fingerprint !== "all" ||
+    filters.positive_viewership !== "all" 
   );
 
   const activeFilterCount = [
@@ -148,6 +152,7 @@ export default function DailyReportPage() {
     filters.member_dec   !== "all" ? filters.member_dec   : "",
     filters.image_rec    !== "all" ? filters.image_rec    : "",
     filters.audio_fingerprint !== "all" ? filters.audio_fingerprint : "",
+    filters.positive_viewership !== "all" ? filters.positive_viewership : "",
   ].filter(Boolean).length;
 
   const fetchData = useCallback(async () => {
@@ -186,6 +191,7 @@ export default function DailyReportPage() {
     if (filters.member_dec   !== "all" && row.member_dec   !== filters.member_dec)   return false;
     if (filters.image_rec    !== "all" && row.image_rec    !== filters.image_rec)    return false;
     if (filters.audio_fingerprint !== "all" && row.audio_fingerprint !== filters.audio_fingerprint) return false;
+    if (filters.positive_viewership !== "all" && row.positive_viewership !== filters.positive_viewership) return false;
     return true;
   }), [rawData, filters.connectivity, filters.viewership, filters.member_dec, filters.image_rec, filters.audio_fingerprint]);
 
@@ -289,7 +295,7 @@ export default function DailyReportPage() {
         .sort((a, b) => a[1].hhid.localeCompare(b[1].hhid));
   
       const FIXED_COLS    = ["HHID", "Device ID", "Replacement", "Region"];
-      const METRIC_LABELS = ["Connectivity", "Viewership", "Member Dec", "Recognized Image", "Audio Fingerprint"];
+      const METRIC_LABELS = ["Connectivity", "Viewership", "Member Dec", "Recognized Image", "Audio Fingerprint", "Positive Viewership"];
       const BLOCK_FILLS    = ["FFD9E2F3", "FFF2F2F2"]; // alternating light blue / light grey
   
       const workbook = new ExcelJS.Workbook();
@@ -339,6 +345,7 @@ export default function DailyReportPage() {
           row.getCell(startCol + 2).value = d?.member_dec        ?? "No Data";
           row.getCell(startCol + 3).value = d?.image_rec         ?? "No Data";
           row.getCell(startCol + 4).value = d?.audio_fingerprint ?? "No Data";
+          row.getCell(startCol + 5).value = d?.positive_viewership ?? "No Data";
         });
       }
   
@@ -391,6 +398,7 @@ export default function DailyReportPage() {
               <Badge className="bg-purple-600 hover:bg-purple-700 text-white">Mem: {stats.member_dec}</Badge>
               <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white">Img: {stats.image_rec}</Badge>
               <Badge className="bg-pink-600 hover:bg-pink-700 text-white">Audio: {stats.audio}</Badge>
+              <Badge className="bg-teal-600 hover:bg-teal-700 text-white">+View: {stats.positive_viewership}</Badge>
             </div>
           ) : null
         }
@@ -503,6 +511,22 @@ export default function DailyReportPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-1.5">
+                      <Label>Positive Viewership</Label>
+                      <Select
+                        value={tempFilters.positive_viewership}
+                        onValueChange={(v: "Yes" | "No" | "all") =>
+                          setTempFilters(p => ({ ...p, positive_viewership: v }))
+                        }
+                      >
+                        <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-xs">All</SelectItem>
+                          <SelectItem value="Yes"  className="text-xs">Yes</SelectItem>
+                          <SelectItem value="No"   className="text-xs">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <DialogFooter className="mt-2">
                     <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
@@ -561,6 +585,7 @@ export default function DailyReportPage() {
                 <th className="px-3 py-3 text-center font-medium text-muted-foreground">Member Dec</th>
                 <th className="px-3 py-3 text-center font-medium text-muted-foreground">Recognized Image</th>
                 <th className="px-3 py-3 text-center font-medium text-muted-foreground">Audio Fingerprint</th>
+                <th className="px-3 py-3 text-center font-medium text-muted-foreground">Positive Viewership</th>
               </tr>
             </thead>
             <tbody>
@@ -605,6 +630,7 @@ export default function DailyReportPage() {
                     <td className="px-3 py-2.5 text-center"><YNBadge value={row.member_dec}   /></td>
                     <td className="px-3 py-2.5 text-center"><YNBadge value={row.image_rec}    /></td>
                     <td className="px-3 py-2.5 text-center"><YNBadge value={row.audio_fingerprint} /></td>
+                    <td className="px-3 py-2.5 text-center"><YNBadge value={row.positive_viewership} /></td>
                   </tr>
                 ))
               )}

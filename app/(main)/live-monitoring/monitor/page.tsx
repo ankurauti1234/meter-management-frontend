@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import {
   ColumnDef,
   flexRender,
@@ -67,6 +67,7 @@ import eventsService from "@/services/events.service";
 interface LiveMonitoringItem {
   device_id: string;
   hhid: string;
+  region: string;
   last_event_timestamp: number | null;
 }
 
@@ -98,7 +99,7 @@ export default function LiveMonitoringPage() {
         limit: filters.limit,
       });
 
-      setData(res.data || []);
+      setData((res as any).data || []);
       setTotal(res.pagination?.total || 0);
     } catch (err) {
       toast.error("Failed to load live monitoring data");
@@ -140,27 +141,35 @@ export default function LiveMonitoringPage() {
       }
 
       // Create CSV content
-      const headers = ["Device ID", "HHID", "Last Event Timestamp"];
+      const headers = ["Device ID", "HHID", "Region", "Last Seen"];
 
       const csvRows = [
         headers.join(","),
         ...exportData.map((item) => {
           const ts = item.last_event_timestamp;
-          let formattedTimestamp = "No events";
+          let lastSeen = "—";
 
           if (ts) {
             const timestamp = ts < 1e12 ? ts * 1000 : ts;
             const date = new Date(timestamp);
             if (!isNaN(date.getTime())) {
-              formattedTimestamp = format(date, "dd MMM yyyy, HH:mm:ss");
-            } else {
-              formattedTimestamp = "Invalid date";
+              if (isToday(date)) {
+                lastSeen = "Today";
+              } else if (isYesterday(date)) {
+                lastSeen = "Yesterday";
+              } else {
+                lastSeen = formatDistanceToNow(date, { addSuffix: true });
+              }
             }
           }
 
-          return [item.device_id, item.hhid, formattedTimestamp].join(",");
+          return [item.device_id, item.hhid, item.region || "—", lastSeen].join(",");
         }),
       ];
+
+
+
+
 
       const csvContent = csvRows.join("\n");
 
@@ -235,6 +244,13 @@ export default function LiveMonitoringPage() {
       ),
     },
     {
+      accessorKey: "region",
+      header: "Region",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.original.region || "—"}</span>
+      ),
+    },
+    {
       accessorKey: "last_event_timestamp",
       header: "Last Event Timestamp",
       cell: ({ row }) => {
@@ -256,6 +272,45 @@ export default function LiveMonitoringPage() {
             {format(date, "dd MMM yyyy, HH:mm:ss")}
           </div>
         );
+      },
+    },
+    {
+      id: "last_seen",
+      header: "Last Seen",
+      cell: ({ row }) => {
+        const ts = row.original.last_event_timestamp;
+        if (!ts) {
+          return <span className="text-muted-foreground text-xs">—</span>;
+        }
+
+        const timestamp = ts < 1e12 ? ts * 1000 : ts;
+        const date = new Date(timestamp);
+
+        if (isNaN(date.getTime())) {
+          return <span className="text-red-500 text-xs">—</span>;
+        }
+
+        let label: string;
+        let className: string;
+
+        if (isToday(date)) {
+          label = "Today";
+          className = "text-emerald-600 font-semibold";
+        } else if (isYesterday(date)) {
+          label = "Yesterday";
+          className = "text-amber-600 font-medium";
+        } else {
+          label = formatDistanceToNow(date, { addSuffix: true });
+          // colour gets redder the older the event
+          const daysAgo = Math.floor((Date.now() - date.getTime()) / 86400000);
+          className = daysAgo <= 7
+            ? "text-amber-600"
+            : daysAgo <= 30
+              ? "text-orange-600"
+              : "text-red-600";
+        }
+
+        return <span className={`text-xs ${className}`}>{label}</span>;
       },
     },
   ];

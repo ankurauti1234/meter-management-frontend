@@ -37,6 +37,7 @@ import api from "@/services/api";
 interface InstalledMeter {
   meterId: string;
   assignedHouseholdId: string;
+  region: string;
   meterType?: string | null;
   assetSerialNumber?: string | null;
   installedAt: string;
@@ -97,11 +98,12 @@ export default function InstalledMetersPage() {
       const meters = res.data.meters;
       if (!meters.length) { toast.error("No data to download"); return; }
 
-      const headers = ["Sr No.", "Meter ID", "HHID", "Installed At"];
+      const headers = ["Sr No.", "Meter ID", "HHID", "Region", "Installed At"];
       const rows = meters.map((m, i) => [
         i + 1,
         m.meterId,
         m.assignedHouseholdId,
+        m.region || "—",
         format(new Date(m.installedAt), "dd MMM yyyy HH:mm:ss"),
       ]);
       const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
@@ -216,6 +218,13 @@ export default function InstalledMetersPage() {
         <code className="font-mono text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-500/20 ml-[-14px] text-[15px]">
           {row.original.assignedHouseholdId}
         </code>
+      ),
+    },
+    {
+      accessorKey: "region",
+      header: "Region",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.original.region || "—"}</span>
       ),
     },
     {
