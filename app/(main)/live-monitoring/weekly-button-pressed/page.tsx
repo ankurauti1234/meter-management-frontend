@@ -230,6 +230,7 @@ export default function WeeklyButtonPressedPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [pressedToday, setPressedToday] = useState<number | null>(null);
 
   const hasActiveFilters = Boolean(filters.device_id || filters.hhid || filters.region || filters.status !== "all");
 
@@ -254,6 +255,13 @@ export default function WeeklyButtonPressedPage() {
   }, [filters, weekStart]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    eventsService.getButtonPressedReport({ date: today, limit: 1 })
+      .then(res => setPressedToday(res.stats?.active ?? 0))
+      .catch(() => setPressedToday(null));
+  }, []);
 
   const handleWeekChange = (start: string) => { setWeekStart(start); setFilters(p => ({ ...p, page: 1 })); };
   const handleRefresh = () => { setRefreshing(true); fetchData(); };
@@ -364,10 +372,15 @@ export default function WeeklyButtonPressedPage() {
         description={responseData ? `Week of ${formatDateRange(responseData.week_start, responseData.week_end)} · Meters IM000101–IM000600 · Type 3 & 4 events` : "Loading week..."}
         badge={stats ? (
           <div className="flex gap-2 flex-wrap">
-            <Badge variant="outline">Total: {stats.total_meters.toLocaleString()}</Badge>
+            {/* <Badge variant="outline">Total: {stats.total_meters.toLocaleString()}</Badge>
             <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">Full: {stats.fully_connected.toLocaleString()}</Badge>
             <Badge className="bg-amber-500 hover:bg-amber-600 text-white">Partial: {stats.partially_connected.toLocaleString()}</Badge>
-            <Badge variant="destructive">None: {stats.not_connected.toLocaleString()}</Badge>
+            <Badge variant="destructive">None: {stats.not_connected.toLocaleString()}</Badge> */}
+            {pressedToday !== null && (
+              <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                Pressed Today: {pressedToday.toLocaleString()}
+              </Badge>
+            )}
           </div>
         ) : null}
         size="sm"
