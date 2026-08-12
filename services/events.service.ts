@@ -196,6 +196,7 @@ class EventsService {
     limit?: number;
   }): Promise<{
     data: Array<{
+      region: string;
       device_id: string;
       hhid: string;
       last_event_timestamp: number | null;
@@ -382,8 +383,9 @@ class EventsService {
       member_dec: "Yes" | "No";
       image_rec: "Yes" | "No" | "No Data";
       audio_fingerprint: "Yes" | "No" | "No Data";
+      positive_viewership: "Yes" | "No";
     }>;
-    stats: { total: number; connectivity: number; viewership: number; member_dec: number; image_rec: number, audio: number };
+    stats: { total: number; connectivity: number; viewership: number; member_dec: number; image_rec: number, audio: number, positive_viewership: number; };
     pagination: Pagination;
   }> {
     const params = new URLSearchParams();
