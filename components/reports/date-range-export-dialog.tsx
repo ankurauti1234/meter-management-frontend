@@ -26,7 +26,7 @@ import eventsService from "@/services/events.service";
 
 type PageType = "connectivity" | "button_pressed" | "viewership";
 type StatusFilter = "all" | "connected" | "partial" | "disconnected" | "no_data";
-type MetricFilter = "image" | "audio";
+type MetricFilter = "image" | "audio" | "positive";
 
 interface Props {
   /** Which page is using this dialog — determines how status filtering works */

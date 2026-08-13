@@ -69,7 +69,7 @@ import { DateRangeExportDialog } from "@/components/reports/date-range-export-di
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Metric = "image" | "audio";
+type Metric = "image" | "audio" | "positive";
 type DayStatus = "Yes" | "No" | "No Data";
 
 interface DayViewership {
@@ -140,6 +140,15 @@ const METRIC_CONFIG: Record<
     noLabel: "Not matched",
     eventNote: "Type 42 events",
   },
+  positive: {
+    label: "Positive Viewership",
+    shortLabel: "Positive",
+    icon: TrendingUp,
+    yesLabel: "Positive",
+    noLabel: "Not positive",
+    eventNote: "Type 29 or Type 42 MATCHED",
+  },
+
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -390,7 +399,7 @@ function TableSkeleton({ rows = 10 }: { rows?: number }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function WeeklyViewershipPage() {
-  const [metric, setMetric] = useState<Metric>("image");
+  const [metric, setMetric] = useState<Metric>("positive");
   const [weekStart, setWeekStart] = useState(() => getMondayOfWeek(new Date().toISOString().split("T")[0]));
 
   const [filters, setFilters] = useState({
@@ -454,7 +463,7 @@ export default function WeeklyViewershipPage() {
 
   const handleMetricChange = (value: string) => {
     setMetric(value as Metric);
-    // Reset status filter when switching tabs — no_data is audio-only
+    // Reset status — no_data is audio-only
     setFilters((p) => ({ ...p, page: 1, status: "all" }));
     setTempFilters((p) => ({ ...p, status: "all" }));
   };
@@ -702,12 +711,8 @@ export default function WeeklyViewershipPage() {
                           <SelectItem value="partial">Partially matched (1–6/7)</SelectItem>
                           {metric === "audio" ? (
                             <>
-                              <SelectItem value="disconnected">
-                                Never matched (had events, 0/7)
-                              </SelectItem>
-                              <SelectItem value="no_data">
-                                No data (no Type 42 events all week)
-                              </SelectItem>
+                              <SelectItem value="disconnected">Never matched (had events, 0/7)</SelectItem>
+                              <SelectItem value="no_data">No data (no Type 42 events all week)</SelectItem>
                             </>
                           ) : (
                             <SelectItem value="disconnected">Never matched (0/7)</SelectItem>
@@ -788,6 +793,10 @@ export default function WeeklyViewershipPage() {
           <TabsTrigger value="audio" className="text-xs gap-1.5 rounded-lg">
             <Fingerprint className="h-3.5 w-3.5" />
             Audio Fingerprint
+          </TabsTrigger>
+          <TabsTrigger value="positive" className="text-xs gap-1.5 rounded-lg">
+            <TrendingUp className="h-3.5 w-3.5" />
+            Positive Viewership
           </TabsTrigger>
         </TabsList>
       </Tabs>
