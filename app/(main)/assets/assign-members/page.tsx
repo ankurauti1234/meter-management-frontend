@@ -164,6 +164,7 @@ function MemberCard({
 export default function AssignMembersPage() {
   const [hhid, setHhid] = useState("");
   const [hhidError, setHhidError] = useState("");
+  const [region, setRegion] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [members, setMembers] = useState<MemberRow[]>([makeMemberRow("M1")]);
@@ -225,11 +226,14 @@ export default function AssignMembersPage() {
         return { memberCode: m.memberCode, age, gender: m.gender, dob: m.dob || deriveDob(age) };
       });
       const result = await HouseholdService.assignMembersManually(
-        hhid.trim(), contactEmail.trim(), payload
+        hhid.trim(), contactEmail.trim(), payload, region.trim() || undefined
       );
-      toast.success(`Assigned ${result.saved} member(s) to ${hhid}`);
+      const msg = result.householdCreated
+        ? `Household "${hhid}" created and ${result.saved} member(s) assigned`
+        : `Assigned ${result.saved} member(s) to ${hhid}`;
+      toast.success(msg);
       setSubmitSuccess(true);
-      setHhid(""); setContactEmail(""); setMembers([makeMemberRow("M1")]);
+      setHhid(""); setRegion(""); setContactEmail(""); setMembers([makeMemberRow("M1")]);
       setTimeout(() => setSubmitSuccess(false), 4000);
     } catch (err: any) {
       const msg: string = err?.response?.data?.msg ?? err?.message ?? "An error occurred";
@@ -238,9 +242,6 @@ export default function AssignMembersPage() {
         toast.error("HHID already assigned", {
           description: `${hhid} already has members. Each HHID can only be assigned once.`,
         });
-      } else if (msg.toLowerCase().includes("not found")) {
-        setHhidError(`HHID "${hhid}" does not exist in the system.`);
-        toast.error("Household not found");
       } else {
         toast.error("Failed to assign members", { description: msg });
       }
@@ -250,7 +251,7 @@ export default function AssignMembersPage() {
   };
 
   const handleReset = () => {
-    setHhid(""); setHhidError(""); setContactEmail(""); setEmailError("");
+    setHhid(""); setHhidError(""); setRegion(""); setContactEmail(""); setEmailError("");
     setMembers([makeMemberRow("M1")]); setSubmitSuccess(false);
   };
 
@@ -298,6 +299,21 @@ export default function AssignMembersPage() {
                   <AlertCircle className="h-3.5 w-3.5 mt-px shrink-0" />{hhidError}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                Region
+                <span className="ml-1 text-muted-foreground font-normal">(if new HHID)</span>
+              </Label>
+              <Input
+                placeholder="e.g. Yerevan"
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Required only if this HHID doesn't exist yet — it will be created automatically.
+              </p>
             </div>
 
             <div className="space-y-1.5">

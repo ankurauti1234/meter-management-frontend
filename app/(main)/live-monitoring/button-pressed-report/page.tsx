@@ -67,6 +67,7 @@ interface ButtonPressedItem {
   hhid: string;
   date: string;
   button_pressed: "Yes" | "No";
+  declared_members?: Array<{ code: string; active: boolean }>;
 }
 
 export default function ButtonPressedReportPage() {
@@ -245,6 +246,32 @@ export default function ButtonPressedReportPage() {
           {row.original.button_pressed}
         </Badge>
       ),
+    },
+    {
+      id: "declared_members",
+      header: "Members Declared",
+      cell: ({ row }) => {
+        const members = row.original.declared_members ?? [];
+        if (members.length === 0) {
+          return <span className="text-xs text-muted-foreground">—</span>;
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {members.map((m) => (
+              <span
+                key={m.code}
+                className={`text-xs font-medium px-1.5 py-0.5 rounded border ${
+                  m.active
+                    ? "bg-green-100 text-green-700 border-green-300"
+                    : "bg-muted text-muted-foreground border-border"
+                }`}
+              >
+                {m.code}
+              </span>
+            ))}
+          </div>
+        );
+      },
     },
   ];
 

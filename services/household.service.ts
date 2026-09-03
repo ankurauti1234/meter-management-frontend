@@ -90,9 +90,10 @@ class HouseholdService {
       age: number;
       gender: string;
       dob?: string;
-    }>
-  ): Promise<{ saved: number; email: string }> {
-    const res = await api.post("/households/members/assign", { hhid, contactEmail, members });
+    }>,
+    region?: string
+  ): Promise<{ saved: number; email: string; householdCreated: boolean }> {
+    const res = await api.post("/households/members/assign", { hhid, contactEmail, members, region });
     return res.data.data;
   }
 
