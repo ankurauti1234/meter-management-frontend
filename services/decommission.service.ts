@@ -70,10 +70,12 @@ export interface MeterHistoryRecord {
   id: string;
   meterId: string;
   hhid: string;
-  householdId?: string;
+  householdId: string;
   assignedAt: string;
   decommissionedAt: string | null;
   activeMeterId: string | null;
+  activeMeterInstalledAt: string | null;         // ← new
+  members: Array<{ code: string; age: number; gender: string }>; // ← new
 }
 
 class DecommissionService {

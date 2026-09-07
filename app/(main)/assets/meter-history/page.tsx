@@ -170,13 +170,19 @@ function TimelineEntry({ record, isFirst, isLast }: {
 
 // ─── HHID Group Card ──────────────────────────────────────────────────────────
 
-function HhidGroupCard({ hhid, records, activeMeterId }: { hhid: string; records: MeterHistoryRecord[]; activeMeterId: string | null }) {
+function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, members }: {
+  hhid: string;
+  records: MeterHistoryRecord[];
+  activeMeterId: string | null;
+  activeMeterInstalledAt: string | null;
+  members: Array<{ code: string; age: number; gender: string }>;
+}) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="rounded-lg border bg-card overflow-hidden">
 
-      {/* Single compact row — always visible */}
+      {/* Compact row */}
       <div className="flex items-center gap-3 px-3 py-2.5">
 
         {/* HHID */}
@@ -185,18 +191,27 @@ function HhidGroupCard({ hhid, records, activeMeterId }: { hhid: string; records
           <code className="text-xs font-mono font-semibold">{hhid}</code>
         </div>
 
-        {/* Arrow */}
         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 
-        {/* Active meter */}
+        {/* Active meter + installed date */}
         {activeMeterId ? (
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
             <div className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </div>
-            <code className="text-xs font-mono font-semibold text-emerald-700 dark:text-emerald-400">{activeMeterId}</code>
-            <Badge className="text-[10px] px-1.5 h-4 bg-emerald-500 hover:bg-emerald-500 text-white ml-1">Active</Badge>
+            <code className="text-xs font-mono font-semibold text-emerald-700 dark:text-emerald-400">
+              {activeMeterId}
+            </code>
+            <Badge className="text-[10px] px-1.5 h-4 bg-emerald-500 hover:bg-emerald-500 text-white">
+              Active
+            </Badge>
+            {activeMeterInstalledAt && (
+              <span className="text-[14px] font-bold text-muted-foreground flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" />
+                since {format(new Date(activeMeterInstalledAt), "dd MMM yyyy, HH:mm")}
+              </span>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-1.5 flex-1 text-xs text-muted-foreground">
@@ -218,15 +233,39 @@ function HhidGroupCard({ hhid, records, activeMeterId }: { hhid: string; records
         )}
       </div>
 
-      {/* Expandable history timeline */}
-      {expanded && records.length > 0 && (
-        <div className="border-t px-3 pt-2.5 pb-1.5 bg-muted/20">
-          {records.map((r, i) => (
-            <TimelineEntry key={r.id} record={r} isFirst={i === 0} isLast={i === records.length - 1} />
-          ))}
+      {/* Expanded section — members + timeline */}
+      {expanded && (
+        <div className="border-t bg-muted/20">
+
+          {/* Members */}
+          {members.length > 0 && (
+            <div className="px-3 pt-2.5 pb-2 border-b">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 font-medium">
+                Household Members
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {members.map((m) => (
+                  <span
+                    key={m.code}
+                    className="text-xs font-medium px-2.5 py-1 rounded-md border bg-background text-foreground border-border whitespace-nowrap"
+                  >
+                    {m.code} - Age {m.age} {m.gender === "M" ? "Male" : "Female"}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Timeline */}
+          {records.length > 0 && (
+            <div className="px-3 pt-2.5 pb-1.5">
+              {records.map((r, i) => (
+                <TimelineEntry key={r.id} record={r} isFirst={i === 0} isLast={i === records.length - 1} />
+              ))}
+            </div>
+          )}
         </div>
       )}
-
     </div>
   );
 }
@@ -471,9 +510,15 @@ export default function MeterHistoryPage() {
         /* ── Grouped view ── */
         <div className="space-y-3">
           {Array.from(grouped.entries()).map(([hhid, records]) => (
-            <HhidGroupCard key={hhid} hhid={hhid} records={records} activeMeterId={records[0]?.activeMeterId ?? null} />
+            <HhidGroupCard
+              key={hhid}
+              hhid={hhid}
+              records={records}
+              activeMeterId={records[0]?.activeMeterId ?? null}
+              activeMeterInstalledAt={records[0]?.activeMeterInstalledAt ?? null}
+              members={records[0]?.members ?? []}
+            />
           ))}
-
           {/* Pagination */}
           {total > 0 && (
             <div className="flex items-center justify-between pt-2">
