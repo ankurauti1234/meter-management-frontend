@@ -29,6 +29,7 @@ import {
 import { ButtonGroup } from "@/components/ui/button-group";
 import { toast } from "sonner";
 import decommissionService, { MeterHistoryRecord } from "@/services/decommission.service";
+import { getEnvironmentByMeterId } from "@/lib/meter-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,6 +120,7 @@ function TimelineEntry({ record, isFirst, isLast }: {
 }) {
   const assigned = fmt(record.assignedAt);
   const decomm = record.decommissionedAt ? fmt(record.decommissionedAt) : null;
+  const env = getEnvironmentByMeterId(record.meterId);
 
   return (
     <div className="flex gap-3">
@@ -133,6 +135,7 @@ function TimelineEntry({ record, isFirst, isLast }: {
           <div className="flex items-center gap-2">
             <Cpu className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <code className="font-mono font-medium text-foreground">{record.meterId}</code>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{env}</Badge>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">Retired</Badge>
           </div>
           <span className="text-muted-foreground tabular-nums">
@@ -178,6 +181,7 @@ function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, m
   members: Array<{ code: string; age: number; gender: string }>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const activeEnv = getEnvironmentByMeterId(activeMeterId);
 
   return (
     <div className="rounded-lg border bg-card overflow-hidden">
@@ -203,6 +207,9 @@ function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, m
             <code className="text-xs font-mono font-semibold text-emerald-700 dark:text-emerald-400">
               {activeMeterId}
             </code>
+            <Badge variant="outline" className="text-[10px] px-1.5 h-4">
+              {activeEnv}
+            </Badge>
             <Badge className="text-[10px] px-1.5 h-4 bg-emerald-500 hover:bg-emerald-500 text-white">
               Active
             </Badge>
@@ -563,6 +570,7 @@ export default function MeterHistoryPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground w-12">Sr.</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Meter ID</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Environment</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">HHID</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     <div className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-blue-500" /> Assigned At</div>
@@ -578,11 +586,15 @@ export default function MeterHistoryPage() {
                 {data.map((record, index) => {
                   const isActive = !record.decommissionedAt;
                   const srNo = (filters.page - 1) * filters.limit + index + 1;
+                  const env = getEnvironmentByMeterId(record.meterId);
                   return (
                     <tr key={record.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
                       <td className="px-4 py-3 text-center text-muted-foreground tabular-nums">{srNo}</td>
                       <td className="px-4 py-3">
                         <code className="font-mono bg-muted px-2 py-1 rounded">{record.meterId}</code>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant="outline" className="text-[10px]">{env}</Badge>
                       </td>
                       <td className="px-4 py-3">
                         <code className="font-mono text-muted-foreground">{record.hhid}</code>

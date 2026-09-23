@@ -69,6 +69,7 @@ export default function LoginPage() {
             <div className="space-y-1">
               <p className="text-2xl font-bold">5K+</p>
               <p className="text-xs text-muted-foreground">Active Meters</p>
+              <p className="text-xs text-muted-foreground">Managed</p>
             </div>
             <div className="space-y-1">
               <p className="text-2xl font-bold">99.9%</p>

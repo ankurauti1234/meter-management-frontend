@@ -5,8 +5,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Terminal } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
+import type { Terminal } from "xterm";
+import type { FitAddon } from "xterm-addon-fit";
 import remoteAccessService, {
   ActiveMeter,
 } from "@/services/remote-access.service";
@@ -16,8 +16,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { RefreshCw, X, AlertCircle } from "lucide-react";
-
-// import "xterm/css/xterm.css";
 
 export default function TerminalPage() {
   const params = useParams();
@@ -75,6 +73,9 @@ export default function TerminalPage() {
     if (terminalInstanceRef.current) {
       terminalInstanceRef.current.dispose();
     }
+
+    const { Terminal } = await import("xterm");
+    const { FitAddon } = await import("xterm-addon-fit");
 
     const term = new Terminal({
       cursorBlink: true,

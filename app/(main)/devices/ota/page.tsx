@@ -91,6 +91,144 @@ const otaJobSchema = z.object({
 
 type OtaJobForm = z.infer<typeof otaJobSchema>;
 
+const DUMMY_OTA_JOBS: OtaJob[] = [
+  {
+    id: 1,
+    jobId: "ota-job-v2.5.0-firmware-9a1b2c",
+    version: "2.5.0",
+    fileName: "indirex_v2.5.0_patch.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.5.0_patch.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.5.0.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.5.0",
+    userId: "admin",
+    status: "SUCCEEDED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/armenia_meter"],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 2,
+    jobId: "ota-job-v2.4.8-hotfix-8b2c3d",
+    version: "2.4.8",
+    fileName: "indirex_v2.4.8_hotfix.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.4.8_hotfix.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.4.8.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.4.8",
+    userId: "admin",
+    status: "SUCCEEDED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/staging_meters"],
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 3,
+    jobId: "ota-job-v2.4.5-security-7c3d4e",
+    version: "2.4.5",
+    fileName: "indirex_v2.4.5_security.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.4.5_security.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.4.5.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.4.5",
+    userId: "admin",
+    status: "SUCCEEDED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/armenia_meter"],
+    createdAt: new Date(Date.now() - 42 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 42 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 4,
+    jobId: "ota-job-v2.4.0-rollout-6d4e5f",
+    version: "2.4.0",
+    fileName: "indirex_v2.4.0_prod.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.4.0_prod.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.4.0.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.4.0",
+    userId: "admin",
+    status: "SUCCEEDED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/production_meters"],
+    createdAt: new Date(Date.now() - 65 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 65 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 5,
+    jobId: "ota-job-v2.3.9-wifi-bugfix-5e5f6g",
+    version: "2.3.9",
+    fileName: "indirex_v2.3.9_wififix.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.3.9_wififix.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.3.9.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.3.9",
+    userId: "admin",
+    status: "FAILED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/dev_meters"],
+    createdAt: new Date(Date.now() - 88 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 88 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 6,
+    jobId: "ota-job-v2.3.5-audio-driver-4f6g7h",
+    version: "2.3.5",
+    fileName: "indirex_v2.3.5_audio.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.3.5_audio.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.3.5.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.3.5",
+    userId: "admin",
+    status: "SUCCEEDED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/armenia_meter"],
+    createdAt: new Date(Date.now() - 110 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 110 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 7,
+    jobId: "ota-job-v2.3.0-major-update-3g7h8i",
+    version: "2.3.0",
+    fileName: "indirex_v2.3.0_release.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.3.0_release.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.3.0.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.3.0",
+    userId: "admin",
+    status: "SUCCEEDED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/all_meters"],
+    createdAt: new Date(Date.now() - 135 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 135 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 8,
+    jobId: "ota-job-v2.2.1-bluetooth-2h8i9j",
+    version: "2.2.1",
+    fileName: "indirex_v2.2.1_ble.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.2.1_ble.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.2.1.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.2.1",
+    userId: "admin",
+    status: "SUCCEEDED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/staging_meters"],
+    createdAt: new Date(Date.now() - 155 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 155 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 9,
+    jobId: "ota-job-v2.1.0-base-kernel-1i9j0k",
+    version: "2.1.0",
+    fileName: "indirex_v2.1.0_kernel.bin",
+    s3UrlUpdate: "https://indirex-ota-firmware.s3.amazonaws.com/indirex_v2.1.0_kernel.bin",
+    s3UrlJobDoc: "https://indirex-ota-firmware.s3.amazonaws.com/doc_v2.1.0.json",
+    downloadPath: "/tmp/firmware.bin",
+    jobArn: "arn:aws:iot:us-east-1:123456789012:job/ota-job-v2.1.0",
+    userId: "admin",
+    status: "SUCCEEDED",
+    targets: ["arn:aws:iot:us-east-1:123456789012:thinggroup/all_meters"],
+    createdAt: new Date(Date.now() - 175 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 175 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
 export default function OtaPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -130,8 +268,29 @@ export default function OtaPage() {
       );
       setJobs(res.jobs);
       setTotal(res.pagination?.total || 0);
+      if (res.jobs && res.jobs.length > 0) {
+        setJobs(res.jobs);
+        setTotal(res.pagination?.total || res.jobs.length);
+      } else {
+        const filteredDummy = debouncedSearch
+          ? DUMMY_OTA_JOBS.filter((j) =>
+              j.version.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+              j.fileName.toLowerCase().includes(debouncedSearch.toLowerCase())
+            )
+          : DUMMY_OTA_JOBS;
+        setJobs(filteredDummy);
+        setTotal(filteredDummy.length);
+      }
     } catch (err: any) {
       toast.error("Failed to load OTA jobs");
+      const filteredDummy = debouncedSearch
+        ? DUMMY_OTA_JOBS.filter((j) =>
+            j.version.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            j.fileName.toLowerCase().includes(debouncedSearch.toLowerCase())
+          )
+        : DUMMY_OTA_JOBS;
+      setJobs(filteredDummy);
+      setTotal(filteredDummy.length);
     } finally {
       setLoading(false);
       setRefreshing(false);

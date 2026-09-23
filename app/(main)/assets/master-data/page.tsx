@@ -69,6 +69,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 import AssetsService from "@/services/assets.service";
+import {
+  getEnvironmentByMeterId,
+  getDummyCpuSerial,
+  getDummyMeterStatus,
+} from "@/lib/meter-utils";
 
 type TabType = "meters" | "groups" | "things" | "unregistered";
 
@@ -230,30 +235,41 @@ export default function MasterDataPage() {
       ),
     },
     {
-      accessorKey: "powerHATStatus",
-      header: "HAT",
+      id: "cpuSerial",
+      header: "CPU Serial",
       cell: ({ row }) => (
-        <Badge
-          variant={
-            row.original.powerHATStatus === "Flashed" ? "default" : "secondary"
-          }
-        >
-          {row.original.powerHATStatus || "Unknown"}
-        </Badge>
+        <code className="font-mono text-xs text-muted-foreground">
+          {getDummyCpuSerial(row.original.meterId, row.index)}
+        </code>
       ),
+    },
+    {
+      id: "environment",
+      header: "Environment",
+      cell: ({ row }) => {
+        const env = getEnvironmentByMeterId(row.original.meterId);
+        const variant =
+          env === "Production"
+            ? "default"
+            : env === "Staging"
+            ? "outline"
+            : "secondary";
+        return <Badge variant={variant}>{env}</Badge>;
+      },
     },
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => (
-        <Badge
-          variant={
-            row.original.status === "REGISTERED" ? "default" : "destructive"
-          }
-        >
-          {row.original.status}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const dummyStatus = getDummyMeterStatus(row.original.meterId, row.index);
+        return (
+          <Badge
+            variant={dummyStatus === "Active" ? "default" : "destructive"}
+          >
+            {dummyStatus}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "groupName",
@@ -515,7 +531,7 @@ export default function MasterDataPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-64">
+                      <TableCell colSpan={7} className="h-64">
                         <div className="flex flex-col items-center justify-center h-full gap-4">
                           <Spinner className="h-8 w-8" />
                           <p className="text-muted-foreground">
@@ -526,7 +542,7 @@ export default function MasterDataPage() {
                     </TableRow>
                   ) : meters.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-64">
+                      <TableCell colSpan={7} className="h-64">
                         <Empty>
                           <EmptyHeader>
                             <EmptyMedia variant="icon">

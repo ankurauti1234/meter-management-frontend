@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+"use client"; 
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useDebounce } from "use-debounce";
@@ -75,6 +75,11 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import AssetsService from "@/services/assets.service";
+import {
+  getEnvironmentByMeterId,
+  getDummyCpuSerial,
+  getDummyMeterStatus,
+} from "@/lib/meter-utils";
 
 // Zod Schema
 const editMeterSchema = z.object({
@@ -257,30 +262,41 @@ export default function ListMetersPage() {
       ),
     },
     {
-      accessorKey: "powerHATStatus",
-      header: "HAT",
+      id: "cpuSerial",
+      header: "CPU Serial",
       cell: ({ row }) => (
-        <Badge
-          variant={
-            row.original.powerHATStatus === "Flashed" ? "default" : "secondary"
-          }
-        >
-          {row.original.powerHATStatus || "Unknown"}
-        </Badge>
+        <code className="font-mono text-xs text-muted-foreground">
+          {getDummyCpuSerial(row.original.meterId, row.index)}
+        </code>
       ),
+    },
+    {
+      id: "environment",
+      header: "Environment",
+      cell: ({ row }) => {
+        const env = getEnvironmentByMeterId(row.original.meterId);
+        const variant =
+          env === "Production"
+            ? "default"
+            : env === "Staging"
+            ? "outline"
+            : "secondary";
+        return <Badge variant={variant}>{env}</Badge>;
+      },
     },
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => (
-        <Badge
-          variant={
-            row.original.status === "REGISTERED" ? "default" : "destructive"
-          }
-        >
-          {row.original.status || "unknown"}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const dummyStatus = getDummyMeterStatus(row.original.meterId, row.index);
+        return (
+          <Badge
+            variant={dummyStatus === "Active" ? "default" : "destructive"}
+          >
+            {dummyStatus}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "groupName",
@@ -521,7 +537,7 @@ export default function ListMetersPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-64">
+                  <TableCell colSpan={8} className="h-64">
                     <div className="flex flex-col items-center justify-center h-full gap-4">
                       <Spinner className="h-8 w-8" />
                       <p className="text-muted-foreground">Loading meters...</p>
@@ -530,7 +546,7 @@ export default function ListMetersPage() {
                 </TableRow>
               ) : data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-64">
+                  <TableCell colSpan={8} className="h-64">
                     <Empty>
                       <EmptyHeader>
                         <EmptyMedia variant="icon">

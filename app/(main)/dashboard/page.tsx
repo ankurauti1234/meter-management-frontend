@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { StatCard } from "@/components/cards/stat-card";
-import { Cpu, Activity, GitBranch, Gauge } from "lucide-react";
+import { Cpu, Activity, GitBranch, Gauge, Layers } from "lucide-react";
 import { AlertCard } from "@/components/cards/alert-card";
+import { ArmeniaMap } from "@/components/cards/armenia-map";
 import {
   Card,
   CardContent,
@@ -81,7 +82,6 @@ export default function Dashboard() {
   // Only show "..." on the very first load when there is no cache at all
   const [isLoading, setIsLoading] = useState(() => getCachedStats() === null);
 
-
   const [recentAlerts, setRecentAlerts] = useState<InactivityAlert[]>(
     () => getCachedAlerts() ?? []
   );
@@ -101,8 +101,6 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   }, []);
-
-
 
   const fetchRecentAlerts = useCallback(async () => {
     try {
@@ -158,52 +156,65 @@ export default function Dashboard() {
       color: "text-chart-2",
       bgColor: "bg-chart-2/15",
     },
+    {
+      icon: Layers,
+      title: "Total Panel Size",
+      value: 421,
+      color: "text-chart-5",
+      bgColor: "bg-chart-5/15",
+    },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 w-full">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 w-full">
         {statCards.map((stat, index) => (
           <StatCard key={index} {...stat} />
         ))}
       </div>
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 w-full">
-        <Card className="w-full lg:col-span-2 gap-0 py-0">
-          <CardHeader className="flex flex-row items-center justify-between p-3">
-            <div>
-              <CardTitle>Inactivity Alerts</CardTitle>
-              <CardDescription>
-                Meters that haven&apos;t sent any events recently
-              </CardDescription>
-            </div>
-            <Link href="/live-monitoring/alerts">
-              <Button variant="outline" size="sm">
-                View All
-              </Button>
-            </Link>
-          </CardHeader>
-          <Separator />
-          <CardContent className="p-2 space-y-2 h-fit">
-            {recentAlertsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Spinner className="h-6 w-6" />
+        {/* Left Side: Armenia Active Devices Map */}
+        <ArmeniaMap />
+
+        {/* Right Side: Inactivity Alerts */}
+        <Card className="w-full gap-0 py-0 flex flex-col justify-between">
+          <div>
+            <CardHeader className="flex flex-row items-center justify-between p-3">
+              <div>
+                <CardTitle>Inactivity Alerts</CardTitle>
+                <CardDescription>
+                  Meters that haven&apos;t sent any events recently
+                </CardDescription>
               </div>
-            ) : recentAlerts.length === 0 ? (
-              <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
-                No inactive meters detected
-              </div>
-            ) : (
-              recentAlerts.map((alert) => (
-                <AlertCard
-                  key={alert.id}
-                  device_id={alert.device_id}
-                  hhid={alert.hhid}
-                  lastEventAt={alert.lastEventAt}
-                />
-              ))
-            )}
-          </CardContent>
+              <Link href="/live-monitoring/alerts">
+                <Button variant="outline" size="sm">
+                  View All
+                </Button>
+              </Link>
+            </CardHeader>
+            <Separator />
+            <CardContent className="p-2 space-y-2 h-fit">
+              {recentAlertsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Spinner className="h-6 w-6" />
+                </div>
+              ) : recentAlerts.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+                  No inactive meters detected
+                </div>
+              ) : (
+                recentAlerts.map((alert) => (
+                  <AlertCard
+                    key={alert.id}
+                    device_id={alert.device_id}
+                    hhid={alert.hhid}
+                    lastEventAt={alert.lastEventAt}
+                  />
+                ))
+              )}
+            </CardContent>
+          </div>
         </Card>
       </div>
     </div>
