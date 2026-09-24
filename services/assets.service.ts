@@ -66,36 +66,61 @@ export interface PaginatedThingsInGroup {
 
 class AssetsService {
   // 1. Upload Meters (CSV/XLSX)
-  async uploadMeters(file: File, groupName: string): Promise<UploadMetersResponse> {
+  async uploadMeters(file: File): Promise<UploadMetersResponse> {
     const formData = new FormData();
+
     formData.append("file", file);
-    formData.append("groupName", groupName);
 
     const res = await api.post("/assets/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+
     return res.data.data;
   }
 
   // 2. Get All Meters (with AWS sync status + extra fields)
   async getMeters(filters: MeterFilters = {}): Promise<PaginatedMeters> {
-  const params = new URLSearchParams();
-  console.log(filters)
+    const params = new URLSearchParams();
 
-  if (filters.page) params.append("page", String(filters.page));
-  if (filters.limit) params.append("limit", String(filters.limit));
-  if (filters.meterType) params.append("meterType", String(filters.meterType));
+    console.log(filters);
 
-  if (filters.search) params.append("meterId", filters.search);
-  if (filters.status) params.append("status", filters.status);
-  if (filters.powerHATStatus)
-    params.append("powerHATStatus", filters.powerHATStatus);
-  if (filters.groupName) params.append("groupName", filters.groupName);
+    if (filters.page) {
+      params.append("page", String(filters.page));
+    }
 
-  const res = await api.get(`/assets/meters?${params.toString()}`);
-  return res.data.data;
-}
+    if (filters.limit) {
+      params.append("limit", String(filters.limit));
+    }
 
+    if (filters.meterType) {
+      params.append("meterType", String(filters.meterType));
+    }
+
+    if (filters.search) {
+      params.append("meterId", filters.search);
+    }
+
+    if (filters.status) {
+      params.append("status", filters.status);
+    }
+
+    if (filters.powerHATStatus) {
+      params.append(
+        "powerHATStatus",
+        filters.powerHATStatus
+      );
+    }
+
+    if (filters.groupName) {
+      params.append("groupName", filters.groupName);
+    }
+
+    const res = await api.get(
+      `/assets/meters?${params.toString()}`
+    );
+
+    return res.data.data;
+  }
 
   // 3. Update Meter (by meterId)
   async updateMeter(
@@ -106,23 +131,49 @@ class AssetsService {
       powerHATStatus?: string;
     }
   ): Promise<EnrichedMeter> {
-    const res = await api.put(`/assets/meters/${meterId}`, data);
+    const res = await api.put(
+      `/assets/meters/${meterId}`,
+      data
+    );
+
     return res.data.data;
   }
 
   // 4. Delete Meter
-  async deleteMeter(meterId: string): Promise<{ success: boolean; msg: string }> {
-    const res = await api.delete(`/assets/meters/${meterId}`);
+  async deleteMeter(
+    meterId: string
+  ): Promise<{ success: boolean; msg: string }> {
+    const res = await api.delete(
+      `/assets/meters/${meterId}`
+    );
+
     return res.data;
   }
 
   // 5. List AWS Thing Groups
-  async getThingGroups(filters: { page?: number; limit?: number } = {}): Promise<PaginatedThingGroups> {
+  async getThingGroups(
+    filters: { page?: number; limit?: number } = {}
+  ): Promise<PaginatedThingGroups> {
     const params = new URLSearchParams();
-    if (filters.page) params.append("page", String(filters.page));
-    if (filters.limit) params.append("limit", String(filters.limit));
 
-    const res = await api.get(`/assets/groups?${params.toString()}`);
+    if (filters.page) {
+      params.append(
+        "page",
+        String(filters.page)
+      );
+    }
+
+    if (filters.limit) {
+      params.append(
+        "limit",
+        String(filters.limit)
+      );
+    }
+
+    const res = await api.get(
+      `/assets/groups?${params.toString()}`
+    );
+
     return res.data.data;
   }
 
@@ -132,16 +183,36 @@ class AssetsService {
     filters: { page?: number; limit?: number } = {}
   ): Promise<PaginatedThingsInGroup> {
     const params = new URLSearchParams();
-    if (filters.page) params.append("page", String(filters.page));
-    if (filters.limit) params.append("limit", String(filters.limit));
 
-    const res = await api.get(`/assets/groups/${groupName}?${params.toString()}`);
+    if (filters.page) {
+      params.append(
+        "page",
+        String(filters.page)
+      );
+    }
+
+    if (filters.limit) {
+      params.append(
+        "limit",
+        String(filters.limit)
+      );
+    }
+
+    const res = await api.get(
+      `/assets/groups/${groupName}?${params.toString()}`
+    );
+
     return res.data.data;
   }
 
   // 7. Get Unregistered Things in Group
-  async getUnregisteredInGroup(groupName: string): Promise<string[]> {
-    const res = await api.get(`/assets/groups/${groupName}/unregistered`);
+  async getUnregisteredInGroup(
+    groupName: string
+  ): Promise<string[]> {
+    const res = await api.get(
+      `/assets/groups/${groupName}/unregistered`
+    );
+
     return res.data.data;
   }
 }

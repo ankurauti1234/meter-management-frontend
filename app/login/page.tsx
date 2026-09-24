@@ -1,4 +1,4 @@
-import { Cpu } from "lucide-react";
+import Image from "next/image";
 import { LoginForm } from "@/components/login-form";
 
 export default function LoginPage() {
@@ -8,14 +8,14 @@ export default function LoginPage() {
       <div className="flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-3 px-8 py-6 border-b">
-          <div className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-lg">
-            <Cpu className="size-5" />
+          <div className="flex size-9 items-center justify-center rounded-lg overflow-hidden bg-white">
+            <Image src="/indi-logo.png" alt="Inditronics Logo" width={36} height={36} className="object-contain" />
           </div>
           <div>
             <h2 className="font-semibold text-lg">Indirex Studio</h2>
             <p className="text-xs text-muted-foreground">Device Management Portal</p>
           </div>
-        </div>
+        </div>Active meters Managed
 
         {/* Form Container */}
         <div className="flex flex-1 items-center justify-center px-6 py-12">
@@ -52,8 +52,8 @@ export default function LoginPage() {
 
           {/* Option 2: Text content (current) */}
           <div className="space-y-4">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-2xl">
-              <Cpu className="w-10 h-10 text-primary" />
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl overflow-hidden shadow-md">
+              <Image src="/indi-logo.png" alt="Inditronics Logo" width={72} height={72} className="object-contain" />
             </div>
             <h3 className="text-3xl font-bold">
               Manage Your Fleet
@@ -68,8 +68,8 @@ export default function LoginPage() {
           <div className="grid grid-cols-3 gap-6 pt-8">
             <div className="space-y-1">
               <p className="text-2xl font-bold">5K+</p>
-              <p className="text-xs text-muted-foreground">Active Meters</p>
-              <p className="text-xs text-muted-foreground">Managed</p>
+              <p className="text-xs text-muted-foreground">Managed Devices</p>
+              {/* <p className="text-xs text-muted-foreground">Managed</p> */}
             </div>
             <div className="space-y-1">
               <p className="text-2xl font-bold">99.9%</p>
