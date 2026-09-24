@@ -37,7 +37,6 @@ import { ButtonGroup } from "@/components/ui/button-group";
 import { DateTimePicker, DateTime } from "@/components/ui/date-time-picker";
 import eventsService, { Event } from "@/services/events.service";
 import alertsService, { InactivityAlert } from "@/services/alerts.service";
-import { RecipientsDialog } from "@/components/cards/recipients-dialog";
 
 /* ─── Types ───────────────────────────────────────────── */
 interface EventFilters { device_id?: string; page: number; limit: number; }
@@ -85,6 +84,87 @@ function getInactivityBadgeClass(lastEventAt: string | null): string {
   if (days < 30) return "bg-red-100 text-red-700 border-red-400";
   return "bg-red-200 text-red-900 border-red-500";
 }
+
+/* ─── Dummy Temperature Alert Data ───────────────────── */
+const BASE_ALERT = { processed_s3_key: null as any, createdAt: "" };
+
+// Irregular dummy warning distribution — intentionally not a repeating pattern.
+const WARNING_TYPES = [
+  "USB Disconnected", "USB Connected", "Temperature Warning", "USB Disconnected",
+  "Temperature Warning", "USB Connected", "USB Connected", "USB Disconnected",
+  "USB Connected", "Temperature Warning", "USB Disconnected", "USB Disconnected",
+  "Temperature Warning", "USB Connected", "USB Disconnected", "Temperature Warning",
+  "USB Connected", "USB Disconnected", "USB Connected", "Temperature Warning",
+  "Temperature Warning", "USB Disconnected", "USB Connected", "USB Connected",
+  "USB Disconnected", "Temperature Warning", "USB Connected", "USB Disconnected",
+  "Temperature Warning", "USB Disconnected", "USB Connected", "Temperature Warning",
+  "USB Connected", "USB Disconnected", "USB Disconnected", "USB Connected",
+  "Temperature Warning", "USB Connected", "Temperature Warning", "USB Disconnected",
+  "USB Connected", "USB Disconnected", "Temperature Warning", "USB Connected",
+  "USB Disconnected", "Temperature Warning", "USB Connected", "USB Disconnected",
+  "USB Connected", "Temperature Warning",
+];
+
+const DUMMY_TEMP_ALERTS: AlertEvent[] = [
+  { ...BASE_ALERT, id: "1",  timestamp: Math.floor(Date.now() / 1000) - 300,   device_id: "IM000102", type: 99, data: {}, details: { hhid: "HH1684", temperature: 65.2, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "2",  timestamp: Math.floor(Date.now() / 1000) - 900,   device_id: "IM000134", type: 99, data: {}, details: { hhid: "HH1526", temperature: 68.7, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "3",  timestamp: Math.floor(Date.now() / 1000) - 1800,  device_id: "IM000156", type: 99, data: {}, details: { hhid: "HH1250", temperature: 71.3, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "4",  timestamp: Math.floor(Date.now() / 1000) - 2700,  device_id: "IM000245", type: 99, data: {}, details: { hhid: "HH1830", temperature: 66.8, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "5",  timestamp: Math.floor(Date.now() / 1000) - 3600,  device_id: "IM000312", type: 99, data: {}, details: { hhid: "HH1405", temperature: 69.4, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "6",  timestamp: Math.floor(Date.now() / 1000) - 4500,  device_id: "IM000267", type: 99, data: {}, details: { hhid: "HH1521", temperature: 72.0, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "7",  timestamp: Math.floor(Date.now() / 1000) - 5400,  device_id: "IM000380", type: 99, data: {}, details: { hhid: "HH1469", temperature: 67.1, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "8",  timestamp: Math.floor(Date.now() / 1000) - 6300,  device_id: "IM000450", type: 99, data: {}, details: { hhid: "HH1534", temperature: 70.5, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "9",  timestamp: Math.floor(Date.now() / 1000) - 7200,  device_id: "IM000115", type: 99, data: {}, details: { hhid: "HH1741", temperature: 65.9, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "10", timestamp: Math.floor(Date.now() / 1000) - 8100,  device_id: "IM000209", type: 99, data: {}, details: { hhid: "HH1465", temperature: 71.8, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "11", timestamp: Math.floor(Date.now() / 1000) - 9000,  device_id: "IM000283", type: 99, data: {}, details: { hhid: "HH1362", temperature: 66.3, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "12", timestamp: Math.floor(Date.now() / 1000) - 9900,  device_id: "IM000338", type: 99, data: {}, details: { hhid: "HH1758", temperature: 70.1, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "13", timestamp: Math.floor(Date.now() / 1000) - 10800, device_id: "IM000395", type: 99, data: {}, details: { hhid: "HH1306", temperature: 68.2, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "14", timestamp: Math.floor(Date.now() / 1000) - 11700, device_id: "IM000462", type: 99, data: {}, details: { hhid: "HH1590", temperature: 71.6, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "15", timestamp: Math.floor(Date.now() / 1000) - 12600, device_id: "IM000130", type: 99, data: {}, details: { hhid: "HH1708", temperature: 65.5, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "16", timestamp: Math.floor(Date.now() / 1000) - 13500, device_id: "IM000216", type: 99, data: {}, details: { hhid: "HH1821", temperature: 69.9, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "17", timestamp: Math.floor(Date.now() / 1000) - 14400, device_id: "IM000301", type: 99, data: {}, details: { hhid: "HH1616", temperature: 67.4, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "18", timestamp: Math.floor(Date.now() / 1000) - 15300, device_id: "IM000373", type: 99, data: {}, details: { hhid: "HH1619", temperature: 70.8, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "19", timestamp: Math.floor(Date.now() / 1000) - 16200, device_id: "IM000441", type: 99, data: {}, details: { hhid: "HH1666", temperature: 66.0, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "20", timestamp: Math.floor(Date.now() / 1000) - 17100, device_id: "IM000510", type: 99, data: {}, details: { hhid: "HH1751", temperature: 71.1, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "21", timestamp: Math.floor(Date.now() / 1000) - 18000, device_id: "IM000143", type: 99, data: {}, details: { hhid: "HH1735", temperature: 68.5, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "22", timestamp: Math.floor(Date.now() / 1000) - 18900, device_id: "IM000229", type: 99, data: {}, details: { hhid: "HH1660", temperature: 65.7, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "23", timestamp: Math.floor(Date.now() / 1000) - 19800, device_id: "IM000315", type: 99, data: {}, details: { hhid: "HH1630", temperature: 70.3, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "24", timestamp: Math.floor(Date.now() / 1000) - 20700, device_id: "IM000388", type: 99, data: {}, details: { hhid: "HH1716", temperature: 67.9, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "25", timestamp: Math.floor(Date.now() / 1000) - 21600, device_id: "IM000466", type: 99, data: {}, details: { hhid: "HH1355", temperature: 71.5, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "26", timestamp: Math.floor(Date.now() / 1000) - 22500, device_id: "IM000107", type: 99, data: {}, details: { hhid: "HH1319", temperature: 66.6, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "27", timestamp: Math.floor(Date.now() / 1000) - 23400, device_id: "IM000195", type: 99, data: {}, details: { hhid: "HH1568", temperature: 69.2, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "28", timestamp: Math.floor(Date.now() / 1000) - 24300, device_id: "IM000280", type: 99, data: {}, details: { hhid: "HH1561", temperature: 70.7, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "29", timestamp: Math.floor(Date.now() / 1000) - 25200, device_id: "IM000354", type: 99, data: {}, details: { hhid: "HH1323", temperature: 65.3, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "30", timestamp: Math.floor(Date.now() / 1000) - 26100, device_id: "IM000430", type: 99, data: {}, details: { hhid: "HH1730", temperature: 68.9, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "31", timestamp: Math.floor(Date.now() / 1000) - 27000, device_id: "IM000118", type: 99, data: {}, details: { hhid: "HH1065", temperature: 71.9, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "32", timestamp: Math.floor(Date.now() / 1000) - 27900, device_id: "IM000206", type: 99, data: {}, details: { hhid: "HH1698", temperature: 67.6, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "33", timestamp: Math.floor(Date.now() / 1000) - 28800, device_id: "IM000293", type: 99, data: {}, details: { hhid: "HH1715", temperature: 70.2, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "34", timestamp: Math.floor(Date.now() / 1000) - 29700, device_id: "IM000366", type: 99, data: {}, details: { hhid: "HH1711", temperature: 65.8, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "35", timestamp: Math.floor(Date.now() / 1000) - 30600, device_id: "IM000443", type: 99, data: {}, details: { hhid: "HH1571", temperature: 69.6, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "36", timestamp: Math.floor(Date.now() / 1000) - 31500, device_id: "IM000514", type: 99, data: {}, details: { hhid: "HH1703", temperature: 71.2, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "37", timestamp: Math.floor(Date.now() / 1000) - 32400, device_id: "IM000152", type: 99, data: {}, details: { hhid: "HH1556", temperature: 66.4, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "38", timestamp: Math.floor(Date.now() / 1000) - 33300, device_id: "IM000237", type: 99, data: {}, details: { hhid: "HH1594", temperature: 70.6, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "39", timestamp: Math.floor(Date.now() / 1000) - 34200, device_id: "IM000325", type: 99, data: {}, details: { hhid: "HH1538", temperature: 67.3, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "40", timestamp: Math.floor(Date.now() / 1000) - 35100, device_id: "IM000399", type: 99, data: {}, details: { hhid: "HH1744", temperature: 71.7, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "41", timestamp: Math.floor(Date.now() / 1000) - 36000, device_id: "IM000471", type: 99, data: {}, details: { hhid: "HH1569", temperature: 65.1, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "42", timestamp: Math.floor(Date.now() / 1000) - 36900, device_id: "IM000167", type: 99, data: {}, details: { hhid: "HH1549", temperature: 68.4, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "43", timestamp: Math.floor(Date.now() / 1000) - 37800, device_id: "IM000252", type: 99, data: {}, details: { hhid: "HH1273", temperature: 70.9, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "44", timestamp: Math.floor(Date.now() / 1000) - 38700, device_id: "IM000340", type: 99, data: {}, details: { hhid: "HH1425", temperature: 66.7, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "45", timestamp: Math.floor(Date.now() / 1000) - 39600, device_id: "IM000416", type: 99, data: {}, details: { hhid: "HH1531", temperature: 71.4, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "46", timestamp: Math.floor(Date.now() / 1000) - 40500, device_id: "IM000487", type: 99, data: {}, details: { hhid: "HH1742", temperature: 67.8, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "47", timestamp: Math.floor(Date.now() / 1000) - 41400, device_id: "IM000184", type: 99, data: {}, details: { hhid: "HH1408", temperature: 69.7, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "48", timestamp: Math.floor(Date.now() / 1000) - 42300, device_id: "IM000272", type: 99, data: {}, details: { hhid: "HH1563", temperature: 70.4, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "49", timestamp: Math.floor(Date.now() / 1000) - 43200, device_id: "IM000357", type: 99, data: {}, details: { hhid: "HH1778", temperature: 65.6, warning: "Temperature Warning" } },
+  { ...BASE_ALERT, id: "50", timestamp: Math.floor(Date.now() / 1000) - 44100, device_id: "IM000524", type: 99, data: {}, details: { hhid: "HH1567", temperature: 68.1, warning: "Temperature Warning" } },
+];
+
+const DUMMY_TEMP_ALERTS_WITH_WARNINGS: AlertEvent[] = DUMMY_TEMP_ALERTS.map((alert, index) => ({
+  ...alert,
+  details: {
+    ...alert.details,
+    warning: WARNING_TYPES[index % WARNING_TYPES.length],
+  },
+}));
 
 /* ─── Page ────────────────────────────────────────────── */
 export default function AlertsPage() {
@@ -218,26 +298,24 @@ export default function AlertsPage() {
 
   const eHasFilters = Boolean(eFilters.device_id || eStartDT.date || eEndDT.date);
 
-  const getUnix = (dt: DateTime): number | undefined => {
-    if (!dt.date) return undefined;
-    const [h = 0, m = 0] = (dt.time || "00:00").split(":").map(Number);
-    const date = new Date(dt.date); date.setHours(h, m, 0, 0);
-    return Math.floor(date.getTime() / 1000);
-  };
-
   const fetchEventAlerts = useCallback(async () => {
     setELoading(true);
     try {
-      const payload: any = {
-        start_time: getUnix(eStartDT), end_time: getUnix(eEndDT),
-        page: eFilters.page, limit: eFilters.limit,
-      };
-      if (debouncedEDevice) payload.device_id = debouncedEDevice;
-      const res = await eventsService.getAlerts(payload);
-      setEData(res.events.map((e: Event) => ({ ...e, details: e.data || {} })));
-      setETotal(res.pagination.total);
-    } catch { toast.error("Failed to load alerts"); setEData([]); setETotal(0); }
-    finally { setELoading(false); setERefreshing(false); }
+      // Filter dummy data by device_id search if present
+      let filtered = DUMMY_TEMP_ALERTS_WITH_WARNINGS;
+      if (debouncedEDevice) {
+        filtered = filtered.filter(e =>
+          e.device_id.toLowerCase().includes(debouncedEDevice.toLowerCase())
+        );
+      }
+      // Simulate pagination
+      const start = (eFilters.page - 1) * eFilters.limit;
+      const paginated = filtered.slice(start, start + eFilters.limit);
+      setEData(paginated);
+      setETotal(filtered.length);
+    } catch {
+      toast.error("Failed to load alerts"); setEData([]); setETotal(0);
+    } finally { setELoading(false); setERefreshing(false); }
   }, [debouncedEDevice, eFilters.page, eFilters.limit, eStartDT, eEndDT]);
 
   useEffect(() => { fetchEventAlertsRef.current = fetchEventAlerts; }, [fetchEventAlerts]);
@@ -254,7 +332,8 @@ export default function AlertsPage() {
 
   const eColumns: ColumnDef<AlertEvent>[] = [
     {
-      accessorKey: "timestamp", header: "Time",
+      accessorKey: "timestamp",
+      header: "Time",
       cell: ({ row }) => (
         <div className="font-mono text-xs">
           {format(new Date(row.original.timestamp * 1000), "dd MMM yyyy, HH:mm:ss")}
@@ -262,34 +341,47 @@ export default function AlertsPage() {
       ),
     },
     {
-      accessorKey: "device_id", header: "Device ID",
+      accessorKey: "device_id",
+      header: "Device ID",
       cell: ({ row }) => (
-        <code className="text-xs font-mono bg-muted px-2 py-1 rounded">{row.original.device_id}</code>
+        <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
+          {row.original.device_id}
+        </code>
       ),
     },
     {
-      accessorKey: "type", header: "Type",
+      id: "hhid",
+      header: "HHID",
       cell: ({ row }) => (
-        <Badge variant="outline" className="border-red-500 text-red-600 gap-1.5">
-          <Bell className="h-3 w-3" /> Type {row.original.type}
-        </Badge>
+        <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
+          {row.original.details?.hhid || "—"}
+        </code>
       ),
     },
     {
-      id: "details", header: "Details",
+      id: "warning",
+      header: "Warning",
       cell: ({ row }) => {
-        const d = row.original.details || {};
-        const entries = Object.entries(d);
-        if (!entries.length) return <span className="text-muted-foreground">—</span>;
+        const warning = row.original.details?.warning as string | undefined;
+        const temp = row.original.details?.temperature as number | undefined;
+
+        const isTemperatureWarning = warning === "Temperature Warning";
+        const displayWarning =
+          isTemperatureWarning && temp !== undefined
+            ? `Temperature reached ${temp.toFixed(1)}°C`
+            : warning || "—";
+
+        const warningClass =
+          warning === "USB Disconnected"
+            ? "text-amber-600"
+            : warning === "USB Connected"
+              ? "text-green-600"
+              : "text-red-600";
+
         return (
-          <div className="text-xs space-y-1 font-mono">
-            {entries.slice(0, 3).map(([k, v]) => (
-              <div key={k} className="flex gap-2">
-                <span className="text-muted-foreground">{k}:</span>
-                <span className="truncate max-w-64">{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
-              </div>
-            ))}
-            {entries.length > 3 && <span className="text-muted-foreground text-xs">+{entries.length - 3} more</span>}
+          <div className={`flex items-center gap-2 text-sm font-medium ${warningClass}`}>
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>{displayWarning}</span>
           </div>
         );
       },
@@ -317,7 +409,7 @@ export default function AlertsPage() {
         <TabsContent value="inactivity" className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
 
-            {/* Search — standalone, separate from filter dialog */}
+            {/* Search */}
             <div className="relative flex-1 min-w-[200px] max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search device ID..." className="pl-10"
@@ -405,6 +497,18 @@ export default function AlertsPage() {
         {/* ═══ EVENT ALERTS TAB ═══ */}
         <TabsContent value="events" className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
+
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search device ID..."
+                className="pl-10"
+                value={eFilters.device_id ?? ""}
+                onChange={(e) => setEFilters((p) => ({ ...p, device_id: e.target.value, page: 1 }))}
+              />
+            </div>
+
             <ButtonGroup>
               <Dialog open={eDialogOpen} onOpenChange={setEDialogOpen}>
                 <DialogTrigger asChild>
@@ -428,7 +532,7 @@ export default function AlertsPage() {
                       <Label>Device ID</Label>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="e.g. AM-10001" value={eTempFilters.device_id}
+                        <Input placeholder="e.g. IM000102" value={eTempFilters.device_id ?? ""}
                           onChange={(e) => setETempFilters((p) => ({ ...p, device_id: e.target.value }))} className="pl-10" />
                       </div>
                     </div>
@@ -452,6 +556,7 @@ export default function AlertsPage() {
                 }}><X className="h-4 w-4" /></Button>
               )}
             </ButtonGroup>
+
             <ButtonGroup>
               <Select value={eRefreshInterval ? String(eRefreshInterval) : "off"}
                 onValueChange={(v) => setERefreshInterval(v === "off" ? null : Number(v))}>
@@ -463,12 +568,13 @@ export default function AlertsPage() {
                   <SelectItem value="60000">Every 1 min</SelectItem>
                 </SelectContent>
               </Select>
-              <Button onClick={() => { toast.success("Refreshed"); fetchEventAlerts(); }}
+              <Button onClick={() => { toast.success("Refreshed"); setERefreshing(true); fetchEventAlerts(); }}
                 disabled={eRefreshing} variant="outline" size="icon">
                 <RefreshCw className={`h-4 w-4 ${eRefreshing ? "animate-spin" : ""}`} />
               </Button>
             </ButtonGroup>
           </div>
+
           {renderTable(eTable, eColumns, eLoading, eData, eTotal, eFilters, setEFilters, "events")}
         </TabsContent>
       </Tabs>
@@ -484,23 +590,23 @@ function renderTable<T>(
 ) {
   return (
     <div className="rounded-md border overflow-hidden">
-      <div className="overflow-x-auto">
-        <Table className="border-separate border-spacing-0 [&_td]:border-border [&_th]:border-b [&_th]:border-border [&_tr]:border-none [&_tr:not(:last-child)_td]:border-b">
-          <TableHeader>
+      <div className="max-h-[65vh] overflow-auto">
+        <Table className="w-full border-separate border-spacing-0 [&_td]:border-border [&_th]:border-b [&_th]:border-border [&_tr]:border-none [&_tr:not(:last-child)_td]:border-b">
+          <TableHeader className="sticky top-0 z-10 bg-background">
             {table.getHeaderGroups().map((hg: any) => (
               <TableRow key={hg.id}>
                 {hg.headers.map((h: any) => (
-                  <TableHead key={h.id} className="bg-muted/60 whitespace-nowrap">
+                  <TableHead
+                    key={h.id}
+                    className="bg-muted/60 whitespace-nowrap align-middle"
+                  >
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
-        </Table>
-      </div>
-      <div className="max-h-[65vh] overflow-y-auto overflow-x-auto">
-        <Table className="border-separate border-spacing-0 [&_td]:border-border [&_tr]:border-none [&_tr:not(:last-child)_td]:border-b">
+
           <TableBody>
             {loading ? (
               <TableRow>
@@ -535,7 +641,7 @@ function renderTable<T>(
               table.getRowModel().rows.map((row: any) => (
                 <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
                   {row.getVisibleCells().map((cell: any) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="align-middle">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -545,30 +651,42 @@ function renderTable<T>(
           </TableBody>
         </Table>
       </div>
+
       {total > 0 && (
         <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
           <p className="text-xs text-muted-foreground">
             Showing {(filters.page - 1) * filters.limit + 1}–{Math.min(filters.page * filters.limit, total)} of {total.toLocaleString()}
           </p>
           <div className="flex items-center gap-3">
-            <Select value={String(filters.limit)}
-              onValueChange={(v) => setFilters((p: any) => ({ ...p, limit: Number(v), page: 1 }))}>
+            <Select
+              value={String(filters.limit)}
+              onValueChange={(v) => setFilters((p: any) => ({ ...p, limit: Number(v), page: 1 }))}
+            >
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {[10, 25, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n} rows</SelectItem>)}
+                {[10, 25, 50, 100].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n} rows</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <ButtonGroup>
-              <Button variant="outline" size="icon" disabled={filters.page === 1}
-                onClick={() => setFilters((p: any) => ({ ...p, page: p.page - 1 }))}>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={filters.page === 1}
+                onClick={() => setFilters((p: any) => ({ ...p, page: p.page - 1 }))}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-xs font-medium p-2 pb-0 border-y">
                 Page {filters.page} of {Math.ceil(total / filters.limit)}
               </span>
-              <Button variant="outline" size="icon"
+              <Button
+                variant="outline"
+                size="icon"
                 disabled={filters.page >= Math.ceil(total / filters.limit)}
-                onClick={() => setFilters((p: any) => ({ ...p, page: p.page + 1 }))}>
+                onClick={() => setFilters((p: any) => ({ ...p, page: p.page + 1 }))}
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </ButtonGroup>

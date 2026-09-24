@@ -34,15 +34,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import AssetsService from "@/services/assets.service";
 import HouseholdService, {
@@ -63,7 +56,6 @@ const meterUploadSchema = z.object({
         f.name.endsWith(".xlsx"),
       "Only CSV or XLSX files allowed"
     ),
-  groupName: z.string().min(1, "Please select or enter a group name"),
 });
 
 const memberUploadSchema = z.object({
@@ -88,10 +80,6 @@ type MemberFormData = z.infer<typeof memberUploadSchema>;
 export default function UploadAssetsPage() {
   const [activeTab, setActiveTab] = useState("meters");
 
-  // Meters state
-  const [meterGroups, setMeterGroups] = useState<string[]>([]);
-  const [loadingMeterGroups, setLoadingMeterGroups] = useState(true);
-
   // Members state
   const [householdSearch, setHouseholdSearch] = useState("");
   const [householdSuggestions, setHouseholdSuggestions] = useState<
@@ -106,26 +94,11 @@ export default function UploadAssetsPage() {
 
   const meterForm = useForm<MeterFormData>({
     resolver: zodResolver(meterUploadSchema),
-    defaultValues: { groupName: "" },
   });
 
   const memberForm = useForm<MemberFormData>({
     resolver: zodResolver(memberUploadSchema),
   });
-
-  // Fetch AWS Thing Groups
-  const fetchMeterGroups = useCallback(async () => {
-    setLoadingMeterGroups(true);
-    try {
-      const res = await AssetsService.getThingGroups({ limit: 50 });
-      const groupNames = res.groups.map((g: any) => g.groupName).sort();
-      setMeterGroups(groupNames);
-    } catch (err) {
-      toast.error("Failed to load AWS groups");
-    } finally {
-      setLoadingMeterGroups(false);
-    }
-  }, []);
 
   // Search households for member upload
   const searchHouseholds = useCallback(async (query: string) => {
@@ -133,13 +106,21 @@ export default function UploadAssetsPage() {
       setHouseholdSuggestions([]);
       return;
     }
+
     setSearchingHouseholds(true);
+
     try {
       const res = await HouseholdService.getHouseholds({
         search: query,
         limit: 10,
       });
-      setHouseholdSuggestions(res.households.map((h) => ({ id: h.id, hhid: h.hhid })));
+
+      setHouseholdSuggestions(
+        res.households.map((h) => ({
+          id: h.id,
+          hhid: h.hhid,
+        }))
+      );
     } catch {
       toast.error("Failed to search households");
     } finally {
@@ -147,15 +128,12 @@ export default function UploadAssetsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchMeterGroups();
-  }, [fetchMeterGroups]);
-
   // Debounced household search
   useEffect(() => {
     const timer = setTimeout(() => {
       searchHouseholds(householdSearch);
     }, 400);
+
     return () => clearTimeout(timer);
   }, [householdSearch, searchHouseholds]);
 
@@ -165,9 +143,13 @@ export default function UploadAssetsPage() {
     setProgress(10);
 
     try {
-      const interval = setInterval(() => setProgress((p) => Math.min(p + 15, 90)), 400);
+      const interval = setInterval(
+        () => setProgress((p) => Math.min(p + 15, 90)),
+        400
+      );
 
-      const result = await AssetsService.uploadMeters(data.file, data.groupName);
+      // Upload meter file without AWS Thing Group
+      const result = await AssetsService.uploadMeters(data.file);
 
       clearInterval(interval);
       setProgress(100);
@@ -180,16 +162,22 @@ export default function UploadAssetsPage() {
       });
 
       toast.success(`Saved ${result.saved} meters • Synced ${result.synced}`);
+
       meterForm.reset();
     } catch (error: any) {
       setUploadResult({
         type: "meters",
         success: false,
-        message: error.response?.data?.msg || error.message || "Upload failed",
+        message:
+          error.response?.data?.msg ||
+          error.message ||
+          "Upload failed",
       });
+
       toast.error("Meter upload failed");
     } finally {
       setIsUploading(false);
+
       setTimeout(() => setProgress(0), 1500);
     }
   };
@@ -200,12 +188,16 @@ export default function UploadAssetsPage() {
     setProgress(10);
 
     try {
-      const interval = setInterval(() => setProgress((p) => Math.min(p + 15, 90)), 400);
-
-      const result: UploadMembersResult = await HouseholdService.uploadMembers(
-        data.file,
-        data.householdId
+      const interval = setInterval(
+        () => setProgress((p) => Math.min(p + 15, 90)),
+        400
       );
+
+      const result: UploadMembersResult =
+        await HouseholdService.uploadMembers(
+          data.file,
+          data.householdId
+        );
 
       clearInterval(interval);
       setProgress(100);
@@ -217,17 +209,24 @@ export default function UploadAssetsPage() {
         data: result,
       });
 
-      toast.success(`Saved ${result.saved} members (${result.skipped} skipped)`);
+      toast.success(
+        `Saved ${result.saved} members (${result.skipped} skipped)`
+      );
+
       memberForm.reset();
+      setHouseholdSearch("");
+      setHouseholdSuggestions([]);
     } catch (error: any) {
       setUploadResult({
         type: "members",
         success: false,
         message: error.message || "Member upload failed",
       });
+
       toast.error("Member upload failed");
     } finally {
       setIsUploading(false);
+
       setTimeout(() => setProgress(0), 1500);
     }
   };
@@ -237,10 +236,16 @@ export default function UploadAssetsPage() {
 meterId,meterType,assetSerialNumber,powerHATStatus
 MTR-001,SinglePhase,ASN001,Flashed
 MTR-002,ThreePhase,ASN002,No HAT`;
+
     const link = document.createElement("a");
     link.href = encodeURI(csv);
-    link.download = `sample_meters_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.download = `sample_meters_${format(
+      new Date(),
+      "yyyy-MM-dd"
+    )}.csv`;
+
     link.click();
+
     toast.success("Meter sample downloaded");
   };
 
@@ -250,10 +255,16 @@ memberCode,dob,gender
 M1,1990-05-15,MALE
 M2,1995-08-22,FEMALE
 M3,2010-12-01,OTHER`;
+
     const link = document.createElement("a");
     link.href = encodeURI(csv);
-    link.download = `sample_members_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.download = `sample_members_${format(
+      new Date(),
+      "yyyy-MM-dd"
+    )}.csv`;
+
     link.click();
+
     toast.success("Member sample downloaded");
   };
 
@@ -266,13 +277,24 @@ M3,2010-12-01,OTHER`;
         size="lg"
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
-          <TabsTrigger value="meters" className="flex items-center gap-2">
+          <TabsTrigger
+            value="meters"
+            className="flex items-center gap-2"
+          >
             <Zap className="h-4 w-4" />
             Meters
           </TabsTrigger>
-          <TabsTrigger value="members" className="flex items-center gap-2">
+
+          <TabsTrigger
+            value="members"
+            className="flex items-center gap-2"
+          >
             <Users className="h-4 w-4" />
             Household Members
           </TabsTrigger>
@@ -285,13 +307,19 @@ M3,2010-12-01,OTHER`;
               <Card>
                 <CardContent className="pt-6">
                   <Form {...meterForm}>
-                    <form onSubmit={meterForm.handleSubmit(onMeterSubmit)} className="space-y-6">
+                    <form
+                      onSubmit={meterForm.handleSubmit(onMeterSubmit)}
+                      className="space-y-6"
+                    >
                       <FormField
                         control={meterForm.control}
                         name="file"
-                        render={({ field: { onChange, value, ...field } }) => (
+                        render={({
+                          field: { onChange, value, ...field },
+                        }) => (
                           <FormItem>
                             <FormLabel>CSV or XLSX File</FormLabel>
+
                             <FormControl>
                               <FileDropzone
                                 file={meterForm.watch("file")}
@@ -299,38 +327,25 @@ M3,2010-12-01,OTHER`;
                                 disabled={isUploading}
                               />
                             </FormControl>
+
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
-                      <FormField
-                        control={meterForm.control}
-                        name="groupName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>AWS IoT Thing Group</FormLabel>
-                            <Select
-                              disabled={isUploading || loadingMeterGroups}
-                              onValueChange={field.onChange}
-                              value={field.value}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={loadingMeterGroups ? "Loading..." : "Select group"} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {meterGroups.map((g) => (
-                                  <SelectItem key={g} value={g}>{g}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {isUploading && (
+                        <UploadProgress progress={progress} />
+                      )}
 
-                      {isUploading && <UploadProgress progress={progress} />}
-                      <Button type="submit" size="lg" className="w-full" disabled={isUploading || !meterForm.watch("file")}>
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full"
+                        disabled={
+                          isUploading ||
+                          !meterForm.watch("file")
+                        }
+                      >
                         {isUploading ? (
                           <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -345,6 +360,7 @@ M3,2010-12-01,OTHER`;
                       </Button>
                     </form>
                   </Form>
+
                   <UploadResult result={uploadResult} />
                 </CardContent>
               </Card>
@@ -353,18 +369,38 @@ M3,2010-12-01,OTHER`;
             <div className="space-y-6">
               <Card>
                 <CardContent className="pt-6">
-                  <Button onClick={downloadMeterSample} variant="outline" className="w-full">
+                  <Button
+                    onClick={downloadMeterSample}
+                    variant="outline"
+                    className="w-full"
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Download Meter Sample
                   </Button>
                 </CardContent>
               </Card>
-              <HelpCard title="Meter Columns" items={[
-                { name: "meterId", required: true },
-                { name: "meterType", required: false },
-                { name: "assetSerialNumber", required: false },
-                { name: "powerHATStatus", required: false },
-              ]} />
+
+              <HelpCard
+                title="Meter Columns"
+                items={[
+                  {
+                    name: "meterId",
+                    required: true,
+                  },
+                  {
+                    name: "meterType",
+                    required: false,
+                  },
+                  {
+                    name: "assetSerialNumber",
+                    required: false,
+                  },
+                  {
+                    name: "powerHATStatus",
+                    required: false,
+                  },
+                ]}
+              />
             </div>
           </div>
         </TabsContent>
@@ -376,13 +412,21 @@ M3,2010-12-01,OTHER`;
               <Card>
                 <CardContent className="pt-6">
                   <Form {...memberForm}>
-                    <form onSubmit={memberForm.handleSubmit(onMemberSubmit)} className="space-y-6">
+                    <form
+                      onSubmit={memberForm.handleSubmit(
+                        onMemberSubmit
+                      )}
+                      className="space-y-6"
+                    >
                       <FormField
                         control={memberForm.control}
                         name="file"
-                        render={({ field: { onChange, value, ...field } }) => (
+                        render={({
+                          field: { onChange, value, ...field },
+                        }) => (
                           <FormItem>
                             <FormLabel>CSV or XLSX File</FormLabel>
+
                             <FormControl>
                               <FileDropzone
                                 file={memberForm.watch("file")}
@@ -390,6 +434,7 @@ M3,2010-12-01,OTHER`;
                                 disabled={isUploading}
                               />
                             </FormControl>
+
                             <FormMessage />
                           </FormItem>
                         )}
@@ -400,48 +445,92 @@ M3,2010-12-01,OTHER`;
                         name="householdId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Household (HHID)</FormLabel>
+                            <FormLabel>
+                              Household (HHID)
+                            </FormLabel>
+
                             <div className="relative">
                               <Input
                                 placeholder="Search by HHID..."
                                 value={householdSearch}
                                 onChange={(e) => {
-                                  setHouseholdSearch(e.target.value);
-                                  if (e.target.value) field.onChange("");
+                                  setHouseholdSearch(
+                                    e.target.value
+                                  );
+
+                                  if (e.target.value) {
+                                    field.onChange("");
+                                  }
                                 }}
                                 disabled={isUploading}
                               />
+
                               {searchingHouseholds && (
                                 <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin" />
                               )}
-                              {householdSuggestions.length > 0 && householdSearch && (
-                                <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto">
-                                  {householdSuggestions.map((h) => (
-                                    <button
-                                      key={h.id}
-                                      type="button"
-                                      className="w-full text-left px-4 py-2 hover:bg-muted text-sm"
-                                      onClick={() => {
-                                        field.onChange(h.id);
-                                        setHouseholdSearch(h.hhid);
-                                        setHouseholdSuggestions([]);
-                                      }}
-                                    >
-                                      <Badge variant="secondary" className="mr-2">{h.hhid}</Badge>
-                                      {h.hhid}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
+
+                              {householdSuggestions.length > 0 &&
+                                householdSearch && (
+                                  <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto">
+                                    {householdSuggestions.map(
+                                      (h) => (
+                                        <button
+                                          key={h.id}
+                                          type="button"
+                                          className="w-full text-left px-4 py-2 hover:bg-muted text-sm"
+                                          onClick={() => {
+                                            field.onChange(
+                                              h.id
+                                            );
+
+                                            setHouseholdSearch(
+                                              h.hhid
+                                            );
+
+                                            setHouseholdSuggestions(
+                                              []
+                                            );
+                                          }}
+                                        >
+                                          <Badge
+                                            variant="secondary"
+                                            className="mr-2"
+                                          >
+                                            {h.hhid}
+                                          </Badge>
+
+                                          {h.hhid}
+                                        </button>
+                                      )
+                                    )}
+                                  </div>
+                                )}
                             </div>
-                            {field.value && <p className="text-xs text-muted-foreground mt-1">Selected: {householdSearch}</p>}
+
+                            {field.value && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Selected: {householdSearch}
+                              </p>
+                            )}
+
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
-                      {isUploading && <UploadProgress progress={progress} />}
-                      <Button type="submit" size="lg" className="w-full" disabled={isUploading || !memberForm.watch("file")}>
+                      {isUploading && (
+                        <UploadProgress progress={progress} />
+                      )}
+
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full"
+                        disabled={
+                          isUploading ||
+                          !memberForm.watch("file")
+                        }
+                      >
                         {isUploading ? (
                           <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -456,6 +545,7 @@ M3,2010-12-01,OTHER`;
                       </Button>
                     </form>
                   </Form>
+
                   <UploadResult result={uploadResult} />
                 </CardContent>
               </Card>
@@ -464,17 +554,37 @@ M3,2010-12-01,OTHER`;
             <div className="space-y-6">
               <Card>
                 <CardContent className="pt-6">
-                  <Button onClick={downloadMemberSample} variant="outline" className="w-full">
+                  <Button
+                    onClick={downloadMemberSample}
+                    variant="outline"
+                    className="w-full"
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Download Member Sample
                   </Button>
                 </CardContent>
               </Card>
-              <HelpCard title="Member Columns" items={[
-                { name: "memberCode", required: true, desc: "e.g., M1, M2" },
-                { name: "dob", required: true, desc: "YYYY-MM-DD" },
-                { name: "gender", required: false, desc: "MALE / FEMALE / OTHER" },
-              ]} />
+
+              <HelpCard
+                title="Member Columns"
+                items={[
+                  {
+                    name: "memberCode",
+                    required: true,
+                    desc: "e.g., M1, M2",
+                  },
+                  {
+                    name: "dob",
+                    required: true,
+                    desc: "YYYY-MM-DD",
+                  },
+                  {
+                    name: "gender",
+                    required: false,
+                    desc: "MALE / FEMALE / OTHER",
+                  },
+                ]}
+              />
             </div>
           </div>
         </TabsContent>
@@ -484,33 +594,81 @@ M3,2010-12-01,OTHER`;
 }
 
 // Reusable Components
-function FileDropzone({ file, onChange, disabled }: { file?: File; onChange: (f: File) => void; disabled: boolean }) {
+
+function FileDropzone({
+  file,
+  onChange,
+  disabled,
+}: {
+  file?: File;
+  onChange: (f: File) => void;
+  disabled: boolean;
+}) {
   return (
-    <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${disabled ? "opacity-60" : "hover:border-primary/50"} ${file ? "border-primary/50 bg-primary/5" : "border-muted-foreground/25"}`}>
+    <div
+      className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+        disabled
+          ? "opacity-60"
+          : "hover:border-primary/50"
+      } ${
+        file
+          ? "border-primary/50 bg-primary/5"
+          : "border-muted-foreground/25"
+      }`}
+    >
       <Input
         type="file"
         accept=".csv,.xlsx"
         disabled={disabled}
         className="hidden"
         id="file-upload"
-        onChange={(e) => e.target.files?.[0] && onChange(e.target.files[0])}
+        onChange={(e) =>
+          e.target.files?.[0] &&
+          onChange(e.target.files[0])
+        }
       />
-      <label htmlFor="file-upload" className="cursor-pointer">
+
+      <label
+        htmlFor="file-upload"
+        className="cursor-pointer"
+      >
         {file ? (
           <div className="space-y-3">
             <CheckCircle2 className="mx-auto h-10 w-10 text-green-600" />
-            <p className="font-medium">{file.name}</p>
-            <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-            <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onChange(undefined as any); }}>
-              <X className="h-4 w-4 mr-1" /> Remove
+
+            <p className="font-medium">
+              {file.name}
+            </p>
+
+            <p className="text-xs text-muted-foreground">
+              {(file.size / 1024 / 1024).toFixed(2)} MB
+            </p>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(undefined as any);
+              }}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Remove
             </Button>
           </div>
         ) : (
           <div className="space-y-4">
             <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+
             <div>
-              <p className="text-sm font-medium">Drop file or click to browse</p>
-              <p className="text-xs text-muted-foreground">CSV or XLSX • Max 10 MB</p>
+              <p className="text-sm font-medium">
+                Drop file or click to browse
+              </p>
+
+              <p className="text-xs text-muted-foreground">
+                CSV or XLSX • Max 10 MB
+              </p>
             </div>
           </div>
         )}
@@ -519,49 +677,111 @@ function FileDropzone({ file, onChange, disabled }: { file?: File; onChange: (f:
   );
 }
 
-function UploadProgress({ progress }: { progress: number }) {
+function UploadProgress({
+  progress,
+}: {
+  progress: number;
+}) {
   return (
     <div className="space-y-2">
       <div className="flex justify-between text-sm">
-        <span className="font-medium">Uploading...</span>
+        <span className="font-medium">
+          Uploading...
+        </span>
+
         <span>{progress}%</span>
       </div>
-      <Progress value={progress} className="h-3" />
+
+      <Progress
+        value={progress}
+        className="h-3"
+      />
     </div>
   );
 }
 
-function UploadResult({ result }: { result: any }) {
+function UploadResult({
+  result,
+}: {
+  result: any;
+}) {
   if (!result) return null;
+
   return (
-    <Alert className={`mt-6 border-l-4 ${result.success ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}`}>
+    <Alert
+      className={`mt-6 border-l-4 ${
+        result.success
+          ? "border-green-500 bg-green-50"
+          : "border-red-500 bg-red-50"
+      }`}
+    >
       <div className="flex items-start gap-3">
-        {result.success ? <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" /> : <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />}
+        {result.success ? (
+          <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+        ) : (
+          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+        )}
+
         <div>
-          <p className="font-semibold">{result.success ? "Success!" : "Failed"}</p>
+          <p className="font-semibold">
+            {result.success ? "Success!" : "Failed"}
+          </p>
+
           <AlertDescription className="mt-1 text-xs">
             {result.success && result.data ? (
               result.type === "meters" ? (
                 <div>
                   <p>{result.message}</p>
+
                   <ul className="mt-2 space-y-1">
-                    <li>• Processed: {result.data.uploaded}</li>
-                    <li>• Saved: {result.data.saved}</li>
-                    <li>• Synced: {result.data.synced}</li>
+                    <li>
+                      • Processed:{" "}
+                      {result.data.uploaded}
+                    </li>
+
+                    <li>
+                      • Saved:{" "}
+                      {result.data.saved}
+                    </li>
+
+                    <li>
+                      • Synced:{" "}
+                      {result.data.synced}
+                    </li>
                   </ul>
                 </div>
               ) : (
                 <div>
                   <p>{result.message}</p>
+
                   <ul className="mt-2 space-y-1">
-                    <li>• Processed: {result.data.uploaded}</li>
-                    <li>• Saved: {result.data.saved}</li>
-                    <li>• Skipped: {result.data.skipped}</li>
-                    {result.data.errors.length > 0 && <li>• Errors: {result.data.errors.length}</li>}
+                    <li>
+                      • Processed:{" "}
+                      {result.data.uploaded}
+                    </li>
+
+                    <li>
+                      • Saved:{" "}
+                      {result.data.saved}
+                    </li>
+
+                    <li>
+                      • Skipped:{" "}
+                      {result.data.skipped}
+                    </li>
+
+                    {result.data.errors.length > 0 && (
+                      <li>
+                        • Errors:{" "}
+                        {result.data.errors.length}
+                      </li>
+                    )}
                   </ul>
                 </div>
               )
-            ) : result.message}
+            ) : (
+              result.message
+            )}
           </AlertDescription>
         </div>
       </div>
@@ -569,17 +789,42 @@ function UploadResult({ result }: { result: any }) {
   );
 }
 
-function HelpCard({ title, items }: { title: string; items: { name: string; required?: boolean; desc?: string }[] }) {
+function HelpCard({
+  title,
+  items,
+}: {
+  title: string;
+  items: {
+    name: string;
+    required?: boolean;
+    desc?: string;
+  }[];
+}) {
   return (
     <Card>
       <CardContent className="pt-6 space-y-4">
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-semibold">
+          {title}
+        </h3>
+
         <ul className="text-xs space-y-2 text-muted-foreground">
           {items.map((item) => (
             <li key={item.name}>
-              <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{item.name}</code>{" "}
-              {item.required && <span className="text-primary font-medium">(Required)</span>}
-              {item.desc && <span className="text-xs ml-1">– {item.desc}</span>}
+              <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
+                {item.name}
+              </code>{" "}
+
+              {item.required && (
+                <span className="text-primary font-medium">
+                  (Required)
+                </span>
+              )}
+
+              {item.desc && (
+                <span className="text-xs ml-1">
+                  – {item.desc}
+                </span>
+              )}
             </li>
           ))}
         </ul>

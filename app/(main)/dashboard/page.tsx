@@ -106,7 +106,7 @@ export default function Dashboard() {
     try {
       const result = await alertsService.getInactiveMeters({
         page: 1,
-        limit: 5,
+        limit: 8,
       });
       setRecentAlerts(result.data);
       setCachedAlerts(result.data);

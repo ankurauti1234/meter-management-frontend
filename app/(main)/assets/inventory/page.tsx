@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client"; 
+"use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useDebounce } from "use-debounce";
@@ -75,11 +75,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import AssetsService from "@/services/assets.service";
-import {
-  getEnvironmentByMeterId,
-  getDummyCpuSerial,
-  getDummyMeterStatus,
-} from "@/lib/meter-utils";
+import { getEnvironmentByMeterId, getDummyMeterStatus } from "@/lib/meter-utils";
 
 // Zod Schema
 const editMeterSchema = z.object({
@@ -90,12 +86,32 @@ const editMeterSchema = z.object({
 
 type EditMeterForm = z.infer<typeof editMeterSchema>;
 
+/**
+ * Generate a stable-looking CPU serial for a meter.
+ *
+ * Format:
+ * 10000000feba3699
+ *
+ * The value is derived from the meter ID, so the same meter
+ * will always get the same CPU serial across refreshes.
+ */
+const generateCpuSerial = (meterId: string): string => {
+  let hash = 0;
+
+  for (let i = 0; i < meterId.length; i++) {
+    hash = (hash * 31 + meterId.charCodeAt(i)) >>> 0;
+  }
+
+  const suffix = hash.toString(16).padStart(8, "0").slice(-8);
+
+  return `10000000${suffix}`;
+};
+
 export default function ListMetersPage() {
   const [filters, setFilters] = useState({
     search: "",
     meterType: "",
     powerHATStatus: "",
-    groupName: "",
     status: "",
     page: 1,
     limit: 25,
@@ -121,22 +137,22 @@ export default function ListMetersPage() {
     filters.search ||
       filters.meterType ||
       filters.powerHATStatus ||
-      filters.groupName ||
       filters.status
   );
 
   const fetchMeters = useCallback(async () => {
     setLoading(true);
+
     try {
       const res = await AssetsService.getMeters({
         search: debouncedSearch || undefined,
         meterType: filters.meterType || undefined,
         powerHATStatus: filters.powerHATStatus || undefined,
-        groupName: filters.groupName || undefined,
         status: filters.status || undefined,
         page: filters.page,
         limit: filters.limit,
       });
+
       setData(res.meters);
       setTotal(res.pagination.total);
     } catch (err: any) {
@@ -151,7 +167,6 @@ export default function ListMetersPage() {
     debouncedSearch,
     filters.meterType,
     filters.powerHATStatus,
-    filters.groupName,
     filters.status,
     filters.page,
     filters.limit,
@@ -163,12 +178,18 @@ export default function ListMetersPage() {
 
   // Auto-refresh
   useEffect(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
     if (refreshInterval) {
       intervalRef.current = setInterval(fetchMeters, refreshInterval);
     }
+
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, [refreshInterval, fetchMeters]);
 
@@ -179,7 +200,11 @@ export default function ListMetersPage() {
   };
 
   const handleApplyFilters = () => {
-    setFilters({ ...tempFilters, page: 1 });
+    setFilters({
+      ...tempFilters,
+      page: 1,
+    });
+
     setDialogOpen(false);
     toast.success("Filters applied");
   };
@@ -189,13 +214,14 @@ export default function ListMetersPage() {
       search: "",
       meterType: "",
       powerHATStatus: "",
-      groupName: "",
       status: "",
       page: 1,
       limit: filters.limit,
     };
+
     setFilters(reset);
     setTempFilters(reset);
+
     toast("Filters cleared");
   };
 
@@ -216,11 +242,13 @@ export default function ListMetersPage() {
 
   const openEditModal = (meter: any) => {
     setEditingMeter(meter);
+
     form.reset({
       meterType: meter.meterType || "",
       assetSerialNumber: meter.assetSerialNumber || "",
       powerHATStatus: meter.powerHATStatus || undefined,
     });
+
     setEditModalOpen(true);
   };
 
@@ -229,7 +257,9 @@ export default function ListMetersPage() {
 
     try {
       await AssetsService.updateMeter(editingMeter.meterId, values);
+
       toast.success("Meter updated successfully");
+
       setEditModalOpen(false);
       fetchMeters();
     } catch (err: any) {
@@ -247,11 +277,13 @@ export default function ListMetersPage() {
         </code>
       ),
     },
+
     {
       accessorKey: "meterType",
       header: "Type",
       cell: ({ row }) => row.original.meterType || "—",
     },
+
     {
       accessorKey: "assetSerialNumber",
       header: "Serial",
@@ -261,34 +293,43 @@ export default function ListMetersPage() {
         </span>
       ),
     },
+
     {
       id: "cpuSerial",
       header: "CPU Serial",
       cell: ({ row }) => (
         <code className="font-mono text-xs text-muted-foreground">
-          {getDummyCpuSerial(row.original.meterId, row.index)}
+          {generateCpuSerial(row.original.meterId)}
         </code>
       ),
     },
+
     {
       id: "environment",
       header: "Environment",
       cell: ({ row }) => {
         const env = getEnvironmentByMeterId(row.original.meterId);
+
         const variant =
           env === "Production"
             ? "default"
             : env === "Staging"
             ? "outline"
             : "secondary";
+
         return <Badge variant={variant}>{env}</Badge>;
       },
     },
+
     {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const dummyStatus = getDummyMeterStatus(row.original.meterId, row.index);
+        const dummyStatus = getDummyMeterStatus(
+          row.original.meterId,
+          row.index
+        );
+
         return (
           <Badge
             variant={dummyStatus === "Active" ? "default" : "destructive"}
@@ -298,11 +339,7 @@ export default function ListMetersPage() {
         );
       },
     },
-    {
-      accessorKey: "groupName",
-      header: "Group",
-      cell: ({ row }) => row.original.groupName || "—",
-    },
+
     {
       id: "actions",
       header: "Actions",
@@ -331,7 +368,11 @@ export default function ListMetersPage() {
       <PageHeader
         title="Meters Inventory"
         description="View and edit all registered smart meters"
-        badge={<Badge variant="outline">{total.toLocaleString()} total</Badge>}
+        badge={
+          <Badge variant="outline">
+            {total.toLocaleString()} total
+          </Badge>
+        }
         size="sm"
         actions={
           <div className="flex flex-wrap items-center gap-3">
@@ -341,6 +382,7 @@ export default function ListMetersPage() {
                   <Button variant="outline" onClick={openDialog}>
                     <Filter className="mr-2 h-4 w-4" />
                     Filters
+
                     {hasActiveFilters && (
                       <Badge variant="secondary" className="ml-2 text-xs">
                         {
@@ -348,7 +390,6 @@ export default function ListMetersPage() {
                             filters.search && 1,
                             filters.meterType && 1,
                             filters.powerHATStatus && 1,
-                            filters.groupName && 1,
                             filters.status && 1,
                           ].filter(Boolean).length
                         }
@@ -360,8 +401,9 @@ export default function ListMetersPage() {
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Filter Meters</DialogTitle>
+
                     <DialogDescription>
-                      Narrow down meters by ID, type, HAT status, group, or
+                      Narrow down meters by ID, type, HAT status, or
                       registration status.
                     </DialogDescription>
                   </DialogHeader>
@@ -369,8 +411,10 @@ export default function ListMetersPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                     <div className="space-y-2">
                       <Label>Search Meter ID</Label>
+
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
                         <Input
                           placeholder="e.g., METER123"
                           value={tempFilters.search}
@@ -387,6 +431,7 @@ export default function ListMetersPage() {
 
                     <div className="space-y-2">
                       <Label>Meter Type</Label>
+
                       <Input
                         placeholder="e.g., TouchMeterWithWiFi"
                         value={tempFilters.meterType}
@@ -401,6 +446,7 @@ export default function ListMetersPage() {
 
                     <div className="space-y-2">
                       <Label>Power HAT Status</Label>
+
                       <Select
                         value={tempFilters.powerHATStatus || "all"}
                         onValueChange={(v) =>
@@ -413,6 +459,7 @@ export default function ListMetersPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="All" />
                         </SelectTrigger>
+
                         <SelectContent>
                           <SelectItem value="all">All</SelectItem>
                           <SelectItem value="Flashed">Flashed</SelectItem>
@@ -423,21 +470,8 @@ export default function ListMetersPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>AWS Group</Label>
-                      <Input
-                        placeholder="e.g., armenia_meter"
-                        value={tempFilters.groupName}
-                        onChange={(e) =>
-                          setTempFilters((p) => ({
-                            ...p,
-                            groupName: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
                       <Label>Registration Status</Label>
+
                       <Select
                         value={tempFilters.status ?? "all"}
                         onValueChange={(v) =>
@@ -450,14 +484,19 @@ export default function ListMetersPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="All" />
                         </SelectTrigger>
+
                         <SelectContent>
                           <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="registered">Registered</SelectItem>
-                          <SelectItem value="unregistered">unregistered</SelectItem>
+                          <SelectItem value="registered">
+                            Registered
+                          </SelectItem>
+                          <SelectItem value="unregistered">
+                            unregistered
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  </div> 
+                  </div>
 
                   <DialogFooter>
                     <Button
@@ -466,7 +505,10 @@ export default function ListMetersPage() {
                     >
                       Cancel
                     </Button>
-                    <Button onClick={handleApplyFilters}>Apply Filters</Button>
+
+                    <Button onClick={handleApplyFilters}>
+                      Apply Filters
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -492,6 +534,7 @@ export default function ListMetersPage() {
                 <SelectTrigger className="w-fit">
                   <SelectValue placeholder="Refresh: Off" />
                 </SelectTrigger>
+
                 <SelectContent>
                   <SelectItem value="off">Refresh: Off</SelectItem>
                   <SelectItem value="10000">Every 10s</SelectItem>
@@ -508,7 +551,9 @@ export default function ListMetersPage() {
                 size="icon"
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                  className={`h-4 w-4 ${
+                    refreshing ? "animate-spin" : ""
+                  }`}
                 />
               </Button>
             </ButtonGroup>
@@ -524,7 +569,10 @@ export default function ListMetersPage() {
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="bg-background">
+                    <TableHead
+                      key={header.id}
+                      className="bg-background"
+                    >
                       {flexRender(
                         header.column.columnDef.header,
                         header.getContext()
@@ -534,33 +582,42 @@ export default function ListMetersPage() {
                 </TableRow>
               ))}
             </TableHeader>
+
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-64">
+                  <TableCell colSpan={7} className="h-64">
                     <div className="flex flex-col items-center justify-center h-full gap-4">
                       <Spinner className="h-8 w-8" />
-                      <p className="text-muted-foreground">Loading meters...</p>
+                      <p className="text-muted-foreground">
+                        Loading meters...
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-64">
+                  <TableCell colSpan={7} className="h-64">
                     <Empty>
                       <EmptyHeader>
                         <EmptyMedia variant="icon">
                           <Package className="h-12 w-12 text-muted-foreground" />
                         </EmptyMedia>
+
                         <EmptyTitle>No meters found</EmptyTitle>
+
                         <EmptyDescription>
                           {hasActiveFilters
                             ? "Try adjusting your filters"
                             : "No meters have been registered yet"}
                         </EmptyDescription>
                       </EmptyHeader>
+
                       <EmptyContent>
-                        <Button onClick={handleRefresh} variant="outline">
+                        <Button
+                          onClick={handleRefresh}
+                          variant="outline"
+                        >
                           <RefreshCw className="mr-2 h-4 w-4" />
                           Refresh
                         </Button>
@@ -601,12 +658,17 @@ export default function ListMetersPage() {
               <Select
                 value={String(filters.limit)}
                 onValueChange={(v) =>
-                  setFilters((p) => ({ ...p, limit: Number(v), page: 1 }))
+                  setFilters((p) => ({
+                    ...p,
+                    limit: Number(v),
+                    page: 1,
+                  }))
                 }
               >
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
+
                 <SelectContent>
                   {[10, 25, 50, 100].map((n) => (
                     <SelectItem key={n} value={String(n)}>
@@ -621,22 +683,34 @@ export default function ListMetersPage() {
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    setFilters((p) => ({ ...p, page: p.page - 1 }))
+                    setFilters((p) => ({
+                      ...p,
+                      page: p.page - 1,
+                    }))
                   }
                   disabled={filters.page === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
+
                 <span className="text-xs font-medium p-2 pb-0 border-y">
-                  Page {filters.page} of {Math.ceil(total / filters.limit)}
+                  Page {filters.page} of{" "}
+                  {Math.ceil(total / filters.limit)}
                 </span>
+
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() =>
-                    setFilters((p) => ({ ...p, page: p.page + 1 }))
+                    setFilters((p) => ({
+                      ...p,
+                      page: p.page + 1,
+                    }))
                   }
-                  disabled={filters.page >= Math.ceil(total / filters.limit)}
+                  disabled={
+                    filters.page >=
+                    Math.ceil(total / filters.limit)
+                  }
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -647,28 +721,39 @@ export default function ListMetersPage() {
       </div>
 
       {/* Edit Modal */}
-      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+      <Dialog
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               Edit Meter:{" "}
-              <code className="font-mono">{editingMeter?.meterId}</code>
+              <code className="font-mono">
+                {editingMeter?.meterId}
+              </code>
             </DialogTitle>
           </DialogHeader>
+
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-4"
+            >
               <FormField
                 control={form.control}
                 name="meterType"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Meter Type</FormLabel>
+
                     <FormControl>
                       <Input
                         placeholder="e.g., TouchMeterWithWiFi"
                         {...field}
                       />
                     </FormControl>
+
                     <FormMessage />
                   </FormItem>
                 )}
@@ -680,9 +765,14 @@ export default function ListMetersPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Asset Serial Number</FormLabel>
+
                     <FormControl>
-                      <Input placeholder="e.g., INDIT1125IM000101" {...field} />
+                      <Input
+                        placeholder="e.g., INDIT1125IM000101"
+                        {...field}
+                      />
                     </FormControl>
+
                     <FormMessage />
                   </FormItem>
                 )}
@@ -694,6 +784,7 @@ export default function ListMetersPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Power HAT Status</FormLabel>
+
                     <FormControl>
                       <Select
                         onValueChange={field.onChange}
@@ -702,14 +793,27 @@ export default function ListMetersPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
+
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
-                          <SelectItem value="Flashed">Flashed</SelectItem>
-                          <SelectItem value="No HAT">No HAT</SelectItem>
-                          <SelectItem value="Unknown">Unknown</SelectItem>
+                          <SelectItem value="">
+                            None
+                          </SelectItem>
+
+                          <SelectItem value="Flashed">
+                            Flashed
+                          </SelectItem>
+
+                          <SelectItem value="No HAT">
+                            No HAT
+                          </SelectItem>
+
+                          <SelectItem value="Unknown">
+                            Unknown
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
+
                     <FormMessage />
                   </FormItem>
                 )}
@@ -723,7 +827,10 @@ export default function ListMetersPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Save Changes</Button>
+
+                <Button type="submit">
+                  Save Changes
+                </Button>
               </DialogFooter>
             </form>
           </Form>
