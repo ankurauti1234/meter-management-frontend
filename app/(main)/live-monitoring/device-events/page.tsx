@@ -3,7 +3,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { format } from "date-fns";
-import { useDebounce } from "use-debounce";
 import {
   ColumnDef,
   flexRender,
@@ -13,6 +12,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
   Filter,
   RefreshCw,
   Search,
@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -50,15 +56,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -68,24 +65,208 @@ import { DateTimePicker, DateTime } from "@/components/ui/date-time-picker";
 import eventMappingService, { EventMapping } from "@/services/event-mapping.service";
 import { DetailsHoverCard } from "./dialogDetail";
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
 interface Event {
   id: number;
   device_id: string;
-  timestamp: number; // milliseconds
+  timestamp: number;
   type: number;
   details: Record<string, any>;
   createdAt: string;
 }
 
+interface FiltersState {
+  device_id: string;
+  type: string[];
+  page: number;
+  limit: number;
+}
+
+// ─── EventTypeMultiSelect ─────────────────────────────────────────────────────
+
+function EventTypeMultiSelect({
+  mappings,
+  value,
+  onChange,
+  loading,
+}: {
+  mappings: EventMapping[];
+  value: string[];
+  onChange: (v: string[]) => void;
+  loading: boolean;
+}) {
+  const toggle = (t: string) =>
+    onChange(value.includes(t) ? value.filter((x) => x !== t) : [...value, t]);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          disabled={loading}
+          className="w-full justify-between font-normal"
+        >
+          <span className="truncate">
+            {loading
+              ? "Loading types..."
+              : value.length === 0
+              ? "All types"
+              : `${value.length} type${value.length > 1 ? "s" : ""} selected`}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+        onWheel={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b px-3 py-2">
+          <button
+            type="button"
+            className="text-xs text-primary hover:underline"
+            onClick={() => onChange(mappings.map((m) => String(m.type)))}
+          >
+            Select all
+          </button>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:underline"
+            onClick={() => onChange([])}
+          >
+            Clear
+          </button>
+        </div>
+
+        <div className="max-h-64 overflow-y-auto p-1">
+          {mappings.map((m) => {
+            const t = String(m.type);
+            return (
+              <label
+                key={m.id}
+                className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted"
+              >
+                <Checkbox
+                  checked={value.includes(t)}
+                  onCheckedChange={() => toggle(t)}
+                />
+                <span>Type {m.type}</span>
+                <span className="text-muted-foreground">– {m.name}</span>
+                {m.is_alert && (
+                  <Badge variant="destructive" className="ml-auto text-xs">
+                    Alert
+                  </Badge>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ─── PageJumper ───────────────────────────────────────────────────────────────
+
+function PageJumper({
+  currentPage,
+  totalPages,
+  onJump,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onJump: (page: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [inputVal, setInputVal] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEditing = () => {
+    setInputVal(String(currentPage));
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  const commit = () => {
+    const parsed = parseInt(inputVal, 10);
+    if (!isNaN(parsed)) {
+      const clamped = Math.max(1, Math.min(parsed, totalPages));
+      onJump(clamped);
+    }
+    setEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") setEditing(false);
+  };
+
+  return (
+    <ButtonGroup>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => onJump(Math.max(1, currentPage - 1))}
+        disabled={currentPage === 1}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+
+      <span className="flex items-center gap-1 text-xs font-medium px-3 border-y bg-background">
+        Page{" "}
+        {editing ? (
+          <input
+            ref={inputRef}
+            type="number"
+            min={1}
+            max={totalPages}
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onBlur={commit}
+            onKeyDown={handleKeyDown}
+            className="w-14 text-center text-xs border rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-ring [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={startEditing}
+            className="min-w-[2rem] text-center px-1 py-0.5 rounded hover:bg-muted cursor-pointer font-semibold"
+            title="Click to jump to a page"
+          >
+            {currentPage}
+          </button>
+        )}{" "}
+        of {totalPages}
+      </span>
+
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => onJump(Math.min(totalPages, currentPage + 1))}
+        disabled={currentPage >= totalPages}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </ButtonGroup>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function DeviceEventsPage() {
-  const [filters, setFilters] = useState({
+  const defaultFilters: FiltersState = {
     device_id: "",
-    type: "",
+    type: [],
     page: 1,
     limit: 25,
-  });
+  };
 
-  const [tempFilters, setTempFilters] = useState(filters);
+  const [filters, setFilters] = useState<FiltersState>(defaultFilters);
+  const [tempFilters, setTempFilters] = useState<FiltersState>(defaultFilters);
+
   const [startDateTime, setStartDateTime] = useState<DateTime>({});
   const [endDateTime, setEndDateTime] = useState<DateTime>({});
   const [tempStart, setTempStart] = useState<DateTime>({});
@@ -93,9 +274,13 @@ export default function DeviceEventsPage() {
 
   const [data, setData] = useState<Event[]>([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Inline filter panel — open by default on first visit
+  const [filterPanelOpen, setFilterPanelOpen] = useState(true);
+  // Gate: prevents fetching until the user clicks Apply at least once
+  const [filtersReady, setFiltersReady] = useState(false);
 
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -104,13 +289,23 @@ export default function DeviceEventsPage() {
   const [eventMappings, setEventMappings] = useState<EventMapping[]>([]);
   const [mappingsLoading, setMappingsLoading] = useState(true);
 
+  // ── Derived ───────────────────────────────────────────────────────────────
 
   const hasActiveFilters = Boolean(
     filters.device_id ||
-      filters.type ||
+      filters.type.length ||
       startDateTime.date ||
       endDateTime.date
   );
+
+  const activeFilterCount = [
+    filters.device_id && 1,
+    filters.type.length > 0 && 1,
+    startDateTime.date && 1,
+    endDateTime.date && 1,
+  ].filter(Boolean).length;
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   const getUnixSeconds = (dt: DateTime): number | undefined => {
     if (!dt.date) return undefined;
@@ -120,55 +315,51 @@ export default function DeviceEventsPage() {
     return Math.floor(date.getTime() / 1000);
   };
 
-const fetchEvents = useCallback(async () => {
-  setLoading(true);
-  try {
-    const start = getUnixSeconds(startDateTime);
-    const end = getUnixSeconds(endDateTime);
+  // ── Fetch ─────────────────────────────────────────────────────────────────
 
-    const res = await eventsService.getEvents({
-      device_id: filters.device_id || undefined,
-      type: filters.type ? Number(filters.type) : undefined,
-      start_time: start,
-      end_time: end,
-      page: filters.page,
-      limit: filters.limit,
-    });
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const start = getUnixSeconds(startDateTime);
+      const end = getUnixSeconds(endDateTime);
 
-    // FIX: Now correctly extract from nested structure
-    const eventsData = res.data?.events || [];
-    const paginationData = res.data?.pagination;
+      const res = await eventsService.getEvents({
+        device_id: filters.device_id || undefined,
+        type: filters.type.length ? filters.type.join(",") : undefined,
+        start_time: start,
+        end_time: end,
+        page: filters.page,
+        limit: filters.limit,
+      });
 
-const events = eventsData.map((e: any) => {
-  const ts = Number(e.timestamp);
+      const eventsData = res.data?.events || [];
+      const paginationData = res.data?.pagination;
 
-  return {
-    ...e,
-    timestamp: ts < 1e12 ? ts * 1000 : ts, // ✅ auto-detect
-  };
-});
+      const events = eventsData.map((e: any) => {
+        const ts = Number(e.timestamp);
+        return { ...e, timestamp: ts < 1e12 ? ts * 1000 : ts };
+      });
 
-    setData(events);
-    setTotal(paginationData?.total || 0);
-  } catch (err) {
-    toast.error("Failed to load events");
-    console.error(err);
-    setData([]);
-    setTotal(0);
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-}, [
-  filters.device_id,
-  filters.type,
-  filters.page,
-  filters.limit,
-  startDateTime,
-  endDateTime,
-]);
+      setData(events);
+      setTotal(paginationData?.total || 0);
+    } catch (err) {
+      toast.error("Failed to load events");
+      console.error(err);
+      setData([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [
+    filters.device_id,
+    filters.type,
+    filters.page,
+    filters.limit,
+    startDateTime,
+    endDateTime,
+  ]);
 
-  // Always keep ref pointing to latest fetchEvents so interval never goes stale
   useEffect(() => {
     fetchEventsRef.current = fetchEvents;
   }, [fetchEvents]);
@@ -179,11 +370,8 @@ const events = eventsData.map((e: any) => {
       try {
         setMappingsLoading(true);
         const res = await eventMappingService.getAll({ limit: 1000 });
-
-        // Clean: res.data is now the array directly
         const mappings = Array.isArray(res.data) ? res.data : [];
-        const sorted = mappings.sort((a, b) => a.type - b.type);
-        setEventMappings(sorted);
+        setEventMappings(mappings.sort((a, b) => a.type - b.type));
       } catch (err) {
         console.error("Failed to load event mappings", err);
         toast.error("Failed to load event type definitions");
@@ -192,25 +380,29 @@ const events = eventsData.map((e: any) => {
         setMappingsLoading(false);
       }
     };
-
     loadMappings();
   }, []);
 
-  // Auto-refresh interval — uses ref so filter changes never recreate the interval
+  // Auto-refresh
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (refreshInterval) {
-      intervalRef.current = setInterval(() => fetchEventsRef.current(), refreshInterval);
+      intervalRef.current = setInterval(() => {
+        if (filtersReady) fetchEventsRef.current();
+      }, refreshInterval);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [refreshInterval]); // ← fetchEvents intentionally excluded
+  }, [refreshInterval, filtersReady]);
 
-  // Initial load + dependency changes
+  // Fetch on filter/page changes — only after Apply is clicked
   useEffect(() => {
+    if (!filtersReady) return;
     fetchEvents();
-  }, [fetchEvents]);
+  }, [fetchEvents, filtersReady]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleRefresh = () => {
     toast.success("Refreshed");
@@ -219,39 +411,47 @@ const events = eventsData.map((e: any) => {
   };
 
   const handleApplyFilters = () => {
-    setFilters({
-      ...tempFilters,
-      type: tempFilters.type === "all" ? "" : tempFilters.type,
-      page: 1,
-    });
+    const start = getUnixSeconds(tempStart);
+    const end = getUnixSeconds(tempEnd);
+    if (start !== undefined && end !== undefined && start > end) {
+      toast.error("End date/time must be after the start");
+      return;
+    }
+    setFilters({ ...tempFilters, page: 1 });
     setStartDateTime(tempStart);
     setEndDateTime(tempEnd);
-    setDialogOpen(false);
+    setFiltersReady(true);
+    setFilterPanelOpen(false);
     toast.success("Filters applied");
   };
 
   const handleResetFilters = () => {
-    const reset = { device_id: "", type: "", page: 1, limit: 25 };
-    setFilters(reset);
-    setTempFilters(reset);
+    setFilters(defaultFilters);
+    setTempFilters(defaultFilters);
     setStartDateTime({});
     setEndDateTime({});
     setTempStart({});
     setTempEnd({});
+    setFiltersReady(false);
+    setFilterPanelOpen(true);
     toast("Filters cleared");
   };
 
-  const openDialog = () => {
-    setTempFilters(filters);
-    setTempStart(startDateTime);
-    setTempEnd(endDateTime);
-    setDialogOpen(true);
+  const handleTogglePanel = () => {
+    if (!filterPanelOpen) {
+      // Sync temp state with current applied filters when reopening
+      setTempFilters(filters);
+      setTempStart(startDateTime);
+      setTempEnd(endDateTime);
+    }
+    setFilterPanelOpen((prev) => !prev);
   };
+
+  // ── Sub-components ────────────────────────────────────────────────────────
 
   const EventTypeBadge = ({ type }: { type: number }) => {
     const mapping = eventMappings.find((m) => m.type === type);
     const isAlert = mapping?.is_alert ?? type >= 14;
-
     const baseClasses = "gap-1.5 text-xs";
 
     const content = (
@@ -279,13 +479,14 @@ const events = eventsData.map((e: any) => {
           {content}
         </Badge>
       );
-
     return (
       <Badge variant="outline" className={`border-blue-500 text-blue-600 ${baseClasses}`}>
         {content}
       </Badge>
     );
   };
+
+  // ── Table columns ─────────────────────────────────────────────────────────
 
   const columns: ColumnDef<Event>[] = [
     {
@@ -294,11 +495,8 @@ const events = eventsData.map((e: any) => {
       cell: ({ row }) => {
         const ts = row.original.timestamp;
         const date = new Date(ts);
-
-        if (isNaN(date.getTime())) {
+        if (isNaN(date.getTime()))
           return <span className="text-red-500 text-xs">Invalid date</span>;
-        }
-
         return (
           <div className="font-mono text-xs">
             {format(date, "dd MMM yyyy, HH:mm:ss")}
@@ -324,7 +522,10 @@ const events = eventsData.map((e: any) => {
       id: "details",
       header: "Details",
       cell: ({ row }) => (
-        <DetailsHoverCard details={row.original.details || {}} type={row.original.type} />
+        <DetailsHoverCard
+          details={row.original.details || {}}
+          type={row.original.type}
+        />
       ),
     },
   ];
@@ -337,8 +538,11 @@ const events = eventsData.map((e: any) => {
     pageCount: Math.ceil(total / filters.limit),
   });
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-4">
+      {/* ── Page Header ── */}
       <PageHeader
         title="Device Events"
         description="Real-time monitoring and historical event log"
@@ -346,119 +550,20 @@ const events = eventsData.map((e: any) => {
         size="sm"
         actions={
           <div className="flex flex-wrap items-center gap-3">
+            {/* Filter toggle + clear */}
             <ButtonGroup>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" onClick={openDialog}>
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filters
-                    {hasActiveFilters && (
-                      <Badge variant="secondary" className="ml-2 text-xs">
-                        {
-                          [
-                            filters.device_id && 1,
-                            filters.type && 1,
-                            startDateTime.date && 1,
-                            endDateTime.date && 1,
-                          ].filter(Boolean).length
-                        }
-                      </Badge>
-                    )}
-                  </Button>
-                </DialogTrigger>
-
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Filter Events</DialogTitle>
-                    <DialogDescription>
-                      Narrow down events by device, type, or time range.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                    <div className="space-y-2">
-                      <Label>Device ID</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search device..."
-                          value={tempFilters.device_id}
-                          onChange={(e) =>
-                            setTempFilters((p) => ({
-                              ...p,
-                              device_id: e.target.value,
-                            }))
-                          }
-                          className="pl-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Event Type</Label>
-                      <Select
-                        value={tempFilters.type || "all"}
-                        onValueChange={(v) =>
-                          setTempFilters((p) => ({
-                            ...p,
-                            type: v === "all" ? "" : v,
-                          }))
-                        }
-                        disabled={mappingsLoading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              mappingsLoading ? "Loading types..." : "All types"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All types</SelectItem>
-                          {eventMappings.map((mapping) => (
-                            <SelectItem key={mapping.id} value={String(mapping.type)}>
-                              <div className="flex items-center gap-2">
-                                <span>Type {mapping.type}</span>
-                                <span className="text-muted-foreground">– {mapping.name}</span>
-                                {mapping.is_alert && (
-                                  <Badge variant="destructive" className="text-xs ml-2">
-                                    Alert
-                                  </Badge>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {!mappingsLoading && (
-                        <p className="text-xs text-muted-foreground">
-                          {eventMappings.length} event types available
-                        </p>
-                      )}
-                    </div>
-
-                    <DateTimePicker
-                      label="Start Date & Time"
-                      value={tempStart}
-                      onChange={setTempStart}
-                    />
-
-                    <DateTimePicker
-                      label="End Date & Time"
-                      value={tempEnd}
-                      onChange={setTempEnd}
-                    />
-                  </div>
-
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleApplyFilters}>Apply Filters</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
+              <Button
+                variant={filterPanelOpen ? "default" : "outline"}
+                onClick={handleTogglePanel}
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Filters
+                {hasActiveFilters && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
               {hasActiveFilters && (
                 <Button variant="outline" size="icon" onClick={handleResetFilters}>
                   <X className="h-4 w-4" />
@@ -466,10 +571,13 @@ const events = eventsData.map((e: any) => {
               )}
             </ButtonGroup>
 
+            {/* Auto-refresh */}
             <ButtonGroup>
               <Select
                 value={refreshInterval ? String(refreshInterval) : "off"}
-                onValueChange={(v) => setRefreshInterval(v === "off" ? null : Number(v))}
+                onValueChange={(v) =>
+                  setRefreshInterval(v === "off" ? null : Number(v))
+                }
               >
                 <SelectTrigger className="w-fit">
                   <SelectValue placeholder="Refresh: Off" />
@@ -483,15 +591,93 @@ const events = eventsData.map((e: any) => {
                 </SelectContent>
               </Select>
 
-              <Button onClick={handleRefresh} disabled={refreshing} variant="outline" size="icon">
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              <Button
+                onClick={handleRefresh}
+                disabled={refreshing || !filtersReady}
+                variant="outline"
+                size="icon"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                />
               </Button>
             </ButtonGroup>
           </div>
         }
       />
 
-      {/* Table */}
+      {/* ── Inline Filter Panel ── */}
+      {filterPanelOpen && (
+        <div className="rounded-md border bg-muted/30 p-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Device ID */}
+            <div className="space-y-2">
+              <Label>Device ID</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search device..."
+                  value={tempFilters.device_id}
+                  onChange={(e) =>
+                    setTempFilters((p) => ({ ...p, device_id: e.target.value }))
+                  }
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Event Type */}
+            <div className="space-y-2">
+              <Label>Event Type</Label>
+              <EventTypeMultiSelect
+                mappings={eventMappings}
+                value={tempFilters.type}
+                loading={mappingsLoading}
+                onChange={(type) => setTempFilters((p) => ({ ...p, type }))}
+              />
+              {!mappingsLoading && (
+                <p className="text-xs text-muted-foreground">
+                  {tempFilters.type.length > 0
+                    ? `${tempFilters.type.length} of ${eventMappings.length} selected`
+                    : `${eventMappings.length} types available`}
+                </p>
+              )}
+            </div>
+
+            {/* Start Date */}
+            <DateTimePicker
+              label="Start Date & Time"
+              value={tempStart}
+              onChange={setTempStart}
+            />
+
+            {/* End Date */}
+            <DateTimePicker
+              label="End Date & Time"
+              value={tempEnd}
+              onChange={setTempEnd}
+            />
+          </div>
+
+          {/* Panel actions */}
+          <div className="flex items-center justify-end gap-2 pt-1 border-t">
+            {filtersReady && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilterPanelOpen(false)}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button size="sm" onClick={handleApplyFilters}>
+              Apply Filters
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Table ── */}
       <div className="rounded-md border overflow-hidden">
         <div className="max-h-[70vh] overflow-y-auto">
           <Table className="border-separate border-spacing-0 [&_td]:border-border [&_th]:border-b [&_th]:border-border [&_tr]:border-none [&_tr:not(:last-child)_td]:border-b">
@@ -500,7 +686,10 @@ const events = eventsData.map((e: any) => {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead key={header.id} className="bg-background">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -508,7 +697,19 @@ const events = eventsData.map((e: any) => {
             </TableHeader>
 
             <TableBody>
-              {loading ? (
+              {!filtersReady ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-64">
+                    <div className="flex flex-col items-center justify-center h-full gap-3">
+                      <Filter className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-muted-foreground text-sm">
+                        Set your filters and click{" "}
+                        <strong>Apply Filters</strong> to load events
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : loading ? (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-64">
                     <div className="flex flex-col items-center justify-center h-full gap-4">
@@ -527,7 +728,9 @@ const events = eventsData.map((e: any) => {
                         </EmptyMedia>
                         <EmptyTitle>No events found</EmptyTitle>
                         <EmptyDescription>
-                          {hasActiveFilters ? "Try adjusting your filters" : "No events recorded yet"}
+                          {hasActiveFilters
+                            ? "Try adjusting your filters"
+                            : "No events recorded yet"}
                         </EmptyDescription>
                       </EmptyHeader>
                       <EmptyContent>
@@ -541,10 +744,16 @@ const events = eventsData.map((e: any) => {
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
+                  <TableRow
+                    key={row.id}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -554,11 +763,13 @@ const events = eventsData.map((e: any) => {
           </Table>
         </div>
 
+        {/* ── Pagination ── */}
         {total > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
             <p className="text-xs text-muted-foreground">
               Showing {(filters.page - 1) * filters.limit + 1}–
-              {Math.min(filters.page * filters.limit, total)} of {total.toLocaleString()} events
+              {Math.min(filters.page * filters.limit, total)} of{" "}
+              {total.toLocaleString()} events
             </p>
 
             <div className="flex items-center gap-3">
@@ -580,27 +791,11 @@ const events = eventsData.map((e: any) => {
                 </SelectContent>
               </Select>
 
-              <ButtonGroup>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                  disabled={filters.page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-xs font-medium px-3 border-y">
-                  Page {filters.page} of {Math.ceil(total / filters.limit) || 1}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-                  disabled={filters.page >= Math.ceil(total / filters.limit)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </ButtonGroup>
+              <PageJumper
+                currentPage={filters.page}
+                totalPages={Math.ceil(total / filters.limit) || 1}
+                onJump={(p) => setFilters((prev) => ({ ...prev, page: p }))}
+              />
             </div>
           </div>
         )}
