@@ -15,7 +15,7 @@ export default function LoginPage() {
             <h2 className="font-semibold text-lg">Indirex Studio</h2>
             <p className="text-xs text-muted-foreground">Device Management Portal</p>
           </div>
-        </div>Active meters Managed
+        </div>
 
         {/* Form Container */}
         <div className="flex flex-1 items-center justify-center px-6 py-12">
