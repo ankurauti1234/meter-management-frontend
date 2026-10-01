@@ -10,6 +10,8 @@ export interface AssignedMeter {
     hhid: string;
   } | null;
   assignedAt: string;
+  unassignAvailable: boolean;
+  unassignAvailableUntil: string | null;
 }
 
 export interface DecommissionMeterPayload {
@@ -107,6 +109,18 @@ class DecommissionService {
     payload: DecommissionMeterPayload
   ): Promise<{ success: boolean; data: DecommissionResponse; msg: string }> {
     const res = await api.post(`${this.basePath}/decommission`, payload);
+    return res.data;
+  }
+
+  async unassignMeter(payload: {
+    meterId: string;
+    hhid: string;
+  }): Promise<{
+    success: boolean;
+    data: any;
+    msg: string;
+  }> {
+    const res = await api.post("/meters/unassign", payload);
     return res.data;
   }
 

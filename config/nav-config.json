@@ -79,14 +79,6 @@
           "roles": ["admin", "installer"]
         },
         {
-          "title": "Unassign Meter",
-          "url": "/devices/unassign-meter",
-          "icon": "Unlink",
-          "roles": [
-            "admin"
-          ]
-        },
-        {
           "title": "Unassign Logs",
           "url": "/devices/unassign-logs",
           "icon": "ClipboardList",
@@ -108,15 +100,40 @@
           "roles": ["admin", "installer", "developer", "support"]
         },
         {
-          "title": "Alerts",
-          "url": "/live-monitoring/alerts",
-          "icon": "BellRing",
-          "roles": ["admin", "installer", "developer"]
-        },
-        {
           "title": "Monitor",
           "url": "/live-monitoring/monitor",
           "icon": "Monitor",
+          "roles": ["admin", "installer", "developer", "support"]
+        },
+        {
+          "title": "Active Devices",
+          "url": "/remote-access",
+          "icon": "Network",
+          "roles": ["admin", "installer"]
+        }
+      ]
+    },
+    {
+      "title": "Reports",
+      "icon": "BarChart3",
+      "roles": ["admin", "installer", "developer", "support"],
+      "items": [
+        {
+          "title": "Generic",
+          "url": "/reports/generic",
+          "icon": "FileText",
+          "roles": ["admin", "installer", "developer", "support"]
+        },
+        {
+          "title": "Viewership CSV",
+          "url": "/reports/viewership-csv",
+          "icon": "FileUser",
+          "roles": ["admin", "installer", "developer", "support"]
+        },
+        {
+          "title": "Device Reports",
+          "url": "/reports/device-reports",
+          "icon": "MonitorCheck",
           "roles": ["admin", "installer", "developer", "support"]
         },
         {
@@ -135,61 +152,6 @@
           "title": "Button Pressed Report",
           "url": "/live-monitoring/button-pressed-report",
           "icon": "Fingerprint",
-          "roles": ["admin", "installer", "developer", "support"]
-        },
-        {
-          "title": "Household Visualization",
-          "url": "/live-monitoring/all-household-visualization",
-          "icon": "Home",
-          "roles": ["admin", "installer", "developer", "user", "support"]
-        }
-      ]
-    },
-    {
-      "title": "Reports",
-      "icon": "BarChart3",
-      "roles": ["admin", "installer", "developer", "support"],
-      "items": [
-        {
-          "title": "Generic",
-          "url": "/reports/generic",
-          "icon": "FileText",
-          "roles": ["admin", "installer", "developer", "support"]
-        },
-        {
-          "title": "Household Bridged",
-          "url": "/reports/household-bridged",
-          "icon": "Home",
-          "roles": ["admin", "installer", "developer", "support"]
-        },
-        {
-          "title": "Household Raw",
-          "url": "/reports/household-raw",
-          "icon": "Database",
-          "roles": ["admin", "installer", "developer", "support"]
-        },
-        {
-          "title": "Members Bridged",
-          "url": "/reports/members-bridged",
-          "icon": "Users",
-          "roles": ["admin", "installer", "developer", "support"]
-        },
-        {
-          "title": "Members Raw",
-          "url": "/reports/members-raw",
-          "icon": "Users",
-          "roles": ["admin", "installer", "developer", "support"]
-        },
-        {
-          "title": "Viewership CSV",
-          "url": "/reports/viewership-csv",
-          "icon": "FileUser",
-          "roles": ["admin", "installer", "developer", "support"]
-        },
-        {
-          "title": "Device Reports",
-          "url": "/reports/device-reports",
-          "icon": "MonitorCheck",
           "roles": ["admin", "installer", "developer", "support"]
         },
         {
@@ -227,12 +189,6 @@
           ]
         }
       ]
-    },
-    {
-      "title": "Remote Access",
-      "url": "/remote-access",
-      "icon": "Network",
-      "roles": ["admin", "installer"]
     },
     {
       "title": "User Management",
