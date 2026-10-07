@@ -42,12 +42,6 @@
           "roles": ["admin"]
         },
         {
-          "title": "Meter-HHID history",
-          "url": "/assets/meter-history",
-          "icon": "ClipboardClock",
-          "roles": ["admin", "installer", "developer"]
-        },
-        {
           "title": "Assign Members",
           "url": "/assets/assign-members",
           "icon": "UserPlus",

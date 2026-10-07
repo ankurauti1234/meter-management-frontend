@@ -12,6 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
+import { useRouter } from "next/navigation";
 import {
   Search,
   RefreshCw,
@@ -24,7 +25,11 @@ import {
   Edit2,
   Check,
   XCircle,
+  ClipboardClock,
+  Home,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MeterHistoryView } from "@/components/assets/meter-history-view";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +78,7 @@ import HouseholdService, {
 } from "@/services/household.service";
 
 export default function ListHouseholdsPage() {
+  const router = useRouter();
   const [filters, setFilters] = useState<HouseholdFilters>({
     search: "",
     assigned: undefined,
@@ -354,7 +360,56 @@ export default function ListHouseholdsPage() {
 
   return (
     <div className="p-4 space-y-6">
-      <PageHeader
+      <Tabs defaultValue="households" className="space-y-6">
+        <div className="flex items-center">
+          <TabsList className="h-14 rounded-xl border bg-muted/40 p-1.5 shadow-sm">
+            <TabsTrigger
+              value="households"
+              className="
+                h-11
+                gap-2.5
+                rounded-lg
+                px-7
+                text-base
+                font-semibold
+                text-muted-foreground
+                transition-all
+                duration-200
+                data-[state=active]:bg-background
+                data-[state=active]:text-foreground
+                data-[state=active]:shadow-sm
+                hover:text-foreground
+              "
+            >
+              <Home className="h-5 w-5" />
+              Households
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="meter-history"
+              className="
+                h-11
+                gap-2.5
+                rounded-lg
+                px-7
+                text-base
+                font-semibold
+                text-muted-foreground
+                transition-all
+                duration-200
+                data-[state=active]:bg-background
+                data-[state=active]:text-foreground
+                data-[state=active]:shadow-sm
+                hover:text-foreground
+              "
+            >
+              <ClipboardClock className="h-5 w-5" />
+              Meter History
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="households" className="space-y-6 mt-0">
+          <PageHeader
         title="Households"
         description="Manage and monitor all registered households"
         badge={<Badge variant="outline">{total.toLocaleString()} total</Badge>}
@@ -656,6 +711,12 @@ export default function ListHouseholdsPage() {
           </div>
         )}
       </div>
+        </TabsContent>
+
+        <TabsContent value="meter-history" className="mt-0">
+          <MeterHistoryView />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

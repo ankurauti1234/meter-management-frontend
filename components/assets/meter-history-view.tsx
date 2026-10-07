@@ -7,7 +7,7 @@ import { useDebounce } from "use-debounce";
 import {
   Download, Filter, X, RefreshCw, Search,
   ChevronLeft, ChevronRight, ClipboardClock,
-  Wifi, WifiOff, ArrowRight, History, Cpu,
+  WifiOff, ArrowRight, History, Cpu,
   Home, CalendarDays, Clock, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,6 @@ import { toast } from "sonner";
 import decommissionService, { MeterHistoryRecord } from "@/services/decommission.service";
 import { getEnvironmentByMeterId } from "@/lib/meter-utils";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface Filters {
   meterId: string;
   hhid: string;
@@ -50,8 +48,6 @@ const DEFAULT_FILTERS: Filters = {
   decommissioned_from: "", decommissioned_to: "",
   page: 1, limit: 25,
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildApiParams(f: Filters) {
   return {
@@ -94,7 +90,6 @@ function exportToCSV(data: MeterHistoryRecord[]) {
   URL.revokeObjectURL(url);
 }
 
-// Group flat records into HHID-keyed buckets, sorted newest first per HHID
 function groupByHhid(records: MeterHistoryRecord[]): Map<string, MeterHistoryRecord[]> {
   const map = new Map<string, MeterHistoryRecord[]>();
   for (const r of records) {
@@ -102,7 +97,6 @@ function groupByHhid(records: MeterHistoryRecord[]): Map<string, MeterHistoryRec
     bucket.push(r);
     map.set(r.hhid, bucket);
   }
-  // Sort each bucket: active first, then by assignedAt desc
   for (const [key, bucket] of map) {
     map.set(key, bucket.sort((a, b) => {
       if (!a.decommissionedAt) return -1;
@@ -113,9 +107,7 @@ function groupByHhid(records: MeterHistoryRecord[]): Map<string, MeterHistoryRec
   return map;
 }
 
-// ─── Timeline entry ───────────────────────────────────────────────────────────
-
-function TimelineEntry({ record, isFirst, isLast }: {
+function TimelineEntry({ record, isLast }: {
   record: MeterHistoryRecord; isFirst: boolean; isLast: boolean;
 }) {
   const assigned = fmt(record.assignedAt);
@@ -124,12 +116,10 @@ function TimelineEntry({ record, isFirst, isLast }: {
 
   return (
     <div className="flex gap-3">
-      {/* Spine */}
       <div className="flex flex-col items-center">
         <div className="h-3 w-3 rounded-full mt-1 shrink-0 bg-muted-foreground/40" />
         {!isLast && <div className="w-px flex-1 bg-border mt-1" />}
       </div>
-      {/* Card */}
       <div className="mb-3 flex-1 rounded-lg border px-3 py-2.5 text-xs bg-muted/30">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
@@ -171,8 +161,6 @@ function TimelineEntry({ record, isFirst, isLast }: {
   );
 }
 
-// ─── HHID Group Card ──────────────────────────────────────────────────────────
-
 function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, members }: {
   hhid: string;
   records: MeterHistoryRecord[];
@@ -185,11 +173,7 @@ function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, m
 
   return (
     <div className="rounded-lg border bg-card overflow-hidden">
-
-      {/* Compact row */}
       <div className="flex items-center gap-3 px-3 py-2.5">
-
-        {/* HHID */}
         <div className="flex items-center gap-1.5 w-28 shrink-0">
           <Home className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           <code className="text-xs font-mono font-semibold">{hhid}</code>
@@ -197,7 +181,6 @@ function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, m
 
         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 
-        {/* Active meter + installed date */}
         {activeMeterId ? (
           <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
             <div className="relative flex h-2 w-2 shrink-0">
@@ -227,7 +210,6 @@ function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, m
           </div>
         )}
 
-        {/* History toggle */}
         {records.length > 0 && (
           <button
             onClick={() => setExpanded(e => !e)}
@@ -240,11 +222,8 @@ function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, m
         )}
       </div>
 
-      {/* Expanded section — members + timeline */}
       {expanded && (
         <div className="border-t bg-muted/20">
-
-          {/* Members */}
           {members.length > 0 && (
             <div className="px-3 pt-2.5 pb-2 border-b">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 font-medium">
@@ -263,7 +242,6 @@ function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, m
             </div>
           )}
 
-          {/* Timeline */}
           {records.length > 0 && (
             <div className="px-3 pt-2.5 pb-1.5">
               {records.map((r, i) => (
@@ -277,9 +255,7 @@ function HhidGroupCard({ hhid, records, activeMeterId, activeMeterInstalledAt, m
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default function MeterHistoryPage() {
+export function MeterHistoryView() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [tempFilters, setTempFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -321,12 +297,9 @@ export default function MeterHistoryPage() {
     } finally {
       setLoading(false); setRefreshing(false);
     }
-  }, [debouncedMeterId, debouncedHhid, filters.assigned_from, filters.assigned_to,
-    filters.decommissioned_from, filters.decommissioned_to, filters.page, filters.limit]);
+  }, [debouncedMeterId, debouncedHhid, filters]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-
 
   const handleApplyFilters = () => {
     setFilters({ ...tempFilters, page: 1 });
@@ -360,7 +333,7 @@ export default function MeterHistoryPage() {
   const grouped = groupByHhid(data);
 
   return (
-    <div className="p-4 space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Meter Assignment History"
         description="Active meters and full assignment timeline per household"
@@ -375,7 +348,6 @@ export default function MeterHistoryPage() {
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Quick search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Meter ID..." className="pl-9 h-9 w-36"
@@ -389,7 +361,6 @@ export default function MeterHistoryPage() {
                 onChange={(e) => setFilters(p => ({ ...p, hhid: e.target.value, page: 1 }))} />
             </div>
 
-            {/* View toggle */}
             <ButtonGroup>
               <Button size="sm" variant={viewMode === "grouped" ? "default" : "outline"}
                 onClick={() => setViewMode("grouped")} className="gap-1.5">
@@ -401,7 +372,6 @@ export default function MeterHistoryPage() {
               </Button>
             </ButtonGroup>
 
-            {/* Date filters */}
             <ButtonGroup>
               <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
                 <DialogTrigger asChild>
@@ -495,7 +465,6 @@ export default function MeterHistoryPage() {
         }
       />
 
-      {/* ── Content ── */}
       {loading ? (
         <div className="flex flex-col items-center justify-center h-64 gap-3">
           <Spinner className="h-8 w-8" />
@@ -514,7 +483,6 @@ export default function MeterHistoryPage() {
           </EmptyHeader>
         </Empty>
       ) : viewMode === "grouped" ? (
-        /* ── Grouped view ── */
         <div className="space-y-3">
           {Array.from(grouped.entries()).map(([hhid, records]) => (
             <HhidGroupCard
@@ -526,7 +494,6 @@ export default function MeterHistoryPage() {
               members={records[0]?.members ?? []}
             />
           ))}
-          {/* Pagination */}
           {total > 0 && (
             <div className="flex items-center justify-between pt-2">
               <p className="text-xs text-muted-foreground">
@@ -562,7 +529,6 @@ export default function MeterHistoryPage() {
           )}
         </div>
       ) : (
-        /* ── Table view ── */
         <div className="rounded-md border overflow-hidden shadow-sm">
           <div className="max-h-[70vh] overflow-y-auto">
             <table className="w-full text-xs">
@@ -666,3 +632,4 @@ export default function MeterHistoryPage() {
     </div>
   );
 }
+
